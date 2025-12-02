@@ -18,6 +18,7 @@ import { BillingService } from "@application/services/BillingService";
 import { IInvoiceRepository } from "@domain/repositories/IInvoiceRepository";
 import { IPatientRepository } from "@domain/entities/Patient";
 import { CreatePayOSPaymentLinkUseCase } from "@application/use-cases/CreatePayOSPaymentLinkUseCase";
+import { PayInvoiceWithWalletUseCase } from "@application/use-cases/PayInvoiceWithWalletUseCase";
 import { PaymentLinkCreatedEvent } from "@domain/events/PaymentLinkCreatedEvent";
 import { IEventBus } from "@shared/application/services/event-bus.interface";
 import { SupabaseStaffRepository } from "@infrastructure/repositories/SupabaseStaffRepository";
@@ -149,6 +150,7 @@ export class AppointmentEventConsumer {
     private createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
     private eventBus: IEventBus,
     private refundPaymentUseCase?: any, // Optional for now - will be typed properly later
+    private payInvoiceWithWalletUseCase?: PayInvoiceWithWalletUseCase,
   ) {}
 
   /**
@@ -866,6 +868,12 @@ export class AppointmentEventConsumer {
           invoiceId: feeInvoice.id,
           feeAmount: data.lateFeeAmount,
         });
+
+        await this.attemptWalletAutoPay(feeInvoice.id, patientUuid, {
+          context: "late_cancellation_fee",
+          appointmentId: data.appointmentId,
+          feeAmount: data.lateFeeAmount,
+        });
       }
     } catch (error) {
       this.loggerInstance.error("Failed to generate late cancellation fee", {
@@ -913,6 +921,13 @@ export class AppointmentEventConsumer {
           invoiceId: feeInvoice.id,
           feeAmount: data.noShowFeeAmount,
         });
+
+        await this.attemptWalletAutoPay(feeInvoice.id, patientUuid, {
+          context: "no_show_fee",
+          appointmentId: data.appointmentId,
+          feeAmount: data.noShowFeeAmount,
+          noShowCount: data.noShowCount,
+        });
       }
     } catch (error) {
       this.loggerInstance.error("Failed to generate no-show fee", {
@@ -956,7 +971,7 @@ export class AppointmentEventConsumer {
     const amount = Number(data.reschedulePolicy?.rescheduleAmount || 0);
 
     try {
-      await this.billingService.generateRescheduleFee({
+      const feeInvoice = await this.billingService.generateRescheduleFee({
         appointmentId: data.appointmentId,
         patientId: patientUuid,
         rescheduleAmount: amount,
@@ -966,6 +981,12 @@ export class AppointmentEventConsumer {
       this.loggerInstance.info("Reschedule fee invoice created", {
         appointmentId: data.appointmentId,
         amount,
+      });
+
+      await this.attemptWalletAutoPay(feeInvoice.id, patientUuid, {
+        context: "reschedule_fee",
+        appointmentId: data.appointmentId,
+        feeAmount: amount,
       });
     } catch (error) {
       this.loggerInstance.error("Failed to process reschedule fee", {
@@ -1186,6 +1207,56 @@ export class AppointmentEventConsumer {
         },
       );
       return null;
+    }
+  }
+
+  /**
+   * Attempt wallet auto-payment for generated invoices
+   */
+  private async attemptWalletAutoPay(
+    invoiceId: string,
+    patientId: string,
+    metadata?: Record<string, any>,
+  ): Promise<boolean> {
+    if (!this.payInvoiceWithWalletUseCase) {
+      return false;
+    }
+
+    try {
+      const result = await this.payInvoiceWithWalletUseCase.execute({
+        invoiceId,
+        patientId,
+        initiatedBy: "billing-service",
+        description: metadata?.context
+          ? `Auto charge for ${metadata.context.replace(/_/g, " ")}`
+          : "Auto charge wallet",
+      });
+
+      if (result.success) {
+        this.loggerInstance.info("Wallet auto-pay completed", {
+          invoiceId,
+          patientId,
+          metadata,
+        });
+        return true;
+      }
+
+      this.loggerInstance.warn("Wallet auto-pay skipped", {
+        invoiceId,
+        patientId,
+        metadata,
+        message: result.message,
+        errors: result.errors,
+      });
+      return false;
+    } catch (error) {
+      this.loggerInstance.error("Wallet auto-pay error", {
+        invoiceId,
+        patientId,
+        metadata,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return false;
     }
   }
 

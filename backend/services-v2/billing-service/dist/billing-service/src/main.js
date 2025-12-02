@@ -174,7 +174,8 @@ class BillingServiceApp {
             retryDelayMs: 1000,
         }, logger_1.logger, this.billingService, this.invoiceRepository, this.patientRepository, this.staffRepository, this.createPaymentLinkUseCase, // Inject payment link use case for automatic payment link creation
         this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
-        this.refundPaymentUseCase);
+        this.refundPaymentUseCase, // Inject RefundPaymentUseCase for processing refunds
+        this.payInvoiceWithWalletUseCase);
         // Initialize Clinical Event Consumer (Feature Flag)
         // Phase 1: Disabled by default - only prepaid appointment billing is in scope
         // Set ENABLE_CLINICAL_CONSUMER=true to enable post-service billing features

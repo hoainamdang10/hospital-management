@@ -33,6 +33,7 @@
     "generate:types:notifications": "openapi-typescript http://localhost:3031/api-docs/json -o types/api/notifications-service.ts"
   },
   "dependencies": {
+    "@google/genai": "^1.30.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-avatar": "^1.1.1",

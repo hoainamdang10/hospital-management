@@ -16,6 +16,7 @@ import { BillingService } from "../../application/services/BillingService";
 import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
 import { IPatientRepository } from "../../domain/entities/Patient";
 import { CreatePayOSPaymentLinkUseCase } from "../../application/use-cases/CreatePayOSPaymentLinkUseCase";
+import { PayInvoiceWithWalletUseCase } from "../../application/use-cases/PayInvoiceWithWalletUseCase";
 import { IEventBus } from "../../../../shared/application/services/event-bus.interface";
 import { SupabaseStaffRepository } from "../repositories/SupabaseStaffRepository";
 export interface AppointmentEventConsumerConfig {
@@ -120,11 +121,13 @@ export declare class AppointmentEventConsumer {
     private createPayOSPaymentLinkUseCase;
     private eventBus;
     private refundPaymentUseCase?;
+    private payInvoiceWithWalletUseCase?;
     private connection?;
     private channel?;
     private isConnected;
     private patientIdCache;
-    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, staffRepository: SupabaseStaffRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus, refundPaymentUseCase?: any | undefined);
+    constructor(config: AppointmentEventConsumerConfig, loggerInstance: typeof logger, billingService: BillingService, invoiceRepository: IInvoiceRepository, patientRepository: IPatientRepository, staffRepository: SupabaseStaffRepository, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, eventBus: IEventBus, refundPaymentUseCase?: any | undefined, // Optional for now - will be typed properly later
+    payInvoiceWithWalletUseCase?: PayInvoiceWithWalletUseCase | undefined);
     /**
      * Connect to RabbitMQ and start consuming
      */
@@ -188,6 +191,10 @@ export declare class AppointmentEventConsumer {
      * Resolve canonical patient UUID for downstream billing operations.
      */
     private resolvePatientUuidForEvent;
+    /**
+     * Attempt wallet auto-payment for generated invoices
+     */
+    private attemptWalletAutoPay;
     private cachePatientIdentifier;
     private isUUID;
     /**

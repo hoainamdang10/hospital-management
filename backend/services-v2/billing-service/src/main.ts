@@ -343,6 +343,7 @@ class BillingServiceApp {
       this.createPaymentLinkUseCase, // Inject payment link use case for automatic payment link creation
       this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
       this.refundPaymentUseCase, // Inject RefundPaymentUseCase for processing refunds
+      this.payInvoiceWithWalletUseCase,
     );
 
     // Initialize Clinical Event Consumer (Feature Flag)

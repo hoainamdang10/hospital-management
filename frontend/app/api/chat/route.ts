@@ -156,39 +156,40 @@ async function handleFunctionCall(
     try {
         switch (name) {
             case 'searchAvailableDoctors': {
-                // Gọi API để tìm bác sĩ
                 const { department } = args;
-                // date và timePreference sẽ được sử dụng trong phiên bản nâng cao
-                // const { date, timePreference } = args;
 
-                // Tìm department ID nếu có tên department
-                let departmentId = null;
+                let searchTerm = null;
                 if (department) {
                     const deptResponse = await fetch(`${baseUrl}/api/v1/departments`);
-                    const departments = await deptResponse.json();
+                    const deptData = await deptResponse.json();
+                    const departments = Array.isArray(deptData) ? deptData : (deptData.data || []);
+
                     const dept = departments.find((d: any) =>
-                        d.name.toLowerCase().includes(department.toLowerCase())
+                        (d.nameEn && d.nameEn.toLowerCase().includes(department.toLowerCase())) ||
+                        (d.nameVi && d.nameVi.toLowerCase().includes(department.toLowerCase()))
                     );
-                    departmentId = dept?.id;
+
+                    // Use department English name for better search results
+                    searchTerm = dept?.nameEn || department;
                 }
 
-                // Tìm bác sĩ available (sử dụng đúng API v1)
-                const staffUrl = new URL(`${baseUrl}/api/v1/staff`);
-                if (departmentId) staffUrl.searchParams.set('departmentId', departmentId);
-                staffUrl.searchParams.set('staffType', 'doctor');  // Backend expects 'staffType', not 'role'
-                staffUrl.searchParams.set('status', 'active');       // Only active doctors
-                staffUrl.searchParams.set('limit', '10');             // Limit results
+                const staffUrl = new URL(`${baseUrl}/api/v1/staff/search`);
+                if (searchTerm) {
+                    staffUrl.searchParams.set('searchTerm', searchTerm);
+                }
+                staffUrl.searchParams.set('staffType', 'doctor');
+                staffUrl.searchParams.set('status', 'active');
+                staffUrl.searchParams.set('limit', '5');
 
                 const staffResponse = await fetch(staffUrl.toString());
                 const staffData = await staffResponse.json();
 
-                // Handle paginated response
+                // FIX: Handle { data: [...] } response
                 const doctors = Array.isArray(staffData) ? staffData : (staffData.data || []);
 
-                // TODO: Lọc theo date và timePreference khi có API hỗ trợ
                 return {
                     success: true,
-                    doctors: doctors.slice(0, 5).map((doc: any) => ({
+                    doctors: doctors.map((doc: any) => ({
                         id: doc.id || doc.staffId,
                         name: `${doc.firstName || doc.first_name || ''} ${doc.lastName || doc.last_name || ''}`.trim(),
                         department: doc.department?.name || doc.departmentName || 'N/A',
@@ -202,9 +203,10 @@ async function handleFunctionCall(
             case 'getAvailableSlots': {
                 const { doctorId, date } = args;
 
-                // Gọi API lấy available slots (sử dụng API v2)
+                // Note: This endpoint might require auth. 
+                // If it fails, the chatbot will report the error.
                 const response = await fetch(
-                    `${baseUrl}/api/v2/appointments/available-slots?providerId=${doctorId}&date=${date}`
+                    `${baseUrl}/api/v2/appointments/providers/${doctorId}/available-slots?date=${date}`
                 );
                 const slots = await response.json();
 
@@ -231,7 +233,6 @@ async function handleFunctionCall(
 
                 const { doctorId, slotId, reason, notes } = args;
 
-                // Gọi API tạo appointment (sử dụng API v2)
                 const response = await fetch(`${baseUrl}/api/v2/appointments`, {
                     method: 'POST',
                     headers: {
@@ -278,26 +279,31 @@ async function handleFunctionCall(
                 }
 
                 const response = await fetch(url.toString());
-                const appointments = await response.json();
+                const data = await response.json();
+                // FIX: Handle { data: [...] } response
+                const appointments = Array.isArray(data) ? data : (data.data || []);
 
                 return {
                     success: true,
-                    appointments: Array.isArray(appointments) ? appointments : (appointments.data || []),
-                    count: Array.isArray(appointments) ? appointments.length : (appointments.data?.length || 0),
+                    appointments: appointments,
+                    count: appointments.length,
                 };
             }
 
             case 'getDepartments': {
                 const response = await fetch(`${baseUrl}/api/v1/departments`);
-                const departments = await response.json();
+                const data = await response.json();
+                // FIX: Handle { data: [...] } response
+                const departments = Array.isArray(data) ? data : (data.data || []);
 
                 return {
                     success: true,
-                    departments: Array.isArray(departments) ? departments.map((dept: any) => ({
+                    departments: departments.map((dept: any) => ({
                         id: dept.id,
-                        name: dept.name,
+                        name: dept.nameEn,
+                        nameVi: dept.nameVi,
                         description: dept.description,
-                    })) : [],
+                    })),
                 };
             }
 
@@ -339,9 +345,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Initialize model với function calling
-        // Using most stable Gemini model for compatibility
+        // Gemini 2.5 Flash - Best for function calling & chatbots
         const model = genAI.getGenerativeModel({
-            model: 'gemini-1.0-pro', // Most stable, guaranteed to work
+            model: 'gemini-2.5-flash', // Newest stable model with function calling
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 1000,

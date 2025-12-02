@@ -1,15 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Calendar,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Loader2,
+  AlertCircle,
+  Wallet,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallet } from '@/hooks/useWallet';
 import { getDepartments, Department } from '@/lib/api/departments.service';
 import { getDoctorsByDepartment, Staff } from '@/lib/api/staff.service';
 import { getAvailableSlots, TimeSlot } from '@/lib/api/availability.service';
 import { appointmentsService } from '@/lib/api/appointments.service';
+import { billingService } from '@/modules/billing/services/billing.service';
 import { DepartmentSelector } from '@/components/appointments/DepartmentSelector';
 import { DoctorSelector } from '@/components/appointments/DoctorSelector';
 import { DateTimePicker } from '@/components/appointments/DateTimePicker';
@@ -17,6 +27,7 @@ import { ConfirmationStep } from '@/components/appointments/ConfirmationStep';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
+import { cn, formatCurrency } from '@/lib/utils';
 
 /**
  * Book Appointment Page - 5 Steps
@@ -42,6 +53,35 @@ type ConflictInfo = {
 export default function BookAppointmentPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const walletPatientId = user?.internalPatientId || user?.patientId || user?.id || null;
+  const {
+    account: walletAccount,
+    isLoading: isWalletLoading,
+    error: walletError,
+    reload: reloadWallet,
+  } = useWallet(walletPatientId);
+  const waitForInvoiceId = useCallback(
+    async (appointmentId: string, attempts = 6, delayMs = 800) => {
+      if (!walletPatientId) return null;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+          const invoices = await billingService.getPatientInvoices(walletPatientId);
+          const targetInvoice = invoices.find((invoice) => invoice.appointmentId === appointmentId);
+          if (targetInvoice) {
+            return targetInvoice.id;
+          }
+        } catch (error) {
+          console.error(
+            '[BookAppointment] Failed to fetch invoices while waiting for invoiceId:',
+            error
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      return null;
+    },
+    [walletPatientId]
+  );
 
   // Steps
   const [step, setStep] = useState(1);
@@ -68,6 +108,7 @@ export default function BookAppointmentPage() {
   const [appointmentType, setAppointmentType] = useState<'CONSULTATION' | 'FOLLOW_UP'>(
     'CONSULTATION'
   );
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'wallet'>('online');
 
   // Submission
   const [submitting, setSubmitting] = useState(false);
@@ -143,6 +184,8 @@ export default function BookAppointmentPage() {
     }
   }
 
+  const consultationFee = selectedDoctor?.consultationFee || 0;
+
   async function handleSubmit() {
     console.log('[BookAppointment] handleSubmit called', {
       user,
@@ -186,7 +229,41 @@ export default function BookAppointmentPage() {
 
       toast.success('Đặt lịch thành công!');
 
-      // Redirect to payment pending page with payment link info
+      const wantsWalletPayment = paymentMethod === 'wallet';
+      if (wantsWalletPayment) {
+        let targetInvoiceId = response.invoiceId;
+        if (!targetInvoiceId) {
+          toast.loading('Đang tìm hóa đơn để trừ ví...', { id: 'wallet-invoice-wait' });
+          targetInvoiceId = await waitForInvoiceId(response.appointmentId);
+          toast.dismiss('wallet-invoice-wait');
+        }
+
+        if (!walletAccount) {
+          toast.error('Không tìm thấy thông tin ví. Vui lòng chọn phương thức khác.');
+        } else if (walletAccount.balance < consultationFee) {
+          toast.error('Số dư ví không đủ để thanh toán lịch hẹn này.');
+        } else if (!targetInvoiceId) {
+          toast.error('Không tìm thấy hóa đơn để trừ ví. Vui lòng thanh toán trực tuyến.');
+        } else {
+          try {
+            await billingService.payInvoiceWithWallet(targetInvoiceId, {
+              description: `Thanh toán lịch hẹn ${response.appointmentId} bằng ví`,
+            });
+            toast.success('Đã thanh toán bằng ví. Lịch hẹn được xác nhận.');
+            await reloadWallet?.();
+            router.push(`/patient/appointments/${response.appointmentId}`);
+            return;
+          } catch (walletPaymentError) {
+            console.error('Wallet payment failed:', walletPaymentError);
+            const message =
+              (walletPaymentError as any)?.response?.data?.message ||
+              (walletPaymentError as Error)?.message ||
+              'Thanh toán ví thất bại. Vui lòng thử lại hoặc chọn phương thức khác.';
+            toast.error(message);
+          }
+        }
+      }
+
       const params = new URLSearchParams({
         appointmentId: response.appointmentId,
       });
@@ -422,6 +499,14 @@ export default function BookAppointmentPage() {
                 onReasonChange={setReason}
                 onTypeChange={setAppointmentType}
               />
+              <PaymentMethodSelector
+                walletAccount={walletAccount}
+                isWalletLoading={isWalletLoading}
+                walletError={walletError}
+                selectedMethod={paymentMethod}
+                onSelect={setPaymentMethod}
+                consultationFee={consultationFee}
+              />
               <div className="flex justify-between pt-6">
                 <Button variant="outline" onClick={handleBack} disabled={submitting}>
                   <ChevronLeft className="mr-2 h-4 w-4" />
@@ -464,12 +549,13 @@ function StepIndicator({
   return (
     <div className="flex flex-col items-center">
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all ${active
+        className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-all ${
+          active
             ? 'border-primary bg-primary scale-110 text-white'
             : completed
               ? 'border-primary bg-primary text-white'
               : 'border-gray-300 bg-white text-gray-500'
-          }`}
+        }`}
       >
         {completed ? <Check className="h-5 w-5" /> : number}
       </div>
@@ -477,5 +563,123 @@ function StepIndicator({
         {title}
       </span>
     </div>
+  );
+}
+
+interface PaymentMethodSelectorProps {
+  walletAccount: { balance: number; currency: string } | null;
+  isWalletLoading: boolean;
+  walletError: string | null;
+  selectedMethod: 'online' | 'wallet';
+  onSelect: (method: 'online' | 'wallet') => void;
+  consultationFee: number;
+}
+
+function PaymentMethodSelector({
+  walletAccount,
+  isWalletLoading,
+  walletError,
+  selectedMethod,
+  onSelect,
+  consultationFee,
+}: PaymentMethodSelectorProps) {
+  const walletBalance = walletAccount?.balance ?? 0;
+  const walletCurrency = walletAccount?.currency ?? 'VND';
+  const walletDisabled =
+    Boolean(walletError) || isWalletLoading || walletBalance < consultationFee || !walletAccount;
+
+  return (
+    <div className="mt-8 rounded-2xl border bg-gray-50/60 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-700">Phương thức thanh toán</p>
+          <p className="text-sm text-gray-500">Chọn cách bạn muốn thanh toán cho lịch hẹn này</p>
+        </div>
+        {consultationFee > 0 && (
+          <div className="text-right text-sm text-gray-600">
+            Phí khám dự kiến:{' '}
+            <span className="font-semibold text-gray-900">{formatCurrency(consultationFee)}</span>
+          </div>
+        )}
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <PaymentMethodOption
+          title="Thanh toán trực tuyến"
+          description="Thanh toán qua PayOS/VNPAY. Nhận liên kết thanh toán ngay sau khi đặt lịch."
+          selected={selectedMethod === 'online'}
+          onClick={() => onSelect('online')}
+          icon={<Calendar className="h-5 w-5 text-blue-500" />}
+        />
+        <PaymentMethodOption
+          title="Dùng số dư ví"
+          description={
+            walletAccount
+              ? `Số dư hiện tại: ${formatCurrency(walletBalance)} (${walletCurrency})`
+              : 'Yêu cầu tài khoản ví đang hoạt động'
+          }
+          selected={selectedMethod === 'wallet'}
+          onClick={() => !walletDisabled && onSelect('wallet')}
+          disabled={walletDisabled}
+          icon={<Wallet className="h-5 w-5 text-emerald-500" />}
+          extraInfo={
+            !walletAccount
+              ? 'Không tìm thấy ví'
+              : walletBalance < consultationFee
+                ? 'Số dư không đủ'
+                : undefined
+          }
+        />
+      </div>
+      {walletError && (
+        <p className="mt-3 text-sm text-red-600">
+          Không thể tải thông tin ví: {walletError}. Bạn có thể chọn thanh toán trực tuyến thay thế.
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface PaymentMethodOptionProps {
+  title: string;
+  description: string;
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  extraInfo?: string;
+}
+
+function PaymentMethodOption({
+  title,
+  description,
+  selected,
+  disabled,
+  onClick,
+  icon,
+  extraInfo,
+}: PaymentMethodOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'flex h-full flex-col rounded-xl border p-4 text-left transition focus:outline-none',
+        selected ? 'border-blue-500 bg-white shadow-sm' : 'border-gray-200 bg-white',
+        disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-blue-300'
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div className="rounded-full bg-gray-100 p-2">{icon}</div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">{title}</p>
+          <p className="text-xs text-gray-500">{description}</p>
+        </div>
+      </div>
+      {extraInfo && <p className="mt-3 text-xs font-medium text-red-500">{extraInfo}</p>}
+      <div className="mt-auto pt-4 text-sm font-medium text-gray-600">
+        {selected ? 'Đang chọn' : disabled ? 'Không khả dụng' : 'Chọn phương thức này'}
+      </div>
+    </button>
   );
 }

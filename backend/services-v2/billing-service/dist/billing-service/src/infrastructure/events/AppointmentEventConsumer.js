@@ -19,7 +19,8 @@ const PaymentLinkCreatedEvent_1 = require("../../domain/events/PaymentLinkCreate
  * AppointmentEventConsumer - Handles appointment lifecycle events for billing
  */
 class AppointmentEventConsumer {
-    constructor(config, loggerInstance, billingService, invoiceRepository, patientRepository, staffRepository, createPayOSPaymentLinkUseCase, eventBus, refundPaymentUseCase) {
+    constructor(config, loggerInstance, billingService, invoiceRepository, patientRepository, staffRepository, createPayOSPaymentLinkUseCase, eventBus, refundPaymentUseCase, // Optional for now - will be typed properly later
+    payInvoiceWithWalletUseCase) {
         this.config = config;
         this.loggerInstance = loggerInstance;
         this.billingService = billingService;
@@ -29,6 +30,7 @@ class AppointmentEventConsumer {
         this.createPayOSPaymentLinkUseCase = createPayOSPaymentLinkUseCase;
         this.eventBus = eventBus;
         this.refundPaymentUseCase = refundPaymentUseCase;
+        this.payInvoiceWithWalletUseCase = payInvoiceWithWalletUseCase;
         this.isConnected = false;
         this.patientIdCache = new Map();
     }
@@ -560,6 +562,11 @@ class AppointmentEventConsumer {
                     invoiceId: feeInvoice.id,
                     feeAmount: data.lateFeeAmount,
                 });
+                await this.attemptWalletAutoPay(feeInvoice.id, patientUuid, {
+                    context: "late_cancellation_fee",
+                    appointmentId: data.appointmentId,
+                    feeAmount: data.lateFeeAmount,
+                });
             }
         }
         catch (error) {
@@ -599,6 +606,12 @@ class AppointmentEventConsumer {
                     invoiceId: feeInvoice.id,
                     feeAmount: data.noShowFeeAmount,
                 });
+                await this.attemptWalletAutoPay(feeInvoice.id, patientUuid, {
+                    context: "no_show_fee",
+                    appointmentId: data.appointmentId,
+                    feeAmount: data.noShowFeeAmount,
+                    noShowCount: data.noShowCount,
+                });
             }
         }
         catch (error) {
@@ -631,7 +644,7 @@ class AppointmentEventConsumer {
         }
         const amount = Number(data.reschedulePolicy?.rescheduleAmount || 0);
         try {
-            await this.billingService.generateRescheduleFee({
+            const feeInvoice = await this.billingService.generateRescheduleFee({
                 appointmentId: data.appointmentId,
                 patientId: patientUuid,
                 rescheduleAmount: amount,
@@ -640,6 +653,11 @@ class AppointmentEventConsumer {
             this.loggerInstance.info("Reschedule fee invoice created", {
                 appointmentId: data.appointmentId,
                 amount,
+            });
+            await this.attemptWalletAutoPay(feeInvoice.id, patientUuid, {
+                context: "reschedule_fee",
+                appointmentId: data.appointmentId,
+                feeAmount: amount,
             });
         }
         catch (error) {
@@ -814,6 +832,49 @@ class AppointmentEventConsumer {
                 error: error instanceof Error ? error.message : "Unknown error",
             });
             return null;
+        }
+    }
+    /**
+     * Attempt wallet auto-payment for generated invoices
+     */
+    async attemptWalletAutoPay(invoiceId, patientId, metadata) {
+        if (!this.payInvoiceWithWalletUseCase) {
+            return false;
+        }
+        try {
+            const result = await this.payInvoiceWithWalletUseCase.execute({
+                invoiceId,
+                patientId,
+                initiatedBy: "billing-service",
+                description: metadata?.context
+                    ? `Auto charge for ${metadata.context.replace(/_/g, " ")}`
+                    : "Auto charge wallet",
+            });
+            if (result.success) {
+                this.loggerInstance.info("Wallet auto-pay completed", {
+                    invoiceId,
+                    patientId,
+                    metadata,
+                });
+                return true;
+            }
+            this.loggerInstance.warn("Wallet auto-pay skipped", {
+                invoiceId,
+                patientId,
+                metadata,
+                message: result.message,
+                errors: result.errors,
+            });
+            return false;
+        }
+        catch (error) {
+            this.loggerInstance.error("Wallet auto-pay error", {
+                invoiceId,
+                patientId,
+                metadata,
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            return false;
         }
     }
     cachePatientIdentifier(identifier, resolvedUuid) {
