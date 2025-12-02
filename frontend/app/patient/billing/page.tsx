@@ -1436,7 +1436,8 @@ function getInvoiceTitle(invoice: Invoice) {
 function getPrimaryServiceName(invoice: Invoice) {
   const meta = invoice.metadata || {};
   if (meta.serviceDescription) {
-    return meta.serviceDescription;
+    const formatted = tryFormatServiceDescription(meta.serviceDescription);
+    return formatted || meta.serviceDescription;
   }
   if (meta.serviceName) {
     return meta.serviceName;
@@ -1448,6 +1449,21 @@ function getPrimaryServiceName(invoice: Invoice) {
     return meta.description;
   }
   return 'Dịch vụ y tế';
+}
+
+function tryFormatServiceDescription(description: string): string | null {
+  if (!description) return null;
+  const isoMatch = description.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/);
+  if (isoMatch) {
+    const parsed = new Date(isoMatch[0]);
+    if (!isNaN(parsed.getTime())) {
+      const formatted = formatAppointmentDateTimeDisplay(parsed);
+      if (formatted) {
+        return description.replace(isoMatch[0], formatted);
+      }
+    }
+  }
+  return null;
 }
 
 function isPendingStatus(status: Invoice['status']) {

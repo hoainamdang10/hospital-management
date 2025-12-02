@@ -256,6 +256,7 @@ class BillingService {
       ...invoice,
       id: normalizedId.toString(),
       metadata: invoice?.metadata || invoice?.meta || {},
+      items: invoice?.items || [],
       invoiceNumber:
         invoice?.invoiceNumber ||
         invoice?.invoice_number ||
