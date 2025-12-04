@@ -32,12 +32,17 @@ export class AuthenticationMiddleware {
   private readonly logger: ILogger;
   private readonly skipPaths: string[];
   private readonly bypassAuth: boolean;
+  private readonly internalToken?: string;
 
   constructor(config: AuthenticationMiddlewareConfig) {
     this.identityServiceUrl = config.identityServiceUrl;
     this.logger = config.logger;
     this.skipPaths = config.skipPaths || ["/health", "/api-docs"];
     this.bypassAuth = process.env.BYPASS_AUTH === "true";
+    this.internalToken =
+      process.env.INTERNAL_SERVICE_TOKEN ||
+      process.env.BILLING_INTERNAL_TOKEN ||
+      process.env.INTERNAL_TOKEN;
   }
 
   public authenticate = async (
@@ -57,6 +62,17 @@ export class AuthenticationMiddleware {
           userId: "dev-user-id",
           email: "dev@example.com",
           roles: ["ADMIN"],
+          permissions: ["*"],
+        };
+        return next();
+      }
+
+      // Allow trusted internal calls (service-to-service) using internal token
+      if (this.isInternalCall(req)) {
+        req.authenticatedUser = {
+          userId: "internal-service",
+          email: "internal@billing.local",
+          roles: ["SERVICE"],
           permissions: ["*"],
         };
         return next();
@@ -163,5 +179,19 @@ export class AuthenticationMiddleware {
       .split(",")
       .map((value) => value.trim())
       .filter((value) => value.length > 0);
+  }
+
+  /**
+   * Internal service-to-service access via shared token.
+   * Accepted headers: x-internal-token
+   */
+  private isInternalCall(req: Request): boolean {
+    if (!this.internalToken) {
+      return false;
+    }
+    const token =
+      this.getHeaderValue(req, "x-internal-token") ||
+      this.getHeaderValue(req, "x-service-token");
+    return token === this.internalToken;
   }
 }

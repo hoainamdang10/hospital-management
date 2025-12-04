@@ -358,53 +358,21 @@ function getMenuItemsByRole(role: string): MenuItem[] {
           label: 'Quản lý bệnh nhân',
           href: ROUTES.ADMIN_PATIENTS,
           icon: Users,
-          submenu: [
-            { label: 'Danh sách bệnh nhân', href: ROUTES.ADMIN_PATIENTS, icon: Users },
-            { label: 'Thêm bệnh nhân', href: '/admin/patients/add', icon: Users },
-            { label: 'Hồ sơ bệnh án', href: '/admin/patients/records', icon: FileText },
-            { label: 'Báo cáo bệnh nhân', href: '/admin/patients/reports', icon: ClipboardList },
-          ],
         },
         {
           label: 'Quản lý lịch hẹn',
           href: '/admin/appointments',
           icon: Calendar,
-          submenu: [
-            { label: 'Tất cả lịch hẹn', href: '/admin/appointments', icon: Calendar },
-            { label: 'Tạo lịch hẹn', href: '/admin/appointments/add', icon: Calendar },
-            { label: 'Xem lịch', href: '/admin/appointments/calendar', icon: Calendar },
-            { label: 'Yêu cầu lịch hẹn', href: '/admin/appointments/requests', icon: ClipboardList },
-          ],
         },
         {
           label: 'Quản lý khoa',
           href: '/admin/departments',
           icon: Activity,
-          submenu: [
-            { label: 'Danh sách khoa', href: '/admin/departments', icon: Activity },
-            { label: 'Thêm khoa', href: '/admin/departments/add', icon: Activity },
-            { label: 'Phòng ban', href: '/admin/departments/rooms', icon: FileText },
-          ],
         },
         {
           label: 'Quản lý nhân viên',
           href: ROUTES.ADMIN_STAFF,
           icon: UserCog,
-          submenu: [
-            { label: 'Danh sách nhân viên', href: ROUTES.ADMIN_STAFF, icon: UserCog },
-            { label: 'Thêm nhân viên', href: '/admin/staff/add', icon: UserCog },
-            { label: 'Phân quyền', href: '/admin/roles', icon: UserCog },
-          ],
-        },
-        {
-          label: 'Quản lý người dùng',
-          href: ROUTES.ADMIN_USERS,
-          icon: Users,
-          submenu: [
-            { label: 'Danh sách người dùng', href: ROUTES.ADMIN_USERS, icon: Users },
-            { label: 'Thêm người dùng', href: '/admin/users/add', icon: Users },
-            { label: 'Nhật ký hoạt động', href: ROUTES.ADMIN_AUDIT_LOGS, icon: ClipboardList },
-          ],
         },
         {
           label: 'Báo cáo tài chính',
@@ -413,8 +381,12 @@ function getMenuItemsByRole(role: string): MenuItem[] {
           submenu: [
             { label: 'Tổng quan tài chính', href: ROUTES.ADMIN_BILLING_REPORTS, icon: DollarSign },
             { label: 'Hóa đơn', href: ROUTES.ADMIN_INVOICES, icon: FileText },
-            { label: 'Thanh toán', href: '/admin/billing/payments', icon: CreditCard },
           ],
+        },
+        {
+          label: 'Nhật ký hoạt động',
+          href: ROUTES.ADMIN_AUDIT_LOGS,
+          icon: ClipboardList,
         },
       ];
 

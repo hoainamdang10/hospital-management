@@ -316,7 +316,8 @@ function setupDependencies(container) {
         const notificationService = container.resolve(exports.ServiceTokens.NOTIFICATION_APPLICATION_SERVICE);
         const inboxRepo = container.resolve(exports.ServiceTokens.INBOX_REPOSITORY);
         const sendUseCase = container.resolve(exports.ServiceTokens.SEND_NOTIFICATION_USE_CASE);
-        return new NotificationEventHandlers_1.NotificationEventHandlers(notificationService, inboxRepo, sendUseCase);
+        const preferencesRepo = container.resolve(exports.ServiceTokens.PREFERENCES_REPOSITORY);
+        return new NotificationEventHandlers_1.NotificationEventHandlers(notificationService, inboxRepo, sendUseCase, preferencesRepo);
     }, container_1.ServiceLifetime.SINGLETON);
     // Register Event Consumers
     container.registerFactory(exports.ServiceTokens.APPOINTMENT_EVENT_CONSUMER, (container) => {

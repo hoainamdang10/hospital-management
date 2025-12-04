@@ -57,6 +57,7 @@ export declare class BillingServiceClient {
     private readonly client;
     private readonly retryAttempts;
     private readonly retryDelay;
+    private readonly internalToken?;
     constructor(config: BillingServiceClientConfig);
     /**
      * Setup request/response interceptors

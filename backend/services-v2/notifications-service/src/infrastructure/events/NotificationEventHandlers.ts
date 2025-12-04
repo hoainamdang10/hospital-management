@@ -40,6 +40,7 @@ import {
   SendNotificationUseCase,
 } from "../../application/use-cases/SendNotificationUseCase";
 import { normalizePriority } from "../../domain/services/priority-normalizer";
+import { SupabasePreferencesRepository } from "../persistence/SupabasePreferencesRepository";
 
 export interface DomainEvent {
   eventId: string;
@@ -114,6 +115,7 @@ export class NotificationEventHandlers {
     private readonly notificationService: NotificationApplicationService,
     private readonly inboxRepo: IInboxRepository,
     private readonly sendNotificationUseCase: SendNotificationUseCase,
+    private readonly preferencesRepository: SupabasePreferencesRepository,
   ) {}
 
   /**
@@ -875,6 +877,19 @@ export class NotificationEventHandlers {
           },
         },
       });
+
+      const preferredChannels = this.mapPreferredChannels(
+        contactInfo?.preferredContactMethod,
+      );
+
+      await this.syncPatientPreferences(patientId, {
+        email,
+        phoneNumber:
+          contactInfo?.primaryPhone ||
+          contactInfo?.phoneNumber ||
+          contactInfo?.secondaryPhone,
+        preferredChannels,
+      });
     } catch (error) {
       console.error("Lỗi khi xử lý sự kiện patient registered:", error);
       throw new Error(
@@ -888,7 +903,8 @@ export class NotificationEventHandlers {
    */
   public async handlePatientUpdated(event: IntegrationEvent): Promise<void> {
     try {
-      const { patientId, personalInfo, updateType } = event.eventData;
+      const { patientId, personalInfo, updateType, contactInfo } =
+        event.eventData;
       const { firstName, lastName } = personalInfo || {};
 
       // Only send notification for significant updates
@@ -917,6 +933,13 @@ export class NotificationEventHandlers {
               patientId,
             },
           },
+        });
+      }
+
+      if (contactInfo) {
+        await this.syncPatientPreferences(patientId, {
+          email: contactInfo.email,
+          phoneNumber: contactInfo.phoneNumber,
         });
       }
     } catch (error) {
@@ -970,6 +993,57 @@ export class NotificationEventHandlers {
     }
   }
 
+  /**
+   * Sync patient contact info into notification preferences
+   */
+  private async syncPatientPreferences(
+    patientId: string,
+    payload: {
+      email?: string | null;
+      phoneNumber?: string | null;
+      preferredChannels?: Array<"EMAIL" | "SMS">;
+    },
+  ): Promise<void> {
+    if (!patientId) {
+      return;
+    }
+
+    try {
+      await this.preferencesRepository.syncContactInfo({
+        userId: patientId,
+        recipientType: "PATIENT",
+        email: payload.email,
+        phoneNumber: payload.phoneNumber,
+        preferredChannels: payload.preferredChannels,
+      });
+    } catch (error) {
+      console.error(
+        "[NotificationEventHandlers] Failed to sync patient contact info",
+        {
+          patientId,
+          error: error instanceof Error ? error.message : error,
+        },
+      );
+    }
+  }
+
+  private mapPreferredChannels(
+    method?: "phone" | "email" | "sms",
+  ): Array<"EMAIL" | "SMS"> | undefined {
+    if (!method) {
+      return undefined;
+    }
+
+    switch (method) {
+      case "email":
+        return ["EMAIL"];
+      case "sms":
+      case "phone":
+        return ["SMS"];
+      default:
+        return undefined;
+    }
+  }
   /**
    * Handle patient consent granted event from Patient Registry Service
    */

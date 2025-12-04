@@ -452,11 +452,15 @@ export function setupDependencies(container: DIContainer): void {
       const sendUseCase = container.resolve(
         ServiceTokens.SEND_NOTIFICATION_USE_CASE,
       );
+      const preferencesRepo = container.resolve(
+        ServiceTokens.PREFERENCES_REPOSITORY,
+      );
 
       return new NotificationEventHandlers(
         notificationService,
         inboxRepo,
         sendUseCase,
+        preferencesRepo,
       );
     },
     ServiceLifetime.SINGLETON, // FIX: Changed from SCOPED - event handlers should be singleton

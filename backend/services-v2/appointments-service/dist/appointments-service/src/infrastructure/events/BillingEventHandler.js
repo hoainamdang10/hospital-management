@@ -11,7 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BillingEventHandler = void 0;
 const Logger_1 = require("../logging/Logger");
 const Appointment_aggregate_1 = require("../../domain/aggregates/Appointment.aggregate");
-const logger = (0, Logger_1.createLogger)('BillingEventHandler');
+const logger = (0, Logger_1.createLogger)("BillingEventHandler");
 /**
  * Billing Event Handler
  * Subscribes to billing.payment.completed and confirms appointments
@@ -44,18 +44,18 @@ class BillingEventHandler {
      */
     async handlePaymentProcessed(data) {
         const { appointmentId, paymentId, amount, method, processedAt } = data;
-        logger.info('[BillingEventHandler] Payment processed event received', {
+        logger.info("[BillingEventHandler] Payment processed event received", {
             appointmentId,
             paymentId,
             amount,
             method,
-            processedAt
+            processedAt,
         });
         // ===== GUARD 1: Validate appointmentId exists =====
         if (!appointmentId) {
-            logger.warn('[BillingEventHandler] No appointmentId in payment event - skipping', {
+            logger.warn("[BillingEventHandler] No appointmentId in payment event - skipping", {
                 paymentId,
-                invoiceId: data.invoiceId
+                invoiceId: data.invoiceId,
             });
             return; // Not all payments are appointment-related
         }
@@ -63,33 +63,37 @@ class BillingEventHandler {
         const appointment = await this.appointmentRepository.findByIdString(appointmentId);
         if (!appointment) {
             const errorMsg = `Appointment ${appointmentId} not found for payment ${paymentId}. ` +
-                'This indicates data inconsistency between Billing and Appointments services.';
-            logger.error('[BillingEventHandler] Appointment not found', new Error(errorMsg), {
+                "This indicates data inconsistency between Billing and Appointments services.";
+            logger.error("[BillingEventHandler] Appointment not found", new Error(errorMsg), {
                 appointmentId,
-                paymentId
+                paymentId,
             });
             throw new Error(errorMsg);
         }
         // ===== GUARD 3: Idempotency check =====
         // Phòng trường hợp Billing publish lại event (at-least-once delivery)
         if (appointment.getStatus() === Appointment_aggregate_1.AppointmentStatus.CONFIRMED) {
-            logger.warn('[BillingEventHandler] Appointment already confirmed - idempotent skip', {
+            logger.warn("[BillingEventHandler] Appointment already confirmed - idempotent skip", {
                 appointmentId,
                 paymentId,
                 currentStatus: appointment.getStatus(),
                 confirmedAt: appointment.getConfirmedAt(),
-                message: 'Event already processed. This is normal for at-least-once delivery.'
+                message: "Event already processed. This is normal for at-least-once delivery.",
             });
             return; // ✅ Safe exit - event đã xử lý rồi
         }
-        // ===== GUARD 4: Status validation =====
-        if (appointment.getStatus() !== Appointment_aggregate_1.AppointmentStatus.PENDING_PAYMENT) {
-            logger.warn('[BillingEventHandler] Appointment not in PENDING_PAYMENT status', {
+        // ===== GUARD 4: Status validation (allow SCHEDULED for legacy flows) =====
+        const allowedStatuses = [
+            Appointment_aggregate_1.AppointmentStatus.PENDING_PAYMENT,
+            Appointment_aggregate_1.AppointmentStatus.SCHEDULED, // Hỗ trợ flow ví thanh toán ngay khi đặt
+        ];
+        if (!allowedStatuses.includes(appointment.getStatus())) {
+            logger.warn("[BillingEventHandler] Appointment not in payable status", {
                 appointmentId,
                 currentStatus: appointment.getStatus(),
-                expectedStatus: Appointment_aggregate_1.AppointmentStatus.PENDING_PAYMENT,
-                message: 'Payment received but appointment not in expected status. ' +
-                    'May indicate race condition or manual status update.'
+                allowedStatuses,
+                message: "Payment received but appointment not in expected status. " +
+                    "May indicate race condition or manual update.",
             });
             // Không throw error - có thể do race condition hoặc manual update
             // Log để investigate nhưng không block payment confirmation
@@ -98,28 +102,28 @@ class BillingEventHandler {
         // ===== DOMAIN LOGIC: Confirm appointment =====
         try {
             // Call domain method - will validate and emit domain event
-            appointment.confirm('system', `Payment ${paymentId} completed successfully. Amount: ${amount} ${data.currency}, Method: ${method}`);
+            appointment.confirm("system", `Payment ${paymentId} completed successfully. Amount: ${amount} ${data.currency}, Method: ${method}`);
             // Save aggregate (will collect & publish domain events)
             await this.appointmentRepository.save(appointment);
             // ↑ Repository sẽ:
             //   1. Persist appointment với status=CONFIRMED
             //   2. Emit AppointmentConfirmedEvent qua event bus
             //   3. Notifications Service sẽ subscribe event này
-            logger.info('[BillingEventHandler] Appointment confirmed successfully', {
+            logger.info("[BillingEventHandler] Appointment confirmed successfully", {
                 appointmentId,
                 paymentId,
                 previousStatus: Appointment_aggregate_1.AppointmentStatus.PENDING_PAYMENT,
                 newStatus: Appointment_aggregate_1.AppointmentStatus.CONFIRMED,
                 confirmedAt: appointment.getConfirmedAt(),
-                confirmedBy: 'system'
+                confirmedBy: "system",
             });
         }
         catch (error) {
-            logger.error('[BillingEventHandler] Failed to confirm appointment', error, {
+            logger.error("[BillingEventHandler] Failed to confirm appointment", error, {
                 appointmentId,
                 paymentId,
                 errorMessage: error.message,
-                errorStack: error.stack
+                errorStack: error.stack,
             });
             // Rethrow để retry mechanism xử lý
             // RabbitMQ sẽ requeue message để thử lại
@@ -132,10 +136,10 @@ class BillingEventHandler {
      */
     async handlePaymentFailed(data) {
         // FUTURE WORK: Cancel appointment if payment fails
-        logger.info('[BillingEventHandler] Payment failed event received', {
+        logger.info("[BillingEventHandler] Payment failed event received", {
             appointmentId: data.appointmentId,
             paymentId: data.paymentId,
-            failureReason: data.failureReason
+            failureReason: data.failureReason,
         });
         // Implementation: Cancel appointment with reason
         // appointment.cancel('system', `Payment failed: ${data.failureReason}`);

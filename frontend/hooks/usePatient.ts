@@ -3,7 +3,7 @@
  * Get patient information from authenticated user
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { getPatientByUserId, type Patient } from '@/lib/api/patient.service';
 
@@ -13,16 +13,24 @@ export function usePatient() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isPatientRole = useMemo(() => user?.role?.toUpperCase() === 'PATIENT', [user?.role]);
+
   useEffect(() => {
-    if (user?.userId) {
+    if (user?.userId && isPatientRole) {
       loadPatient();
-    } else {
-      setIsLoading(false);
+      return;
     }
-  }, [user?.userId]);
+
+    // Non-patient roles shouldn't call patient API
+    setPatient(null);
+    setError(null);
+    setIsLoading(false);
+  }, [user?.userId, isPatientRole]);
 
   const loadPatient = async () => {
-    if (!user?.userId) return;
+    if (!user?.userId || !isPatientRole) {
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -39,9 +47,9 @@ export function usePatient() {
   };
 
   return {
-    patient,
-    patientId: patient?.patientId || null,
-    internalId: patient?.id || null,
+    patient: isPatientRole ? patient : null,
+    patientId: isPatientRole ? patient?.patientId || null : null,
+    internalId: isPatientRole ? patient?.id || null : null,
     isLoading,
     error,
     reload: loadPatient,

@@ -135,14 +135,17 @@ export default function AdminPatientsPage() {
 }
 
 function PatientRow({ patient }: { patient: Patient }) {
-  const fullName = `${patient.firstName} ${patient.lastName}`;
+  const firstName = patient.firstName || '';
+  const lastName = patient.lastName || '';
+  const fullName = `${firstName} ${lastName}`.trim() || 'Bệnh nhân';
+  const initial = firstName ? firstName.charAt(0) : (fullName.charAt(0) || '?');
 
   return (
     <tr className="hover:bg-gray-50">
       <td className="whitespace-nowrap px-6 py-4">
         <div className="flex items-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700 font-semibold">
-            {patient.firstName.charAt(0)}
+            {initial}
           </div>
           <div className="ml-4">
             <div className="font-medium text-gray-900">{fullName}</div>

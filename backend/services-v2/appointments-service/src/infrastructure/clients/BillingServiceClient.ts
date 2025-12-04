@@ -1,14 +1,14 @@
 /**
  * Billing Service HTTP Client
  * Handles communication with Billing Service for payment link creation
- * 
+ *
  * @author Hospital Management Team
  * @version 1.0.0
  * @compliance Clean Architecture - Infrastructure Layer
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import axiosRetry from 'axios-retry';
+import axios, { AxiosInstance, AxiosError } from "axios";
+import axiosRetry from "axios-retry";
 
 export interface BillingServiceClientConfig {
   baseUrl: string;
@@ -67,19 +67,26 @@ export class BillingServiceClient {
   private readonly client: AxiosInstance;
   private readonly retryAttempts: number;
   private readonly retryDelay: number;
+  private readonly internalToken?: string;
 
   constructor(config: BillingServiceClientConfig) {
     this.retryAttempts = config.retryAttempts || 3;
     this.retryDelay = config.retryDelay || 1000;
+    this.internalToken =
+      process.env.INTERNAL_SERVICE_TOKEN ||
+      process.env.BILLING_INTERNAL_TOKEN ||
+      process.env.INTERNAL_TOKEN ||
+      "dev-internal-token";
 
     // Create axios instance with base configuration
     this.client = axios.create({
       baseURL: config.baseUrl,
       timeout: config.timeout || 5000,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Service-Name': 'appointments-service'
-      }
+        "Content-Type": "application/json",
+        "X-Service-Name": "appointments-service",
+        "x-internal-token": this.internalToken,
+      },
     });
 
     // Configure retry logic
@@ -92,15 +99,15 @@ export class BillingServiceClient {
           axiosRetry.isNetworkOrIdempotentRequestError(error) ||
           error.response?.status === 429 || // Rate limit
           error.response?.status === 503 || // Service unavailable
-          error.response?.status === 504    // Gateway timeout
+          error.response?.status === 504 // Gateway timeout
         );
       },
       onRetry: (retryCount, error, requestConfig) => {
         console.warn(
           `[BillingServiceClient] Retry attempt ${retryCount} for ${requestConfig.url}`,
-          { error: error.message }
+          { error: error.message },
         );
-      }
+      },
     });
 
     this.setupInterceptors();
@@ -113,44 +120,55 @@ export class BillingServiceClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        console.log(`[BillingServiceClient] Request: ${config.method?.toUpperCase()} ${config.url}`);
+        console.log(
+          `[BillingServiceClient] Request: ${config.method?.toUpperCase()} ${config.url}`,
+        );
+        // Ensure internal token is always attached
+        if (this.internalToken) {
+          config.headers = config.headers || {};
+          (config.headers as any)["x-internal-token"] = this.internalToken;
+        }
         return config;
       },
       (error) => {
-        console.error('[BillingServiceClient] Request error:', error);
+        console.error("[BillingServiceClient] Request error:", error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        console.log(`[BillingServiceClient] Response: ${response.status} ${response.config.url}`);
+        console.log(
+          `[BillingServiceClient] Response: ${response.status} ${response.config.url}`,
+        );
         return response;
       },
       (error: AxiosError) => {
-        console.error('[BillingServiceClient] Response error:', {
+        console.error("[BillingServiceClient] Response error:", {
           url: error.config?.url,
           status: error.response?.status,
-          message: error.message
+          message: error.message,
         });
         return Promise.reject(error);
-      }
+      },
     );
   }
 
   /**
    * Create PayOS payment link for invoice
    * POST /api/v1/invoices/:invoiceId/payos/payment-link
-   * 
+   *
    * @param request - Payment link creation request
    * @returns Payment link response with checkout URL
    * @throws Error if request fails after retries
    */
-  async createPaymentLink(request: CreatePaymentLinkRequest): Promise<CreatePaymentLinkResponse> {
+  async createPaymentLink(
+    request: CreatePaymentLinkRequest,
+  ): Promise<CreatePaymentLinkResponse> {
     try {
-      console.log('[BillingServiceClient] Creating payment link', {
-        invoiceId: request.invoiceId
+      console.log("[BillingServiceClient] Creating payment link", {
+        invoiceId: request.invoiceId,
       });
 
       const response = await this.client.post<CreatePaymentLinkResponse>(
@@ -158,23 +176,23 @@ export class BillingServiceClient {
         {
           buyerName: request.buyerName,
           buyerEmail: request.buyerEmail,
-          buyerPhone: request.buyerPhone
-        }
+          buyerPhone: request.buyerPhone,
+        },
       );
 
-      console.log('[BillingServiceClient] Payment link created successfully', {
+      console.log("[BillingServiceClient] Payment link created successfully", {
         invoiceId: request.invoiceId,
-        checkoutUrl: response.data.checkoutUrl
+        checkoutUrl: response.data.checkoutUrl,
       });
 
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.message || error.message;
-        console.error('[BillingServiceClient] Failed to create payment link', {
+        console.error("[BillingServiceClient] Failed to create payment link", {
           invoiceId: request.invoiceId,
           status: error.response?.status,
-          message: errorMessage
+          message: errorMessage,
         });
         throw new Error(`Failed to create payment link: ${errorMessage}`);
       }
@@ -190,30 +208,32 @@ export class BillingServiceClient {
    * @returns Search results with invoice summaries
    * @throws Error if request fails after retries
    */
-  async searchInvoices(request: SearchInvoicesRequest): Promise<SearchInvoicesResponse> {
+  async searchInvoices(
+    request: SearchInvoicesRequest,
+  ): Promise<SearchInvoicesResponse> {
     try {
-      console.log('[BillingServiceClient] Searching invoices', {
-        criteria: request
+      console.log("[BillingServiceClient] Searching invoices", {
+        criteria: request,
       });
 
       const response = await this.client.get<SearchInvoicesResponse>(
-        '/api/v1/invoices/search',
+        "/api/v1/invoices/search",
         {
-          params: request
-        }
+          params: request,
+        },
       );
 
-      console.log('[BillingServiceClient] Search completed', {
-        total: response.data.total
+      console.log("[BillingServiceClient] Search completed", {
+        total: response.data.total,
       });
 
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.message || error.message;
-        console.error('[BillingServiceClient] Failed to search invoices', {
+        console.error("[BillingServiceClient] Failed to search invoices", {
           status: error.response?.status,
-          message: errorMessage
+          message: errorMessage,
         });
         throw new Error(`Failed to search invoices: ${errorMessage}`);
       }
@@ -227,10 +247,10 @@ export class BillingServiceClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await this.client.get('/health');
+      const response = await this.client.get("/health");
       return response.status === 200;
     } catch (error) {
-      console.error('[BillingServiceClient] Health check failed:', error);
+      console.error("[BillingServiceClient] Health check failed:", error);
       return false;
     }
   }

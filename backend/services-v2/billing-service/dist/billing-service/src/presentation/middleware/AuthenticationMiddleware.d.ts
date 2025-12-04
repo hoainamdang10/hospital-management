@@ -26,11 +26,17 @@ export declare class AuthenticationMiddleware {
     private readonly logger;
     private readonly skipPaths;
     private readonly bypassAuth;
+    private readonly internalToken?;
     constructor(config: AuthenticationMiddlewareConfig);
     authenticate: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
     private shouldSkipAuth;
     private extractGatewayUser;
     private getHeaderValue;
     private parseHeaderArray;
+    /**
+     * Internal service-to-service access via shared token.
+     * Accepted headers: x-internal-token
+     */
+    private isInternalCall;
 }
 //# sourceMappingURL=AuthenticationMiddleware.d.ts.map

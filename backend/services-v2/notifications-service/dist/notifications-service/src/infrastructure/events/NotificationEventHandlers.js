@@ -37,10 +37,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationEventHandlers = void 0;
 const priority_normalizer_1 = require("../../domain/services/priority-normalizer");
 class NotificationEventHandlers {
-    constructor(notificationService, inboxRepo, sendNotificationUseCase) {
+    constructor(notificationService, inboxRepo, sendNotificationUseCase, preferencesRepository) {
         this.notificationService = notificationService;
         this.inboxRepo = inboxRepo;
         this.sendNotificationUseCase = sendNotificationUseCase;
+        this.preferencesRepository = preferencesRepository;
     }
     /**
      * Handle schedule run due event from Scheduler Service
@@ -659,6 +660,14 @@ class NotificationEventHandlers {
                     },
                 },
             });
+            const preferredChannels = this.mapPreferredChannels(contactInfo?.preferredContactMethod);
+            await this.syncPatientPreferences(patientId, {
+                email,
+                phoneNumber: contactInfo?.primaryPhone ||
+                    contactInfo?.phoneNumber ||
+                    contactInfo?.secondaryPhone,
+                preferredChannels,
+            });
         }
         catch (error) {
             console.error("Lỗi khi xử lý sự kiện patient registered:", error);
@@ -670,7 +679,7 @@ class NotificationEventHandlers {
      */
     async handlePatientUpdated(event) {
         try {
-            const { patientId, personalInfo, updateType } = event.eventData;
+            const { patientId, personalInfo, updateType, contactInfo } = event.eventData;
             const { firstName, lastName } = personalInfo || {};
             // Only send notification for significant updates
             if (updateType === "CONTACT_INFO" || updateType === "EMERGENCY_CONTACT") {
@@ -697,6 +706,12 @@ class NotificationEventHandlers {
                             patientId,
                         },
                     },
+                });
+            }
+            if (contactInfo) {
+                await this.syncPatientPreferences(patientId, {
+                    email: contactInfo.email,
+                    phoneNumber: contactInfo.phoneNumber,
                 });
             }
         }
@@ -741,6 +756,43 @@ class NotificationEventHandlers {
         catch (error) {
             console.error("Lỗi khi xử lý sự kiện patient deactivated:", error);
             throw new Error(`Lỗi xử lý sự kiện patient deactivated: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
+        }
+    }
+    /**
+     * Sync patient contact info into notification preferences
+     */
+    async syncPatientPreferences(patientId, payload) {
+        if (!patientId) {
+            return;
+        }
+        try {
+            await this.preferencesRepository.syncContactInfo({
+                userId: patientId,
+                recipientType: "PATIENT",
+                email: payload.email,
+                phoneNumber: payload.phoneNumber,
+                preferredChannels: payload.preferredChannels,
+            });
+        }
+        catch (error) {
+            console.error("[NotificationEventHandlers] Failed to sync patient contact info", {
+                patientId,
+                error: error instanceof Error ? error.message : error,
+            });
+        }
+    }
+    mapPreferredChannels(method) {
+        if (!method) {
+            return undefined;
+        }
+        switch (method) {
+            case "email":
+                return ["EMAIL"];
+            case "sms":
+            case "phone":
+                return ["SMS"];
+            default:
+                return undefined;
         }
     }
     /**

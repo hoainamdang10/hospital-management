@@ -146,6 +146,119 @@ export class SupabasePreferencesRepository {
     return preferences;
   }
 
+  /**
+   * Sync contact information from source of truth (e.g. Patient Registry Service)
+   * Creates preferences row if missing, otherwise updates existing contact fields
+   */
+  public async syncContactInfo(params: {
+    userId: string;
+    recipientType: string;
+    email?: string | null;
+    phoneNumber?: string | null;
+    preferredLanguage?: "vi" | "en";
+    preferredChannels?: Array<"EMAIL" | "SMS">;
+  }): Promise<void> {
+    const {
+      userId,
+      recipientType,
+      email,
+      phoneNumber,
+      preferredLanguage,
+      preferredChannels,
+    } = params;
+
+    if (!userId) {
+      return;
+    }
+
+    const normalizedType = normalizeRecipientType(recipientType);
+    const existing = await this.findByUserId(userId);
+
+    if (!existing) {
+      const defaults = this.buildDefaultPreferences(
+        userId,
+        normalizedType,
+        email ?? undefined,
+        phoneNumber ?? undefined,
+      );
+
+      if (preferredLanguage) {
+        defaults.preferredLanguage = preferredLanguage;
+      }
+
+      const normalizedChannels = this.normalizeChannelList(preferredChannels);
+      if (normalizedChannels.length > 0) {
+        defaults.preferredChannels = normalizedChannels;
+        defaults.enabledChannels = Array.from(
+          new Set([...defaults.enabledChannels, ...normalizedChannels]),
+        );
+      }
+
+      const { error } = await this.supabase
+        .from("notification_preferences")
+        .insert(this.mapToRecord(defaults));
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+      return;
+    }
+
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    let shouldUpdate = false;
+
+    if (email !== undefined && email !== existing.email) {
+      updatePayload.email = email;
+      shouldUpdate = true;
+    }
+
+    if (phoneNumber !== undefined && phoneNumber !== existing.phoneNumber) {
+      updatePayload.phone_number = phoneNumber;
+      shouldUpdate = true;
+    }
+
+    if (preferredLanguage && preferredLanguage !== existing.preferredLanguage) {
+      updatePayload.preferred_language = preferredLanguage;
+      shouldUpdate = true;
+    }
+
+    const normalizedExistingChannels = this.normalizeChannelList(
+      existing.preferredChannels,
+    );
+    const normalizedRequestedChannels =
+      this.normalizeChannelList(preferredChannels);
+
+    if (
+      normalizedRequestedChannels.length > 0 &&
+      normalizedExistingChannels.length === 0
+    ) {
+      updatePayload.preferred_channels = normalizedRequestedChannels;
+      updatePayload.enabled_channels = Array.from(
+        new Set([...existing.enabledChannels, ...normalizedRequestedChannels]),
+      );
+      updatePayload.email_enabled =
+        updatePayload.enabled_channels.includes("EMAIL");
+      updatePayload.sms_enabled =
+        updatePayload.enabled_channels.includes("SMS");
+      shouldUpdate = true;
+    }
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    const { error } = await this.supabase
+      .from("notification_preferences")
+      .update(updatePayload)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
+    }
+  }
+
   private buildDefaultPreferences(
     userId: string,
     recipientType: string,
@@ -508,5 +621,25 @@ export class SupabasePreferencesRepository {
         : undefined,
       isActive: record.is_active,
     };
+  }
+
+  private normalizeChannelList(
+    channels?: Array<string | null> | null,
+  ): Array<"EMAIL" | "SMS"> {
+    if (!channels || channels.length === 0) {
+      return [];
+    }
+
+    const allowed: Array<"EMAIL" | "SMS"> = ["EMAIL", "SMS"];
+
+    return Array.from(
+      new Set(
+        channels
+          .map((channel) => channel?.toUpperCase())
+          .filter((channel): channel is "EMAIL" | "SMS" =>
+            allowed.includes(channel as "EMAIL" | "SMS"),
+          ),
+      ),
+    );
   }
 }

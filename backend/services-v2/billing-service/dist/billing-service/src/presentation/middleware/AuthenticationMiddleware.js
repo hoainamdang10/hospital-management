@@ -27,6 +27,16 @@ class AuthenticationMiddleware {
                     };
                     return next();
                 }
+                // Allow trusted internal calls (service-to-service) using internal token
+                if (this.isInternalCall(req)) {
+                    req.authenticatedUser = {
+                        userId: "internal-service",
+                        email: "internal@billing.local",
+                        roles: ["SERVICE"],
+                        permissions: ["*"],
+                    };
+                    return next();
+                }
                 // Trust API Gateway forwarded headers first (already authenticated)
                 const gatewayUser = this.extractGatewayUser(req);
                 if (gatewayUser) {
@@ -70,6 +80,10 @@ class AuthenticationMiddleware {
         this.logger = config.logger;
         this.skipPaths = config.skipPaths || ["/health", "/api-docs"];
         this.bypassAuth = process.env.BYPASS_AUTH === "true";
+        this.internalToken =
+            process.env.INTERNAL_SERVICE_TOKEN ||
+                process.env.BILLING_INTERNAL_TOKEN ||
+                process.env.INTERNAL_TOKEN;
     }
     shouldSkipAuth(path) {
         return this.skipPaths.some((skipPath) => path.startsWith(skipPath));
@@ -115,6 +129,18 @@ class AuthenticationMiddleware {
             .split(",")
             .map((value) => value.trim())
             .filter((value) => value.length > 0);
+    }
+    /**
+     * Internal service-to-service access via shared token.
+     * Accepted headers: x-internal-token
+     */
+    isInternalCall(req) {
+        if (!this.internalToken) {
+            return false;
+        }
+        const token = this.getHeaderValue(req, "x-internal-token") ||
+            this.getHeaderValue(req, "x-service-token");
+        return token === this.internalToken;
     }
 }
 exports.AuthenticationMiddleware = AuthenticationMiddleware;

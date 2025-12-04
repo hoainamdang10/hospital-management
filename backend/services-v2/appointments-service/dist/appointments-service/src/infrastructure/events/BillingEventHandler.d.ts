@@ -6,7 +6,7 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
 /**
  * Payment Processed Event Data (from Billing Service)
  */

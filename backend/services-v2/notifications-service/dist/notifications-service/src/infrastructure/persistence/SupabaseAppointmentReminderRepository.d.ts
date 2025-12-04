@@ -5,9 +5,9 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IAppointmentReminderRepository } from '../../domain/repositories/IAppointmentReminderRepository';
-import { AppointmentReminder } from '../../domain/aggregates/AppointmentReminder';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IAppointmentReminderRepository } from "../../domain/repositories/IAppointmentReminderRepository";
+import { AppointmentReminder } from "../../domain/aggregates/AppointmentReminder";
 export declare class SupabaseAppointmentReminderRepository implements IAppointmentReminderRepository {
     private readonly supabase;
     private readonly tableName;
@@ -48,5 +48,10 @@ export declare class SupabaseAppointmentReminderRepository implements IAppointme
      * Map database record to domain aggregate
      */
     private mapToDomain;
+    private formatDateOnly;
+    private calculateOffsets;
+    private buildMetadata;
+    private mapStatusToDb;
+    private mapStatusFromDb;
 }
 //# sourceMappingURL=SupabaseAppointmentReminderRepository.d.ts.map

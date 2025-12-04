@@ -67,6 +67,18 @@ export declare class SupabasePreferencesRepository {
      * Get or create default preferences
      */
     getOrCreate(userId: string, recipientType: string, email?: string, phoneNumber?: string): Promise<NotificationPreferences>;
+    /**
+     * Sync contact information from source of truth (e.g. Patient Registry Service)
+     * Creates preferences row if missing, otherwise updates existing contact fields
+     */
+    syncContactInfo(params: {
+        userId: string;
+        recipientType: string;
+        email?: string | null;
+        phoneNumber?: string | null;
+        preferredLanguage?: "vi" | "en";
+        preferredChannels?: Array<"EMAIL" | "SMS">;
+    }): Promise<void>;
     private buildDefaultPreferences;
     /**
      * Save preferences
@@ -118,5 +130,6 @@ export declare class SupabasePreferencesRepository {
     count(): Promise<number>;
     private mapToRecord;
     private mapToPreferences;
+    private normalizeChannelList;
 }
 //# sourceMappingURL=SupabasePreferencesRepository.d.ts.map

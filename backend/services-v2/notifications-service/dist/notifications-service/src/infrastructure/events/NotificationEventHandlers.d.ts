@@ -35,6 +35,7 @@
 import { NotificationApplicationService } from "../../application/services/NotificationApplicationService";
 import { IInboxRepository } from "../../domain/repositories/IInboxRepository";
 import { SendNotificationUseCase } from "../../application/use-cases/SendNotificationUseCase";
+import { SupabasePreferencesRepository } from "../persistence/SupabasePreferencesRepository";
 export interface DomainEvent {
     eventId: string;
     eventType: string;
@@ -104,7 +105,8 @@ export declare class NotificationEventHandlers {
     private readonly notificationService;
     private readonly inboxRepo;
     private readonly sendNotificationUseCase;
-    constructor(notificationService: NotificationApplicationService, inboxRepo: IInboxRepository, sendNotificationUseCase: SendNotificationUseCase);
+    private readonly preferencesRepository;
+    constructor(notificationService: NotificationApplicationService, inboxRepo: IInboxRepository, sendNotificationUseCase: SendNotificationUseCase, preferencesRepository: SupabasePreferencesRepository);
     /**
      * Handle schedule run due event from Scheduler Service
      * This is the ONLY entry point for scheduled notifications
@@ -173,6 +175,11 @@ export declare class NotificationEventHandlers {
      * Handle patient deactivated event from Patient Registry Service
      */
     handlePatientDeactivated(event: IntegrationEvent): Promise<void>;
+    /**
+     * Sync patient contact info into notification preferences
+     */
+    private syncPatientPreferences;
+    private mapPreferredChannels;
     /**
      * Handle patient consent granted event from Patient Registry Service
      */
