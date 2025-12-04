@@ -79,7 +79,6 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
   async function handleSave() {
     setSaving(true);
     try {
-      const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
       for (const c of contactList) {
         if (!c.name || !c.relationship || !c.phone) {
           toast.error('Vui lòng điền đầy đủ tên, mối quan hệ và số điện thoại');
@@ -101,196 +100,181 @@ export function EmergencyContactTab({ contacts, onUpdate }: EmergencyContactTabP
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Liên hệ khẩn cấp</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Thông tin người thân để liên hệ trong trường hợp khẩn cấp
-          </p>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Liên hệ khẩn cấp</h3>
+            <p className="text-sm text-gray-500">
+              Thông tin người thân để liên hệ trong trường hợp khẩn cấp
+            </p>
+          </div>
+          {!isEditing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="gap-2"
+            >
+              Chỉnh sửa
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setContactList(contacts);
+                  setIsEditing(false);
+                }}
+                disabled={saving}
+              >
+                Hủy
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving || contactErrors.some((e) => e.name || e.relationship || e.phone)}
+              >
+                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          )}
         </div>
-        {!isEditing && (
-          <Button onClick={() => setIsEditing(true)} variant="outline">
-            Chỉnh sửa
-          </Button>
-        )}
-      </div>
 
-      {/* Contacts List */}
-      <div className="space-y-4">
-        {contactList.map((contact, index) => (
-          <div
-            key={index}
-            className={`rounded-xl border-2 bg-white p-6 ${
-              contact.isPrimary ? 'border-primary' : 'border-gray-200'
-            }`}
-          >
-            <div className="mb-4 flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <Phone className="text-primary h-5 w-5" />
-                <h4 className="font-semibold text-gray-900">Người liên hệ {index + 1}</h4>
-                {contact.isPrimary && (
-                  <span className="bg-primary inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-white">
-                    <Star className="mr-1 h-3 w-3" />
-                    Chính
-                  </span>
+        <div className="space-y-4">
+          {contactList.map((contact, index) => (
+            <div
+              key={index}
+              className={`relative flex flex-col gap-4 rounded-xl border p-4 transition-all md:flex-row md:items-center md:gap-6 ${contact.isPrimary
+                  ? 'border-blue-200 bg-blue-50/50'
+                  : 'border-gray-100 bg-white hover:border-gray-200'
+                }`}
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                <Phone className="h-5 w-5" />
+              </div>
+
+              <div className="flex-1 space-y-4 md:space-y-0">
+                {isEditing ? (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500">Họ và tên</label>
+                      <input
+                        type="text"
+                        value={contact.name}
+                        onChange={(e) => updateContact(index, 'name', e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Nhập họ tên"
+                      />
+                      {contactErrors[index]?.name && (
+                        <p className="text-xs text-red-500">{contactErrors[index]?.name}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500">Mối quan hệ</label>
+                      <select
+                        value={contact.relationship}
+                        onChange={(e) => updateContact(index, 'relationship', e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="">Chọn mối quan hệ</option>
+                        <option value="Vợ/Chồng">Vợ/Chồng</option>
+                        <option value="Cha/Mẹ">Cha/Mẹ</option>
+                        <option value="Con">Con</option>
+                        <option value="Anh/Chị/Em">Anh/Chị/Em</option>
+                        <option value="Bạn bè">Bạn bè</option>
+                        <option value="Khác">Khác</option>
+                      </select>
+                      {contactErrors[index]?.relationship && (
+                        <p className="text-xs text-red-500">
+                          {contactErrors[index]?.relationship}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500">Số điện thoại</label>
+                      <input
+                        type="tel"
+                        value={contact.phone}
+                        onChange={(e) => updateContact(index, 'phone', e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="09..."
+                      />
+                      {contactErrors[index]?.phone && (
+                        <p className="text-xs text-red-500">{contactErrors[index]?.phone}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col justify-between gap-2 md:flex-row md:items-center">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-gray-900">{contact.name}</h4>
+                        {contact.isPrimary && (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            Chính
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">{contact.relationship}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-mono font-medium text-gray-900">{contact.phone}</p>
+                      {contact.email && (
+                        <p className="text-sm text-gray-500">{contact.email}</p>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
+
               {isEditing && (
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 md:flex-col">
                   {!contact.isPrimary && (
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => setPrimary(index)}
+                      title="Đặt làm liên hệ chính"
+                      className="h-8 w-8 text-gray-400 hover:text-blue-600"
                     >
-                      Đặt làm chính
+                      <Star className="h-4 w-4" />
                     </Button>
                   )}
-                  {contactList.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeContact(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeContact(index)}
+                    className="h-8 w-8 text-gray-400 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
+          ))}
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Họ và tên</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={contact.name}
-                    onChange={(e) => updateContact(index, 'name', e.target.value)}
-                    className="focus:ring-primary w-full rounded-lg border px-4 py-2 focus:border-transparent focus:ring-2"
-                    required
-                  />
-                ) : (
-                  <p className="py-2 text-gray-900">{contact.name}</p>
-                )}
-                {isEditing && contactErrors[index]?.name && (
-                  <p className="mt-1 text-xs text-red-500">{contactErrors[index]?.name}</p>
-                )}
-              </div>
+          {isEditing && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addContact}
+              className="w-full border-dashed py-6 text-gray-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm người liên hệ
+            </Button>
+          )}
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Mối quan hệ</label>
-                {isEditing ? (
-                  <select
-                    value={contact.relationship}
-                    onChange={(e) => updateContact(index, 'relationship', e.target.value)}
-                    className="focus:ring-primary w-full rounded-lg border px-4 py-2 focus:border-transparent focus:ring-2"
-                    required
-                  >
-                    <option value="">Chọn mối quan hệ</option>
-                    <option value="Vợ/Chồng">Vợ/Chồng</option>
-                    <option value="Cha/Mẹ">Cha/Mẹ</option>
-                    <option value="Con">Con</option>
-                    <option value="Anh/Chị/Em">Anh/Chị/Em</option>
-                    <option value="Bạn bè">Bạn bè</option>
-                    <option value="Khác">Khác</option>
-                  </select>
-                ) : (
-                  <p className="py-2 text-gray-900">{contact.relationship}</p>
-                )}
-                {isEditing && contactErrors[index]?.relationship && (
-                  <p className="mt-1 text-xs text-red-500">{contactErrors[index]?.relationship}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Số điện thoại
-                </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    value={contact.phone}
-                    onChange={(e) => updateContact(index, 'phone', e.target.value)}
-                    className="focus:ring-primary w-full rounded-lg border px-4 py-2 focus:border-transparent focus:ring-2"
-                    required
-                  />
-                ) : (
-                  <p className="py-2 text-gray-900">{contact.phone}</p>
-                )}
-                {isEditing && contactErrors[index]?.phone && (
-                  <p className="mt-1 text-xs text-red-500">{contactErrors[index]?.phone}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Email (tùy chọn)
-                </label>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    value={contact.email || ''}
-                    onChange={(e) => updateContact(index, 'email', e.target.value)}
-                    className="focus:ring-primary w-full rounded-lg border px-4 py-2 focus:border-transparent focus:ring-2"
-                  />
-                ) : (
-                  <p className="py-2 text-gray-900">{contact.email || '-'}</p>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Địa chỉ (tùy chọn)
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={contact.address || ''}
-                    onChange={(e) => updateContact(index, 'address', e.target.value)}
-                    className="focus:ring-primary w-full rounded-lg border px-4 py-2 focus:border-transparent focus:ring-2"
-                  />
-                ) : (
-                  <p className="py-2 text-gray-900">{contact.address || '-'}</p>
-                )}
-              </div>
+          {!isEditing && contactList.length === 0 && (
+            <div className="py-8 text-center text-gray-500">
+              Chưa có thông tin liên hệ khẩn cấp
             </div>
-          </div>
-        ))}
-
-        {isEditing && (
-          <Button type="button" variant="outline" onClick={addContact} className="w-full">
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm người liên hệ
-          </Button>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      {isEditing && (
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setContactList(contacts);
-              setIsEditing(false);
-            }}
-            disabled={saving}
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || contactErrors.some((e) => e.name || e.relationship || e.phone)}
-          >
-            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-          </Button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

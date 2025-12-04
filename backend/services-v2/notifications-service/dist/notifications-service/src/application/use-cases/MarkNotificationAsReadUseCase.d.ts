@@ -6,7 +6,7 @@
  * @version 2.0.0
  * @compliance Clean Architecture, CQRS
  */
-import { INotificationRepository } from '../../domain/repositories/INotificationRepository';
+import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
 export interface MarkAsReadCommand {
     notificationId: string;
     userId: string;
@@ -17,6 +17,12 @@ export interface MarkAsReadResult {
     notificationId: string;
     readAt: Date | null;
     message: string;
+}
+export declare class NotificationNotFoundError extends Error {
+    constructor();
+}
+export declare class NotificationAccessDeniedError extends Error {
+    constructor();
 }
 export declare class MarkNotificationAsReadUseCase {
     private readonly notificationRepository;

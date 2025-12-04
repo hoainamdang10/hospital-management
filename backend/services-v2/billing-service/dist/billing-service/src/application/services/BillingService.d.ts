@@ -17,10 +17,13 @@ export interface AppointmentInvoiceRequest {
     patientId: string;
     staffId: string;
     departmentId: string;
+    patientName?: string;
     doctorName?: string;
     doctorDepartment?: string;
     serviceType: "consultation" | "procedure" | "follow_up";
     scheduledAt: Date;
+    appointmentDateLocal?: string;
+    appointmentTimeLocal?: string;
     completedAt?: Date;
     duration: number;
     consultationFee?: number;
@@ -151,6 +154,8 @@ export declare class BillingService {
     /**
      * Helper methods
      */
+    private formatDateComponent;
+    private formatTimeComponent;
     private calculateConsultationFee;
     private getServiceTypeDescription;
     private getServiceTypeCode;

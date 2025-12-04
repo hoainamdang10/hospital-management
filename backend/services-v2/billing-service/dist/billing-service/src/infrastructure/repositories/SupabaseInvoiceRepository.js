@@ -302,6 +302,35 @@ class SupabaseInvoiceRepository {
             return InvoiceMapper_1.InvoiceMapper.toDomain(invoice, items, payments);
         });
     }
+    async findExpiredPendingInvoices(referenceDate) {
+        const cutoffIso = referenceDate.toISOString();
+        const { data: invoicesData, error } = await this.supabase
+            .from(this.invoicesTable)
+            .select("*")
+            .in("status", ["pending", "partially_paid"])
+            .lte("due_date", cutoffIso)
+            .order("due_date", { ascending: true });
+        if (error) {
+            throw new Error(`Failed to find expired invoices: ${error.message}`);
+        }
+        if (!invoicesData || invoicesData.length === 0) {
+            return [];
+        }
+        const invoiceIds = invoicesData.map((inv) => inv.id);
+        const { data: itemsData } = await this.supabase
+            .from(this.itemsTable)
+            .select("*")
+            .in("invoice_id", invoiceIds);
+        const { data: paymentsData } = await this.supabase
+            .from(this.paymentsTable)
+            .select("*")
+            .in("invoice_id", invoiceIds);
+        return invoicesData.map((invoice) => {
+            const items = (itemsData || []).filter((item) => item.invoice_id === invoice.id);
+            const payments = (paymentsData || []).filter((payment) => payment.invoice_id === invoice.id);
+            return InvoiceMapper_1.InvoiceMapper.toDomain(invoice, items, payments);
+        });
+    }
     async search(criteria) {
         let query = this.supabase.from(this.invoicesTable).select("*");
         // Filter by status

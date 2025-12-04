@@ -33,6 +33,7 @@ export interface AppointmentScheduledEventData {
     patientId: string;
     patientRecordId?: string | null;
     patientCode?: string | null;
+    patientName?: string;
     staffId: string | null;
     departmentId: string | null;
     doctorName?: string;
@@ -43,6 +44,8 @@ export interface AppointmentScheduledEventData {
     serviceType: "consultation" | "procedure" | "follow_up";
     consultationFee?: number;
     notes?: string;
+    appointmentDateLocal?: string;
+    appointmentTimeLocal?: string;
 }
 export interface AppointmentCancelledLateEventData {
     appointmentId: string;
@@ -69,6 +72,14 @@ export interface AppointmentNoShowEventData {
     noShowFeeApplied: boolean;
     noShowFeeAmount: number;
     noShowCount: number;
+}
+export interface AppointmentPaymentExpiredEventData {
+    appointmentId: string;
+    patientId: string;
+    invoiceId?: string;
+    paymentId?: string;
+    amount?: number;
+    reason?: string;
 }
 export interface AppointmentCancelledRefundEventData {
     appointmentId: string;
@@ -143,6 +154,7 @@ export declare class AppointmentEventConsumer {
     private buildAppointmentScheduledPayload;
     private buildAppointmentCancelledPayload;
     private buildAppointmentNoShowPayload;
+    private buildAppointmentPaymentExpiredPayload;
     private buildAppointmentCancelledRefundPayload;
     private buildAppointmentRescheduledPayload;
     private extractCommonAppointmentFields;
@@ -173,6 +185,7 @@ export declare class AppointmentEventConsumer {
      * Handle appointment no-show event
      */
     private handleAppointmentNoShow;
+    private handleAppointmentPaymentExpired;
     /**
      * Handle appointment rescheduled event (apply reschedule fee if required)
      */

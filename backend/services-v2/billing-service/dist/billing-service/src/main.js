@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
+const node_cron_1 = __importDefault(require("node-cron"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
@@ -41,6 +42,7 @@ const CreateVnpayPaymentLinkUseCase_1 = require("./application/use-cases/CreateV
 const CreateWalletTopUpLinkUseCase_1 = require("./application/use-cases/CreateWalletTopUpLinkUseCase");
 const HandlePayOSWebhookUseCase_1 = require("./application/use-cases/HandlePayOSWebhookUseCase");
 const PayInvoiceWithWalletUseCase_1 = require("./application/use-cases/PayInvoiceWithWalletUseCase");
+const ExpirePendingInvoicesUseCase_1 = require("./application/use-cases/ExpirePendingInvoicesUseCase");
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 const VnpayIntegrationService_1 = require("./infrastructure/services/VnpayIntegrationService");
 const BillingService_1 = require("./application/services/BillingService");
@@ -128,6 +130,8 @@ class BillingServiceApp {
             returnUrl: config.vnpayReturnUrl,
             timeZone: config.vnpayTimeZone,
         }, logger_1.logger);
+        // Initialize Wallet service early so that use cases can consume it
+        this.walletService = new WalletService_1.WalletService(this.walletRepository, logger_1.logger);
         // Initialize Use Cases
         this.createInvoiceUseCase = new CreateInvoiceUseCase_1.CreateInvoiceUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.getInvoiceUseCase = new GetInvoiceUseCase_1.GetInvoiceUseCase(this.invoiceRepository, logger_1.logger);
@@ -137,7 +141,7 @@ class BillingServiceApp {
         // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase initialization
         this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger, {
             useGatewayRefund: (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
-        });
+        }, this.walletService);
         this.completeRefundUseCase = new CompleteRefundUseCase_1.CompleteRefundUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.searchInvoicesUseCase = new SearchInvoicesUseCase_1.SearchInvoicesUseCase(this.invoiceRepository, logger_1.logger);
         this.getOverdueInvoicesUseCase = new GetOverdueInvoicesUseCase_1.GetOverdueInvoicesUseCase(this.invoiceRepository, logger_1.logger);
@@ -148,8 +152,8 @@ class BillingServiceApp {
         // REMOVED: sendInvoiceEmailUseCase, createPaymentReminderUseCase initialization - Out of scope for Phase 1
         // Initialize Services
         this.billingService = new BillingService_1.BillingService(this.invoiceRepository, this.patientRepository, this.createInvoiceUseCase, this.processPaymentUseCase, logger_1.logger);
-        this.walletService = new WalletService_1.WalletService(this.walletRepository, logger_1.logger);
         this.payInvoiceWithWalletUseCase = new PayInvoiceWithWalletUseCase_1.PayInvoiceWithWalletUseCase(this.invoiceRepository, this.eventBus, this.walletService, logger_1.logger);
+        this.expirePendingInvoicesUseCase = new ExpirePendingInvoicesUseCase_1.ExpirePendingInvoicesUseCase(this.invoiceRepository, this.eventBus);
         this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase_1.HandlePayOSWebhookUseCase(this.invoiceRepository, this.eventBus, this.paymentGateway, logger_1.logger, this.walletService);
         // Initialize Event Consumers
         this.appointmentEventConsumer = new AppointmentEventConsumer_1.AppointmentEventConsumer({
@@ -285,6 +289,27 @@ class BillingServiceApp {
         this.app.use(this.errorHandlingMiddleware.handle());
         logger_1.logger.info("Routes setup complete");
     }
+    scheduleInvoiceExpiryCron() {
+        if (this.invoiceExpiryTask) {
+            this.invoiceExpiryTask.stop();
+        }
+        this.invoiceExpiryTask = node_cron_1.default.schedule("*/5 * * * *", async () => {
+            try {
+                logger_1.logger.info("[InvoiceExpiryCron] Starting overdue scan...");
+                const result = await this.expirePendingInvoicesUseCase.execute();
+                logger_1.logger.info(`[InvoiceExpiryCron] Completed. Expired: ${result.expiredCount}`);
+                if (result.errors.length > 0) {
+                    logger_1.logger.warn("[InvoiceExpiryCron] Errors detected", {
+                        errors: result.errors,
+                    });
+                }
+            }
+            catch (error) {
+                logger_1.logger.error("[InvoiceExpiryCron] Fatal error during invoice expiry check", { error: error instanceof Error ? error.message : "Unknown error" });
+            }
+        });
+        logger_1.logger.info("[InvoiceExpiryCron] Scheduled invoice expiry cron (every 5 minutes)");
+    }
     async start() {
         try {
             logger_1.logger.info(`Starting ${config.serviceName} v${config.version}...`);
@@ -302,6 +327,7 @@ class BillingServiceApp {
             await this.refundGatewayWorker.start();
             logger_1.logger.info("Refund gateway worker started");
             logger_1.logger.info("Event consumers and workers connected");
+            this.scheduleInvoiceExpiryCron();
             this.app.listen(config.port, () => {
                 logger_1.logger.info(`${config.serviceName} is running`, {
                     port: config.port,
@@ -332,6 +358,10 @@ class BillingServiceApp {
             if (this.eventBus) {
                 await this.eventBus.disconnect();
                 logger_1.logger.info("EventBus disconnected");
+            }
+            if (this.invoiceExpiryTask) {
+                this.invoiceExpiryTask.stop();
+                logger_1.logger.info("Invoice expiry cron stopped");
             }
             if (this.optimizedSupabase) {
                 await this.optimizedSupabase.close();

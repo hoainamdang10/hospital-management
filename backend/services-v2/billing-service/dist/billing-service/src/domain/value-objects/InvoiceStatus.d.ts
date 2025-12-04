@@ -1,5 +1,5 @@
-import { ValueObject } from '../../../../shared/domain/base/value-object';
-export type InvoiceStatusType = 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'overdue' | 'refunded';
+import { ValueObject } from "../../../../shared/domain/base/value-object";
+export type InvoiceStatusType = "draft" | "pending" | "partially_paid" | "paid" | "cancelled" | "overdue" | "refunded" | "expired";
 export interface InvoiceStatusProps {
     value: InvoiceStatusType;
 }
@@ -13,6 +13,7 @@ export declare class InvoiceStatus extends ValueObject<InvoiceStatusProps> {
     static cancelled(): InvoiceStatus;
     static overdue(): InvoiceStatus;
     static refunded(): InvoiceStatus;
+    static expired(): InvoiceStatus;
     get value(): InvoiceStatusType;
     isDraft(): boolean;
     isPending(): boolean;
@@ -21,6 +22,7 @@ export declare class InvoiceStatus extends ValueObject<InvoiceStatusProps> {
     isCancelled(): boolean;
     isOverdue(): boolean;
     isRefunded(): boolean;
+    isExpired(): boolean;
     protected validateFormat(): void;
 }
 //# sourceMappingURL=InvoiceStatus.d.ts.map

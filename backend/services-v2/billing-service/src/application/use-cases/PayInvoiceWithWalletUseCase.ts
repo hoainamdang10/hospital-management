@@ -59,6 +59,11 @@ export class PayInvoiceWithWalletUseCase extends BaseHealthcareUseCase<
         );
       }
 
+      const expiryResult = await this.preventPaymentIfExpired(invoice, request);
+      if (expiryResult) {
+        return expiryResult;
+      }
+
       if (invoice.status.isCancelled()) {
         throw new Error("Không thể thanh toán hóa đơn đã bị hủy");
       }
@@ -98,11 +103,7 @@ export class PayInvoiceWithWalletUseCase extends BaseHealthcareUseCase<
       invoice.processPayment(payment);
       await this.invoiceRepository.save(invoice);
 
-      const events = invoice.getUncommittedEvents();
-      for (const event of events) {
-        await this.eventBus.publish(event);
-      }
-      invoice.markEventsAsCommitted();
+      await this.publishInvoiceEvents(invoice);
 
       this.logger.info("Invoice paid with wallet", {
         invoiceId: invoice.id,
@@ -150,5 +151,55 @@ export class PayInvoiceWithWalletUseCase extends BaseHealthcareUseCase<
 
   private isSameIdentifier(a: string, b: string): boolean {
     return a.trim().toLowerCase() === b.trim().toLowerCase();
+  }
+
+  private async preventPaymentIfExpired(
+    invoice: Awaited<ReturnType<IInvoiceRepository["findById"]>>,
+    request: PayInvoiceWithWalletRequest,
+  ): Promise<PayInvoiceWithWalletResponse | null> {
+    if (!invoice) {
+      return null;
+    }
+
+    const alreadyExpired = invoice.status.isExpired();
+    const pastDue =
+      Boolean(invoice.dueDate) && invoice.dueDate.getTime() <= Date.now();
+
+    if (!alreadyExpired && !pastDue) {
+      return null;
+    }
+
+    if (!alreadyExpired && pastDue) {
+      await this.expireInvoice(invoice, request);
+    }
+
+    return {
+      success: false,
+      message: "Hóa đơn đã hết hạn thanh toán",
+      invoiceId: invoice.id,
+      errors: ["Invoice expired"],
+    };
+  }
+
+  private async expireInvoice(
+    invoice: NonNullable<Awaited<ReturnType<IInvoiceRepository["findById"]>>>,
+    request: PayInvoiceWithWalletRequest,
+  ): Promise<void> {
+    invoice.markAsExpired(
+      "Payment attempted after due date",
+      request.initiatedBy || request.patientId || "system",
+    );
+    await this.invoiceRepository.save(invoice);
+    await this.publishInvoiceEvents(invoice);
+  }
+
+  private async publishInvoiceEvents(
+    invoice: NonNullable<Awaited<ReturnType<IInvoiceRepository["findById"]>>>,
+  ): Promise<void> {
+    const events = invoice.getUncommittedEvents();
+    for (const event of events) {
+      await this.eventBus.publish(event);
+    }
+    invoice.markEventsAsCommitted();
   }
 }

@@ -2,18 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Calendar,
+  CalendarPlus,
   Clock,
-  User,
   Search,
   Filter,
   Loader2,
   X,
-  ChevronRight,
-  MapPin,
   MoreVertical,
   CalendarDays,
   AlertCircle,
+  ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,7 +20,7 @@ import { DashboardLayout } from '@/components/layout';
 import { useAuth } from '@/hooks/useAuth';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { AppointmentReadModel, CancelAppointmentResponse } from '@/lib/types/appointments';
-import { format, parseISO, isAfter, startOfDay } from 'date-fns';
+import { format, parseISO, isAfter, startOfDay, isToday, isTomorrow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { CancelAppointmentDialog } from '@/components/appointments/CancelAppointmentDialog';
@@ -33,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 type AppointmentStatus =
@@ -43,10 +42,6 @@ type AppointmentStatus =
   | 'NO_SHOW'
   | 'PENDING_PAYMENT';
 
-/**
- * My Appointments Page
- * Route: /patient/appointments
- */
 export default function MyAppointmentsPage() {
   const { user } = useAuth();
 
@@ -74,13 +69,31 @@ export default function MyAppointmentsPage() {
   async function loadAppointments() {
     try {
       setLoading(true);
-      const response = await appointmentsService.getPatientAppointments(
-        user!.patientId || user!.id
-      );
-      // Normalize status to uppercase to match frontend constants
-      const normalizedAppointments = response.appointments.map((apt) => ({
+      const patientId = user!.patientId || user!.id;
+      const aggregatedAppointments: AppointmentReadModel[] = [];
+      const PAGE_SIZE = 50;
+      const MAX_PAGES = 10; // Safety guard to avoid fetching unbounded history
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore && page <= MAX_PAGES) {
+        const response = await appointmentsService.getPatientAppointments(patientId, {
+          page,
+          pageSize: PAGE_SIZE,
+        });
+        aggregatedAppointments.push(...response.appointments);
+        hasMore = response.hasMore;
+        page += 1;
+
+        // Stop early if backend returns fewer rows than requested (no more data)
+        if (response.appointments.length < PAGE_SIZE) {
+          break;
+        }
+      }
+
+      const normalizedAppointments = aggregatedAppointments.map((apt) => ({
         ...apt,
-        status: (apt.status?.toUpperCase() || 'SCHEDULED') as any, // Cast to any to avoid type mismatch if backend returns unknown status
+        status: (apt.status?.toUpperCase() || 'SCHEDULED') as AppointmentStatus,
       }));
       setAppointments(normalizedAppointments);
     } catch (error) {
@@ -95,7 +108,6 @@ export default function MyAppointmentsPage() {
     let filtered = [...appointments];
     const today = startOfDay(new Date());
 
-    // Filter by tab
     if (activeTab === 'upcoming') {
       filtered = filtered.filter((apt) => {
         if (!apt.appointmentDate) return false;
@@ -113,17 +125,14 @@ export default function MyAppointmentsPage() {
       filtered = filtered.filter((apt) => apt.status === 'CANCELLED');
     }
 
-    // Filter by status
     if (selectedStatus !== 'all') {
       filtered = filtered.filter((apt) => apt.status === selectedStatus);
     }
 
-    // Filter by department
     if (selectedDepartment !== 'all') {
       filtered = filtered.filter((apt) => apt.doctorId === selectedDepartment);
     }
 
-    // Search - with null safety
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -133,7 +142,6 @@ export default function MyAppointmentsPage() {
       );
     }
 
-    // Sort by date - with null safety
     filtered.sort((a, b) => {
       if (!a.appointmentDate || !b.appointmentDate) return 0;
       const dateA = parseISO(a.appointmentDate);
@@ -185,48 +193,93 @@ export default function MyAppointmentsPage() {
     }
   };
 
+  // Group appointments by date
+  const groupedAppointments = filteredAppointments.reduce(
+    (groups, appointment) => {
+      const date = appointment.appointmentDate;
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(appointment);
+      return groups;
+    },
+    {} as Record<string, AppointmentReadModel[]>
+  );
+
+  const sortedDates = Object.keys(groupedAppointments).sort((a, b) => {
+    const dateA = parseISO(a);
+    const dateB = parseISO(b);
+    return activeTab === 'upcoming'
+      ? dateA.getTime() - dateB.getTime()
+      : dateB.getTime() - dateA.getTime();
+  });
+
+  const getDateHeader = (dateStr: string) => {
+    const date = parseISO(dateStr);
+    if (isToday(date)) return 'Hôm nay';
+    if (isTomorrow(date)) return 'Ngày mai';
+    return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
+  };
+
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50/40 via-white to-indigo-50/40">
-        <div className="mx-auto max-w-5xl space-y-8 p-4 sm:p-6">
-          {/* Header Section */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">Lịch hẹn của tôi</h1>
-              <p className="mt-1 text-gray-500">Quản lý và theo dõi quá trình khám chữa bệnh</p>
-            </div>
-            <Link href="/patient/appointments/book">
-              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] sm:w-auto">
-                <Calendar className="mr-2 h-4 w-4" />
-                Đặt lịch khám mới
-              </Button>
-            </Link>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mx-auto max-w-4xl space-y-8"
+      >
+        {/* Header Section */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Lịch hẹn của tôi</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Quản lý và theo dõi quá trình khám chữa bệnh
+            </p>
           </div>
+          <Link href="/patient/appointments/book">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button className="relative overflow-hidden rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40 sm:w-auto">
+                <div className="absolute inset-0 bg-white/10 opacity-0 transition-opacity hover:opacity-100" />
+                <CalendarPlus className="mr-2 h-4 w-4" />
+                <span className="font-semibold">Đặt lịch mới</span>
+              </Button>
+            </motion.div>
+          </Link>
+        </div>
 
-          {/* Controls Section */}
-          <div className="flex flex-col gap-4 rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-gray-100 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-            {/* Custom Tabs */}
-            <div className="flex w-full rounded-xl bg-gray-100/50 p-1 sm:w-auto">
-              {[
-                { id: 'upcoming', label: 'Sắp tới', count: upcomingCount },
-                { id: 'completed', label: 'Hoàn thành', count: completedCount },
-                { id: 'cancelled', label: 'Đã hủy', count: cancelledCount },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as TabType)}
-                  className={cn(
-                    'relative flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 sm:flex-none',
-                    activeTab === tab.id
-                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                  )}
-                >
+        {/* Controls Section */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Custom Tabs */}
+          <div className="flex w-full rounded-lg bg-gray-100 p-1 sm:w-auto">
+            {[
+              { id: 'upcoming', label: 'Sắp tới', count: upcomingCount },
+              { id: 'completed', label: 'Hoàn thành', count: completedCount },
+              { id: 'cancelled', label: 'Đã hủy', count: cancelledCount },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TabType)}
+                className={cn(
+                  'relative flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 sm:flex-none',
+                  activeTab === tab.id
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+                )}
+              >
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 rounded-md bg-white shadow-sm"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
                   {tab.label}
                   {tab.count > 0 && (
                     <span
                       className={cn(
-                        'flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1 text-[10px]',
+                        'flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px]',
                         activeTab === tab.id
                           ? 'bg-blue-100 text-blue-700'
                           : 'bg-gray-200 text-gray-600'
@@ -235,114 +288,154 @@ export default function MyAppointmentsPage() {
                       {tab.count}
                     </span>
                   )}
-                </button>
-              ))}
-            </div>
-
-            {/* Search & Filter */}
-            <div className="flex flex-1 gap-2 sm:max-w-md">
-              <div className="relative flex-1">
-                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm bác sĩ, chuyên khoa..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border-0 bg-gray-50/50 py-2.5 pr-4 pl-10 text-sm ring-1 ring-gray-200 transition-all placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowFilters(!showFilters)}
-                className={cn(
-                  'shrink-0 rounded-xl border-gray-200 bg-white transition-colors hover:bg-gray-50',
-                  showFilters && 'bg-blue-50 border-blue-200 text-blue-600'
-                )}
-              >
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
+                </span>
+              </button>
+            ))}
           </div>
 
-          {/* Filter Panel */}
-          {showFilters && (
-            <div className="animate-in fade-in slide-in-from-top-2 rounded-2xl border border-gray-100 bg-white/80 p-4 shadow-sm backdrop-blur-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-medium text-gray-900">Bộ lọc nâng cao</h3>
-                <button
-                  onClick={clearFilters}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-500">Trạng thái</label>
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value as AppointmentStatus | 'all')}
-                    className="w-full rounded-lg border-gray-200 bg-gray-50/50 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="SCHEDULED">Đã đặt</option>
-                    <option value="PENDING_PAYMENT">Chờ thanh toán</option>
-                    <option value="CONFIRMED">Đã xác nhận</option>
-                    <option value="COMPLETED">Đã hoàn thành</option>
-                    <option value="CANCELLED">Đã hủy</option>
-                  </select>
-                </div>
-              </div>
+          {/* Search & Filter */}
+          <div className="flex flex-1 gap-2 sm:max-w-xs">
+            <div className="relative flex-1">
+              <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Tìm bác sĩ..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border-0 bg-white py-2 pr-4 pl-9 text-sm ring-1 ring-gray-200 transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+              />
             </div>
-          )}
-
-          {/* Content Area */}
-          <div className="min-h-[400px]">
-            {loading ? (
-              <div className="flex h-64 flex-col items-center justify-center gap-3">
-                <Loader2 className="text-primary h-8 w-8 animate-spin" />
-                <p className="text-sm text-gray-500">Đang tải dữ liệu...</p>
-              </div>
-            ) : filteredAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-white/50 py-16 text-center backdrop-blur-sm">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 shadow-sm ring-1 ring-blue-100">
-                  <CalendarDays className="h-8 w-8 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Không tìm thấy lịch hẹn</h3>
-                <p className="mt-1 max-w-sm text-sm text-gray-500">
-                  {searchQuery || selectedStatus !== 'all'
-                    ? 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn'
-                    : 'Bạn chưa có lịch hẹn nào trong danh sách này'}
-                </p>
-                {activeTab === 'upcoming' && !searchQuery && selectedStatus === 'all' && (
-                  <Link href="/patient/appointments/book" className="mt-6">
-                    <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/20">
-                      Đặt lịch khám ngay
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {filteredAppointments.map((appointment) => (
-                  <AppointmentItem
-                    key={appointment.id}
-                    appointment={appointment}
-                    statusLabel={getStatusLabel(appointment.status, appointment.paymentStatus)}
-                    onUpdate={loadAppointments}
-                  />
-                ))}
-              </div>
-            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn(
+                'h-9 w-9 shrink-0 rounded-lg border-gray-200 bg-white',
+                showFilters && 'border-blue-200 bg-blue-50 text-blue-600'
+              )}
+            >
+              <Filter className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
-      </div>
+
+        {/* Filter Panel */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-900">Bộ lọc</h3>
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">
+                      Trạng thái
+                    </label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) =>
+                        setSelectedStatus(e.target.value as AppointmentStatus | 'all')
+                      }
+                      className="w-full rounded-lg border-gray-200 bg-gray-50/50 py-1.5 text-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="all">Tất cả</option>
+                      <option value="SCHEDULED">Đã đặt</option>
+                      <option value="PENDING_PAYMENT">Chờ thanh toán</option>
+                      <option value="CONFIRMED">Đã xác nhận</option>
+                      <option value="COMPLETED">Đã hoàn thành</option>
+                      <option value="CANCELLED">Đã hủy</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Content Area */}
+        <div className="min-h-[400px]">
+          {loading ? (
+            <div className="flex h-64 flex-col items-center justify-center gap-3">
+              <Loader2 className="text-primary h-6 w-6 animate-spin" />
+              <p className="text-sm text-gray-500">Đang tải dữ liệu...</p>
+            </div>
+          ) : filteredAppointments.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-16 text-center"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-50">
+                <CalendarDays className="h-6 w-6 text-gray-400" />
+              </div>
+              <h3 className="text-base font-medium text-gray-900">Không tìm thấy lịch hẹn</h3>
+              <p className="mt-1 max-w-sm text-sm text-gray-500">
+                {searchQuery || selectedStatus !== 'all'
+                  ? 'Thử thay đổi bộ lọc tìm kiếm'
+                  : 'Bạn chưa có lịch hẹn nào'}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="relative space-y-8 pl-4 sm:pl-0">
+              {/* Timeline Line */}
+              <div className="absolute top-2 bottom-2 left-4 w-px bg-gray-200 sm:hidden" />
+
+              {sortedDates.map((date, index) => (
+                <motion.div
+                  key={date}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative"
+                >
+                  {/* Timeline Dot (Mobile) */}
+                  <div className="absolute top-1.5 -left-4 h-2 w-2 rounded-full bg-gray-300 ring-4 ring-white sm:hidden" />
+
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-medium tracking-wider text-slate-500 uppercase">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {getDateHeader(date)}
+                  </h3>
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="divide-y divide-slate-100">
+                      {groupedAppointments[date].map((appointment, idx) => {
+                        const safeKey =
+                          appointment.appointmentId || appointment.id || `${appointment.id}-${idx}`;
+                        return (
+                          <AppointmentItem
+                            key={safeKey}
+                            appointment={appointment}
+                            statusLabel={getStatusLabel(
+                              appointment.status,
+                              appointment.paymentStatus
+                            )}
+                            onUpdate={loadAppointments}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
     </DashboardLayout>
   );
 }
 
-// Modern Appointment Item Component
 function AppointmentItem({
   appointment,
   statusLabel,
@@ -360,37 +453,31 @@ function AppointmentItem({
       bg: 'bg-blue-50',
       text: 'text-blue-700',
       border: 'border-blue-100',
-      icon: Calendar,
     },
     PENDING_PAYMENT: {
       bg: 'bg-amber-50',
       text: 'text-amber-700',
       border: 'border-amber-100',
-      icon: AlertCircle,
     },
     CONFIRMED: {
       bg: 'bg-emerald-50',
       text: 'text-emerald-700',
       border: 'border-emerald-100',
-      icon: Calendar,
     },
     CANCELLED: {
-      bg: 'bg-red-50',
-      text: 'text-red-700',
-      border: 'border-red-100',
-      icon: X,
+      bg: 'bg-slate-100',
+      text: 'text-slate-600',
+      border: 'border-slate-200',
     },
     COMPLETED: {
       bg: 'bg-gray-50',
       text: 'text-gray-700',
       border: 'border-gray-100',
-      icon: Calendar,
     },
     NO_SHOW: {
       bg: 'bg-orange-50',
       text: 'text-orange-700',
       border: 'border-orange-100',
-      icon: AlertCircle,
     },
   };
 
@@ -424,109 +511,108 @@ function AppointmentItem({
     }
   }
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    router.push(`/patient/appointments/${appointment.id}`);
+  };
+
   return (
     <>
-      <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          {/* Date Box */}
-          <div className="flex shrink-0 items-center gap-4 sm:flex-col sm:gap-1">
-            <div className="flex h-16 w-16 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 sm:h-20 sm:w-20">
-              <span className="text-xs font-medium uppercase text-blue-100">
-                {format(appointmentDate, 'MMM', { locale: vi })}
-              </span>
-              <span className="text-2xl font-bold">{format(appointmentDate, 'dd')}</span>
-            </div>
-            <div className="sm:hidden">
-              <h3 className="font-semibold text-gray-900">
-                BS. {appointment.doctorName || 'Đang cập nhật'}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {appointment.doctorSpecialization || 'Chuyên khoa'}
-              </p>
-            </div>
+      <motion.div
+        layout
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleCardClick}
+        whileHover={{
+          scale: 1.02,
+          backgroundColor: 'rgba(239, 246, 255, 0.8)', // blue-50
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', // shadow-md
+        }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        className="group flex cursor-pointer flex-col gap-3 border-l-4 border-transparent p-3 transition-all hover:border-blue-500 sm:flex-row sm:items-center sm:gap-4"
+      >
+        {/* Time & Date Combined */}
+        <div className="flex shrink-0 items-center gap-2 sm:w-32 sm:flex-col sm:items-start sm:gap-0.5">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+            <Clock className="h-3.5 w-3.5 text-slate-400" />
+            {appointment.appointmentTime}
           </div>
+          <div className="text-xs text-slate-500 sm:pl-5">{format(appointmentDate, 'dd/MM')}</div>
+        </div>
 
-          {/* Info Section */}
-          <div className="flex-1 space-y-2">
-            <div className="hidden sm:block">
-              <h3 className="text-lg font-bold text-gray-900">
-                BS. {appointment.doctorName || 'Đang cập nhật'}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {appointment.doctorSpecialization || 'Chuyên khoa'}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="font-medium text-gray-900">{appointment.appointmentTime}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span>Phòng khám số 2</span>
-              </div>
-            </div>
-
-            {appointment.reason && (
-              <div className="mt-2 inline-flex items-center rounded-lg bg-gray-50 px-3 py-1 text-xs text-gray-600">
-                <span className="mr-1 font-medium text-gray-900">Lý do:</span>
-                {appointment.reason}
-              </div>
-            )}
-          </div>
-
-          {/* Status & Actions */}
-          <div className="flex flex-row items-center justify-between gap-4 border-t border-gray-100 pt-4 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <h3 className="truncate text-[15px] font-semibold text-gray-900">
+              BS. {appointment.doctorName || 'Đang cập nhật'}
+            </h3>
             <span
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
+                'inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
                 config.bg,
                 config.text,
                 config.border,
                 'border'
               )}
             >
-              <config.icon className="h-3 w-3" />
               {statusLabel}
             </span>
-
-            <div className="flex items-center gap-2">
-              {canModify && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100">
-                      <MoreVertical className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem
-                      onClick={() =>
-                        router.push(`/patient/appointments/${appointment.id}/reschedule`)
-                      }
-                    >
-                      Đổi lịch khám
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600"
-                      onClick={() => setShowCancelDialog(true)}
-                    >
-                      Hủy lịch hẹn
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              <Button
-                size="sm"
-                onClick={() => router.push(`/patient/appointments/${appointment.id}`)}
-                className="rounded-lg bg-gray-900 text-xs font-medium text-white shadow-sm hover:bg-gray-800"
-              >
-                Xem chi tiết
-              </Button>
-            </div>
+          </div>
+          <div className="mt-0.5 text-sm font-medium text-blue-600">
+            {appointment.doctorSpecialization || 'Chuyên khoa'}
           </div>
         </div>
-      </div>
+
+        {/* Actions */}
+        <div className="mt-1 flex items-center justify-between gap-2 sm:mt-0 sm:justify-end">
+          <div className="flex items-center gap-1">
+            {canModify && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/patient/appointments/${appointment.id}/reschedule`);
+                    }}
+                  >
+                    Đổi lịch khám
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowCancelDialog(true);
+                    }}
+                  >
+                    Hủy lịch hẹn
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 rounded-full px-3 text-xs font-medium text-slate-500 ring-1 ring-transparent hover:bg-white hover:text-blue-600 hover:shadow-sm hover:ring-slate-200"
+            onClick={() => router.push(`/patient/appointments/${appointment.id}`)}
+          >
+            Chi tiết
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </motion.div>
 
       <CancelAppointmentDialog
         isOpen={showCancelDialog}

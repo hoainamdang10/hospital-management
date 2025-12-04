@@ -120,6 +120,9 @@ export declare class AppointmentReadModelEventHandler {
      */
     handleAppointmentCancelled(event: {
         appointmentId: string;
+        cancellationReason?: string;
+        cancelledAt?: Date | string;
+        paymentStatusUpdate?: string;
     }): Promise<void>;
     /**
      * Handle AppointmentConfirmedEvent

@@ -4,6 +4,7 @@ export type NotificationStatusFilter = 'read' | 'unread' | 'all';
 
 export interface UserNotification {
   notificationId: string;
+  recipientId?: string;
   templateType?: string;
   subject: string;
   body: string;
@@ -43,14 +44,14 @@ export interface UserNotificationsResponse {
 export interface RecentActivity {
   id: string;
   type:
-    | 'discharge'
-    | 'admission'
-    | 'maintenance'
-    | 'medication'
-    | 'emergency'
-    | 'appointment'
-    | 'test_result'
-    | 'payment';
+  | 'discharge'
+  | 'admission'
+  | 'maintenance'
+  | 'medication'
+  | 'emergency'
+  | 'appointment'
+  | 'test_result'
+  | 'payment';
   title: string;
   description: string;
   time: string;
@@ -65,6 +66,7 @@ export async function getUserNotifications(
     priority?: string;
     startDate?: string;
     endDate?: string;
+    notificationId?: string;
   }
 ): Promise<UserNotificationsResponse> {
   const response = await apiClient.get(`/v1/notifications/user/${userId}`, {
@@ -103,6 +105,19 @@ export function transformNotificationsToActivities(
     description: formatNotificationPreview(notification).description,
     time: formatTime(notification.createdAt),
   }));
+}
+
+export async function getNotificationDetail(userId: string, notificationId: string) {
+  const response = await getUserNotifications(userId, {
+    limit: 1,
+    notificationId,
+  });
+
+  if (!response.success || response.data.notifications.length === 0) {
+    return null;
+  }
+
+  return response.data.notifications[0];
 }
 
 export interface NotificationPreview {
@@ -160,12 +175,12 @@ export function formatNotificationPreview(notification: UserNotification): Notif
       const amountText = formatCurrency(amount);
       const dueText = dueDate
         ? new Date(dueDate).toLocaleString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
         : null;
       return {
         title: 'Nhắc nhở thanh toán',
@@ -286,13 +301,13 @@ function extractDescription(notification: UserNotification): string {
   }
 
   if (notification.healthcareContext?.appointmentId) {
-    return 'Th?ng b?o li?n quan ??n l?ch h?n';
+    return 'Thông báo liên quan đến lịch hẹn';
   }
   if (notification.healthcareContext?.invoiceId) {
-    return 'Th?ng b?o li?n quan ??n thanh to?n';
+    return 'Thông báo liên quan đến thanh toán';
   }
   if (notification.healthcareContext?.medicalRecordId) {
-    return 'Th?ng b?o v? h? s? b?nh ?n';
+    return 'Thông báo về hồ sơ bệnh án';
   }
 
   return '';
@@ -307,10 +322,10 @@ function formatTime(dateString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMinutes < 1) return 'V?a xong';
-  if (diffMinutes < 60) return `${diffMinutes} ph?t tr??c`;
-  if (diffHours < 24) return `${diffHours} gi? tr??c`;
-  if (diffDays < 7) return `${diffDays} ng?y tr??c`;
+  if (diffMinutes < 1) return 'Vừa xong';
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
 
   return date.toLocaleString('vi-VN', {
     day: '2-digit',

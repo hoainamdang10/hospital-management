@@ -7,7 +7,7 @@
  * event-driven architecture between microservices.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EVENT_TYPE_REGISTRY = exports.NotificationFailedEvent = exports.NotificationSentEvent = exports.InsuranceClaimProcessedEvent = exports.InsuranceClaimSubmittedEvent = exports.InvoiceOverdueEvent = exports.PaymentReceivedEvent = exports.InvoiceGeneratedEvent = exports.LabResultsReadyEvent = exports.PrescriptionCreatedEvent = exports.MedicalRecordCreatedEvent = exports.AppointmentCompletedEvent = exports.AppointmentCancelledEvent = exports.AppointmentConfirmedEvent = exports.AppointmentScheduledEvent = exports.DoctorAvailabilityChangedEvent = exports.DoctorScheduleUpdatedEvent = exports.DoctorRegisteredEvent = exports.PatientInsuranceUpdatedEvent = exports.PatientUpdatedEvent = exports.PatientRegisteredEvent = exports.UserDeactivatedEvent = exports.UserRoleChangedEvent = exports.UserAuthenticatedEvent = exports.UserCreatedEvent = void 0;
+exports.EVENT_TYPE_REGISTRY = exports.NotificationFailedEvent = exports.NotificationSentEvent = exports.InsuranceClaimProcessedEvent = exports.InsuranceClaimSubmittedEvent = exports.InvoiceExpiredEvent = exports.InvoiceOverdueEvent = exports.PaymentReceivedEvent = exports.InvoiceGeneratedEvent = exports.LabResultsReadyEvent = exports.PrescriptionCreatedEvent = exports.MedicalRecordCreatedEvent = exports.AppointmentPaymentExpiredEvent = exports.AppointmentCompletedEvent = exports.AppointmentCancelledEvent = exports.AppointmentConfirmedEvent = exports.AppointmentStartedEvent = exports.AppointmentCheckedInEvent = exports.AppointmentRescheduledEvent = exports.AppointmentScheduledEvent = exports.DoctorAvailabilityChangedEvent = exports.DoctorScheduleUpdatedEvent = exports.DoctorRegisteredEvent = exports.PatientInsuranceUpdatedEvent = exports.PatientUpdatedEvent = exports.PatientRegisteredEvent = exports.UserDeactivatedEvent = exports.UserRoleChangedEvent = exports.UserAuthenticatedEvent = exports.UserCreatedEvent = void 0;
 const domain_event_1 = require("../base/domain-event");
 // ============================================================================
 // IDENTITY SERVICE EVENTS
@@ -17,14 +17,50 @@ const domain_event_1 = require("../base/domain-event");
  * Subscribers: Patient Service, Doctor Service, Notification Service
  */
 class UserCreatedEvent extends domain_event_1.DomainEvent {
-    constructor(userId, email, fullName, roleType, citizenId, phoneNumber) {
-        super('UserCreated', userId, 'User', { email, fullName, roleType, citizenId, phoneNumber }, 1, undefined, undefined, userId);
+    constructor(userId, email, fullName, roleType, citizenId, phoneNumber, dateOfBirth, gender, address, 
+    // Professional fields (optional to keep backward compatibility)
+    department, specializationCode, specializationName, licenseNumber, education, yearsOfExperience, position, title, employmentType, workSchedule, consultationFee) {
+        super("UserCreated", userId, "User", {
+            email,
+            fullName,
+            roleType,
+            citizenId,
+            phoneNumber,
+            dateOfBirth,
+            gender,
+            address,
+            department,
+            specializationCode,
+            specializationName,
+            licenseNumber,
+            education,
+            yearsOfExperience,
+            position,
+            title,
+            employmentType,
+            workSchedule,
+            consultationFee,
+        }, 1, undefined, undefined, userId);
         this.userId = userId;
         this.email = email;
         this.fullName = fullName;
         this.roleType = roleType;
         this.citizenId = citizenId;
         this.phoneNumber = phoneNumber;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.address = address;
+        this.department = department;
+        this.specializationCode = specializationCode;
+        this.specializationName = specializationName;
+        this.licenseNumber = licenseNumber;
+        this.education = education;
+        this.yearsOfExperience = yearsOfExperience;
+        this.position = position;
+        this.title = title;
+        this.employmentType = employmentType;
+        this.workSchedule = workSchedule;
+        this.consultationFee = consultationFee;
     }
     getEventData() {
         return {
@@ -33,14 +69,28 @@ class UserCreatedEvent extends domain_event_1.DomainEvent {
             fullName: this.fullName,
             roleType: this.roleType,
             citizenId: this.citizenId,
-            phoneNumber: this.phoneNumber
+            phoneNumber: this.phoneNumber,
+            dateOfBirth: this.dateOfBirth,
+            gender: this.gender,
+            address: this.address,
+            department: this.department,
+            specializationCode: this.specializationCode,
+            specializationName: this.specializationName,
+            licenseNumber: this.licenseNumber,
+            education: this.education,
+            yearsOfExperience: this.yearsOfExperience,
+            position: this.position,
+            title: this.title,
+            employmentType: this.employmentType,
+            workSchedule: this.workSchedule,
+            consultationFee: this.consultationFee,
         };
     }
     containsPHI() {
         return true;
     }
     getPatientId() {
-        return this.roleType === 'patient' ? this.userId : null;
+        return this.roleType === "patient" ? this.userId : null;
     }
 }
 exports.UserCreatedEvent = UserCreatedEvent;
@@ -50,7 +100,7 @@ exports.UserCreatedEvent = UserCreatedEvent;
  */
 class UserAuthenticatedEvent extends domain_event_1.DomainEvent {
     constructor(userId, email, sessionId, ipAddress, userAgent, timestamp) {
-        super('UserAuthenticated', userId, 'User', { email, sessionId, ipAddress, userAgent, timestamp }, 1, undefined, undefined, userId);
+        super("UserAuthenticated", userId, "User", { email, sessionId, ipAddress, userAgent, timestamp }, 1, undefined, undefined, userId);
         this.userId = userId;
         this.email = email;
         this.sessionId = sessionId;
@@ -65,7 +115,7 @@ class UserAuthenticatedEvent extends domain_event_1.DomainEvent {
             sessionId: this.sessionId,
             ipAddress: this.ipAddress,
             userAgent: this.userAgent,
-            timestamp: this.timestamp.toISOString()
+            timestamp: this.timestamp.toISOString(),
         };
     }
     containsPHI() {
@@ -82,7 +132,7 @@ exports.UserAuthenticatedEvent = UserAuthenticatedEvent;
  */
 class UserRoleChangedEvent extends domain_event_1.DomainEvent {
     constructor(userId, oldRole, newRole, changedBy, reason) {
-        super('UserRoleChanged', userId, 'User', { oldRole, newRole, changedBy, reason }, 1, undefined, undefined, changedBy);
+        super("UserRoleChanged", userId, "User", { oldRole, newRole, changedBy, reason }, 1, undefined, undefined, changedBy);
         this.userId = userId;
         this.oldRole = oldRole;
         this.newRole = newRole;
@@ -95,7 +145,7 @@ class UserRoleChangedEvent extends domain_event_1.DomainEvent {
             oldRole: this.oldRole,
             newRole: this.newRole,
             changedBy: this.changedBy,
-            reason: this.reason
+            reason: this.reason,
         };
     }
     containsPHI() {
@@ -112,7 +162,7 @@ exports.UserRoleChangedEvent = UserRoleChangedEvent;
  */
 class UserDeactivatedEvent extends domain_event_1.DomainEvent {
     constructor(userId, email, reason, deactivatedBy) {
-        super('UserDeactivated', userId, 'User', { email, reason, deactivatedBy }, 1, undefined, undefined, deactivatedBy);
+        super("UserDeactivated", userId, "User", { email, reason, deactivatedBy }, 1, undefined, undefined, deactivatedBy);
         this.userId = userId;
         this.email = email;
         this.reason = reason;
@@ -123,7 +173,7 @@ class UserDeactivatedEvent extends domain_event_1.DomainEvent {
             userId: this.userId,
             email: this.email,
             reason: this.reason,
-            deactivatedBy: this.deactivatedBy
+            deactivatedBy: this.deactivatedBy,
         };
     }
     containsPHI() {
@@ -144,7 +194,15 @@ exports.UserDeactivatedEvent = UserDeactivatedEvent;
 class PatientRegisteredEvent extends domain_event_1.DomainEvent {
     constructor(patientId, userId, patientIdCode, // PAT-YYYYMM-XXX
     fullName, dateOfBirth, phoneNumber, email, insuranceType) {
-        super('PatientRegistered', patientId, 'Patient', { userId, patientIdCode, fullName, dateOfBirth, phoneNumber, email, insuranceType }, 1, undefined, undefined, userId);
+        super("PatientRegistered", patientId, "Patient", {
+            userId,
+            patientIdCode,
+            fullName,
+            dateOfBirth,
+            phoneNumber,
+            email,
+            insuranceType,
+        }, 1, undefined, undefined, userId);
         this.patientId = patientId;
         this.userId = userId;
         this.patientIdCode = patientIdCode;
@@ -163,7 +221,7 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
             dateOfBirth: this.dateOfBirth.toISOString(),
             phoneNumber: this.phoneNumber,
             email: this.email,
-            insuranceType: this.insuranceType
+            insuranceType: this.insuranceType,
         };
     }
     containsPHI() {
@@ -180,7 +238,7 @@ exports.PatientRegisteredEvent = PatientRegisteredEvent;
  */
 class PatientUpdatedEvent extends domain_event_1.DomainEvent {
     constructor(patientId, userId, updatedFields, updatedBy) {
-        super('PatientUpdated', patientId, 'Patient', { userId, updatedFields, updatedBy }, 1, undefined, undefined, updatedBy);
+        super("PatientUpdated", patientId, "Patient", { userId, updatedFields, updatedBy }, 1, undefined, undefined, updatedBy);
         this.patientId = patientId;
         this.userId = userId;
         this.updatedFields = updatedFields;
@@ -191,7 +249,7 @@ class PatientUpdatedEvent extends domain_event_1.DomainEvent {
             patientId: this.patientId,
             userId: this.userId,
             updatedFields: this.updatedFields,
-            updatedBy: this.updatedBy
+            updatedBy: this.updatedBy,
         };
     }
     containsPHI() {
@@ -208,7 +266,7 @@ exports.PatientUpdatedEvent = PatientUpdatedEvent;
  */
 class PatientInsuranceUpdatedEvent extends domain_event_1.DomainEvent {
     constructor(patientId, insuranceType, insuranceNumber, expiryDate) {
-        super('PatientInsuranceUpdated', patientId, 'Patient', { insuranceType, insuranceNumber, expiryDate }, 1);
+        super("PatientInsuranceUpdated", patientId, "Patient", { insuranceType, insuranceNumber, expiryDate }, 1);
         this.patientId = patientId;
         this.insuranceType = insuranceType;
         this.insuranceNumber = insuranceNumber;
@@ -219,7 +277,7 @@ class PatientInsuranceUpdatedEvent extends domain_event_1.DomainEvent {
             patientId: this.patientId,
             insuranceType: this.insuranceType,
             insuranceNumber: this.insuranceNumber,
-            expiryDate: this.expiryDate?.toISOString()
+            expiryDate: this.expiryDate?.toISOString(),
         };
     }
     containsPHI() {
@@ -240,7 +298,15 @@ exports.PatientInsuranceUpdatedEvent = PatientInsuranceUpdatedEvent;
 class DoctorRegisteredEvent extends domain_event_1.DomainEvent {
     constructor(doctorId, userId, doctorIdCode, // DEPT-DOC-YYYYMM-XXX
     fullName, specialty, departmentCode, licenseNumber, isAcceptingPatients) {
-        super('DoctorRegistered', doctorId, 'Doctor', { userId, doctorIdCode, fullName, specialty, departmentCode, licenseNumber, isAcceptingPatients }, 1, undefined, undefined, userId);
+        super("DoctorRegistered", doctorId, "Doctor", {
+            userId,
+            doctorIdCode,
+            fullName,
+            specialty,
+            departmentCode,
+            licenseNumber,
+            isAcceptingPatients,
+        }, 1, undefined, undefined, userId);
         this.doctorId = doctorId;
         this.userId = userId;
         this.doctorIdCode = doctorIdCode;
@@ -259,7 +325,7 @@ class DoctorRegisteredEvent extends domain_event_1.DomainEvent {
             specialty: this.specialty,
             departmentCode: this.departmentCode,
             licenseNumber: this.licenseNumber,
-            isAcceptingPatients: this.isAcceptingPatients
+            isAcceptingPatients: this.isAcceptingPatients,
         };
     }
     containsPHI() {
@@ -276,7 +342,7 @@ exports.DoctorRegisteredEvent = DoctorRegisteredEvent;
  */
 class DoctorScheduleUpdatedEvent extends domain_event_1.DomainEvent {
     constructor(doctorId, scheduleId, effectiveDate, updatedBy) {
-        super('DoctorScheduleUpdated', doctorId, 'Doctor', { scheduleId, effectiveDate, updatedBy }, 1, undefined, undefined, updatedBy);
+        super("DoctorScheduleUpdated", doctorId, "Doctor", { scheduleId, effectiveDate, updatedBy }, 1, undefined, undefined, updatedBy);
         this.doctorId = doctorId;
         this.scheduleId = scheduleId;
         this.effectiveDate = effectiveDate;
@@ -287,7 +353,7 @@ class DoctorScheduleUpdatedEvent extends domain_event_1.DomainEvent {
             doctorId: this.doctorId,
             scheduleId: this.scheduleId,
             effectiveDate: this.effectiveDate.toISOString(),
-            updatedBy: this.updatedBy
+            updatedBy: this.updatedBy,
         };
     }
     containsPHI() {
@@ -304,7 +370,7 @@ exports.DoctorScheduleUpdatedEvent = DoctorScheduleUpdatedEvent;
  */
 class DoctorAvailabilityChangedEvent extends domain_event_1.DomainEvent {
     constructor(doctorId, date, isAvailable, reason) {
-        super('DoctorAvailabilityChanged', doctorId, 'Doctor', { date, isAvailable, reason }, 1);
+        super("DoctorAvailabilityChanged", doctorId, "Doctor", { date, isAvailable, reason }, 1);
         this.doctorId = doctorId;
         this.date = date;
         this.isAvailable = isAvailable;
@@ -315,7 +381,7 @@ class DoctorAvailabilityChangedEvent extends domain_event_1.DomainEvent {
             doctorId: this.doctorId,
             date: this.date.toISOString(),
             isAvailable: this.isAvailable,
-            reason: this.reason
+            reason: this.reason,
         };
     }
     containsPHI() {
@@ -330,57 +396,205 @@ exports.DoctorAvailabilityChangedEvent = DoctorAvailabilityChangedEvent;
 // SCHEDULING SERVICE EVENTS
 // ============================================================================
 /**
- * Published when appointment is scheduled
- * Subscribers: Patient Service, Doctor Service, Notification Service, Billing Service
+ * PLACEHOLDER: AppointmentScheduledEvent
+ *
+ * This is a placeholder class for EVENT_TYPE_REGISTRY.
+ * The actual implementation is in appointments-service/src/domain/events/AppointmentScheduledEvent.ts
+ *
+ * FIXED: Constructor now accepts all 11 parameters to properly initialize readonly properties
+ * during deserialization.
  */
 class AppointmentScheduledEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, appointmentIdCode, // TYPE-DEPT-YYYYMM-SEQ
-    patientId, doctorId, appointmentDate, startTime, endTime, appointmentType, reason, priority) {
-        super('AppointmentScheduled', appointmentId, 'Appointment', { appointmentIdCode, patientId, doctorId, appointmentDate, startTime, endTime, appointmentType, reason, priority }, 1);
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, durationMinutes, type, priority, status, consultationFee, createdBy, correlationId, causationId, userId) {
+        const eventData = {
+            appointmentId,
+            patientId,
+            doctorId,
+            appointmentDate,
+            appointmentTime,
+            durationMinutes,
+            type,
+            priority,
+            status,
+            consultationFee,
+            createdBy,
+            scheduledAt: new Date(),
+        };
+        super("AppointmentScheduled", appointmentId, "Appointment", eventData, 1, correlationId, causationId, userId);
+        // Assign readonly properties
         this.appointmentId = appointmentId;
-        this.appointmentIdCode = appointmentIdCode;
         this.patientId = patientId;
         this.doctorId = doctorId;
         this.appointmentDate = appointmentDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.appointmentType = appointmentType;
-        this.reason = reason;
+        this.appointmentTime = appointmentTime;
+        this.durationMinutes = durationMinutes;
+        this.type = type;
         this.priority = priority;
+        this.status = status;
+        this.consultationFee = consultationFee;
+        this.createdBy = createdBy;
+        this.scheduledAt = eventData.scheduledAt;
     }
     getEventData() {
         return {
             appointmentId: this.appointmentId,
-            appointmentIdCode: this.appointmentIdCode,
             patientId: this.patientId,
             doctorId: this.doctorId,
-            appointmentDate: this.appointmentDate.toISOString(),
-            startTime: this.startTime,
-            endTime: this.endTime,
-            appointmentType: this.appointmentType,
-            reason: this.reason,
-            priority: this.priority
+            appointmentDate: this.appointmentDate,
+            appointmentTime: this.appointmentTime,
+            durationMinutes: this.durationMinutes,
+            type: this.type,
+            priority: this.priority,
+            status: this.status,
+            consultationFee: this.consultationFee,
+            createdBy: this.createdBy,
+            scheduledAt: this.scheduledAt,
         };
     }
     containsPHI() {
         return true;
     }
     getPatientId() {
-        return this.patientId;
+        return this.patientId || null;
     }
 }
 exports.AppointmentScheduledEvent = AppointmentScheduledEvent;
+/**
+ * PLACEHOLDER: AppointmentRescheduledEvent
+ *
+ * Lightweight definition for deserialization in EVENT_TYPE_REGISTRY.
+ * Full domain logic lives inside appointments-service.
+ */
+class AppointmentRescheduledEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, newStartTime, newEndTime, rescheduleReason, rescheduledBy, correlationId, causationId, userId) {
+        const start = new Date(newStartTime);
+        const end = new Date(newEndTime);
+        const eventData = {
+            appointmentId,
+            patientId,
+            doctorId,
+            newStartTime: start,
+            newEndTime: end,
+            rescheduleReason,
+            rescheduledBy,
+        };
+        super("AppointmentRescheduled", appointmentId, "Appointment", eventData, 1, correlationId, causationId, userId);
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.newStartTime = start;
+        this.newEndTime = end;
+        this.rescheduleReason = rescheduleReason;
+        this.rescheduledBy = rescheduledBy;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            newStartTime: this.newStartTime,
+            newEndTime: this.newEndTime,
+            rescheduleReason: this.rescheduleReason,
+            rescheduledBy: this.rescheduledBy,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentRescheduledEvent = AppointmentRescheduledEvent;
+/**
+ * PLACEHOLDER: AppointmentCheckedInEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+class AppointmentCheckedInEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, checkedInAt, priority, correlationId, causationId, userId) {
+        const checkedInDate = checkedInAt instanceof Date ? checkedInAt : new Date(checkedInAt);
+        super("AppointmentCheckedIn", appointmentId, "Appointment", {
+            appointmentId,
+            patientId,
+            doctorId,
+            checkedInAt: checkedInDate,
+            priority,
+        }, 1, correlationId, causationId, userId);
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.checkedInAt = checkedInAt;
+        this.priority = priority;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            checkedInAt: this.checkedInAt,
+            priority: this.priority,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentCheckedInEvent = AppointmentCheckedInEvent;
+/**
+ * PLACEHOLDER: AppointmentStartedEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+class AppointmentStartedEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, startedBy, correlationId, causationId, userId) {
+        super("AppointmentStarted", appointmentId, "Appointment", {
+            appointmentId,
+            patientId,
+            doctorId,
+            appointmentDate,
+            appointmentTime,
+            startedAt: new Date(),
+            startedBy,
+        }, 1, correlationId, causationId, userId);
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.appointmentDate = appointmentDate;
+        this.appointmentTime = appointmentTime;
+        this.startedBy = startedBy;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            appointmentDate: this.appointmentDate,
+            appointmentTime: this.appointmentTime,
+            startedAt: this.occurredAt,
+            startedBy: this.startedBy,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentStartedEvent = AppointmentStartedEvent;
 /**
  * Published when appointment is confirmed
  * Subscribers: Notification Service, Doctor Service
  */
 class AppointmentConfirmedEvent extends domain_event_1.DomainEvent {
     constructor(appointmentId, patientId, doctorId, confirmedAt, confirmationMethod) {
-        super('AppointmentConfirmed', appointmentId, 'Appointment', {
+        super("AppointmentConfirmed", appointmentId, "Appointment", {
             patientId,
             doctorId,
             confirmedAt,
-            confirmationMethod
+            confirmationMethod,
         }, 1, undefined, undefined, patientId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
@@ -393,7 +607,7 @@ class AppointmentConfirmedEvent extends domain_event_1.DomainEvent {
             patientId: this.patientId,
             doctorId: this.doctorId,
             confirmedAt: this.confirmedAt,
-            confirmationMethod: this.confirmationMethod
+            confirmationMethod: this.confirmationMethod,
         };
     }
     containsPHI() {
@@ -410,13 +624,13 @@ exports.AppointmentConfirmedEvent = AppointmentConfirmedEvent;
  */
 class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
     constructor(appointmentId, patientId, doctorId, cancelledBy, cancellationType, reason, cancelledAt) {
-        super('AppointmentCancelled', appointmentId, 'Appointment', {
+        super("AppointmentCancelled", appointmentId, "Appointment", {
             patientId,
             doctorId,
             cancelledBy,
             cancellationType,
             reason,
-            cancelledAt
+            cancelledAt,
         }, 1, undefined, undefined, cancelledBy);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
@@ -433,7 +647,7 @@ class AppointmentCancelledEvent extends domain_event_1.DomainEvent {
             cancelledBy: this.cancelledBy,
             cancellationType: this.cancellationType,
             reason: this.reason,
-            cancelledAt: this.cancelledAt
+            cancelledAt: this.cancelledAt,
         };
     }
     containsPHI() {
@@ -451,13 +665,13 @@ exports.AppointmentCancelledEvent = AppointmentCancelledEvent;
  */
 class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
     constructor(appointmentId, patientId, doctorId, completedAt, duration, notes, consultationFee) {
-        super('AppointmentCompleted', appointmentId, 'Appointment', {
+        super("AppointmentCompleted", appointmentId, "Appointment", {
             patientId,
             doctorId,
             completedAt,
             duration,
             notes,
-            consultationFee
+            consultationFee,
         }, 1, undefined, undefined, doctorId);
         this.appointmentId = appointmentId;
         this.patientId = patientId;
@@ -474,7 +688,7 @@ class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
             completedAt: this.completedAt,
             duration: this.duration,
             notes: this.notes,
-            consultationFee: this.consultationFee
+            consultationFee: this.consultationFee,
         };
     }
     containsPHI() {
@@ -485,6 +699,61 @@ class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
     }
 }
 exports.AppointmentCompletedEvent = AppointmentCompletedEvent;
+/**
+ * Published when a prepaid appointment receives payment after deadline
+ * Subscribers: Billing Service (refund), Notifications (inform patient)
+ */
+class AppointmentPaymentExpiredEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, invoiceId, paymentId, amount, currency, expiredAt = new Date(), paymentDeadline, reason = "Payment deadline exceeded") {
+        super("AppointmentPaymentExpired", appointmentId, "Appointment", {
+            appointmentId,
+            patientId,
+            doctorId,
+            invoiceId,
+            paymentId,
+            amount,
+            currency,
+            expiredAt,
+            paymentDeadline,
+            reason,
+        }, 1, undefined, undefined, "system", {
+            priority: "high",
+            retryable: true,
+            tags: ["billing", "payment", "expired"],
+        });
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.invoiceId = invoiceId;
+        this.paymentId = paymentId;
+        this.amount = amount;
+        this.currency = currency;
+        this.expiredAt = expiredAt;
+        this.paymentDeadline = paymentDeadline;
+        this.reason = reason;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            invoiceId: this.invoiceId,
+            paymentId: this.paymentId,
+            amount: this.amount,
+            currency: this.currency,
+            expiredAt: this.expiredAt,
+            paymentDeadline: this.paymentDeadline,
+            reason: this.reason,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentPaymentExpiredEvent = AppointmentPaymentExpiredEvent;
 // ============================================================================
 // CLINICAL EMR SERVICE EVENTS
 // ============================================================================
@@ -495,14 +764,14 @@ exports.AppointmentCompletedEvent = AppointmentCompletedEvent;
 class MedicalRecordCreatedEvent extends domain_event_1.DomainEvent {
     constructor(recordId, recordIdCode, // MED-YYYYMM-XXX
     patientId, doctorId, appointmentId, visitDate, primaryDiagnosis, createdBy) {
-        super('MedicalRecordCreated', recordId, 'MedicalRecord', {
+        super("MedicalRecordCreated", recordId, "MedicalRecord", {
             recordIdCode,
             patientId,
             doctorId,
             appointmentId,
             visitDate,
             primaryDiagnosis,
-            createdBy
+            createdBy,
         }, 1, undefined, undefined, createdBy);
         this.recordId = recordId;
         this.recordIdCode = recordIdCode;
@@ -521,7 +790,7 @@ class MedicalRecordCreatedEvent extends domain_event_1.DomainEvent {
             appointmentId: this.appointmentId,
             visitDate: this.visitDate,
             primaryDiagnosis: this.primaryDiagnosis,
-            createdBy: this.createdBy
+            createdBy: this.createdBy,
         };
     }
     containsPHI() {
@@ -538,14 +807,14 @@ exports.MedicalRecordCreatedEvent = MedicalRecordCreatedEvent;
  */
 class PrescriptionCreatedEvent extends domain_event_1.DomainEvent {
     constructor(prescriptionId, prescriptionNumber, patientId, doctorId, medicationName, dosage, duration, prescribedBy) {
-        super('PrescriptionCreated', prescriptionId, 'Prescription', {
+        super("PrescriptionCreated", prescriptionId, "Prescription", {
             prescriptionNumber,
             patientId,
             doctorId,
             medicationName,
             dosage,
             duration,
-            prescribedBy
+            prescribedBy,
         }, 1, undefined, undefined, prescribedBy);
         this.prescriptionId = prescriptionId;
         this.prescriptionNumber = prescriptionNumber;
@@ -564,7 +833,7 @@ class PrescriptionCreatedEvent extends domain_event_1.DomainEvent {
             medicationName: this.medicationName,
             dosage: this.dosage,
             duration: this.duration,
-            prescribedBy: this.prescribedBy
+            prescribedBy: this.prescribedBy,
         };
     }
     containsPHI() {
@@ -581,12 +850,12 @@ exports.PrescriptionCreatedEvent = PrescriptionCreatedEvent;
  */
 class LabResultsReadyEvent extends domain_event_1.DomainEvent {
     constructor(labOrderId, patientId, doctorId, testName, hasAbnormalResults, resultDate) {
-        super('LabResultsReady', labOrderId, 'LabOrder', {
+        super("LabResultsReady", labOrderId, "LabOrder", {
             patientId,
             doctorId,
             testName,
             hasAbnormalResults,
-            resultDate
+            resultDate,
         }, 1, undefined, undefined, doctorId);
         this.labOrderId = labOrderId;
         this.patientId = patientId;
@@ -601,7 +870,7 @@ class LabResultsReadyEvent extends domain_event_1.DomainEvent {
             doctorId: this.doctorId,
             testName: this.testName,
             hasAbnormalResults: this.hasAbnormalResults,
-            resultDate: this.resultDate
+            resultDate: this.resultDate,
         };
     }
     containsPHI() {
@@ -621,13 +890,13 @@ exports.LabResultsReadyEvent = LabResultsReadyEvent;
  */
 class InvoiceGeneratedEvent extends domain_event_1.DomainEvent {
     constructor(invoiceId, invoiceNumber, patientId, appointmentId, totalAmount, dueDate, invoiceDate) {
-        super('InvoiceGenerated', invoiceId, 'Invoice', {
+        super("InvoiceGenerated", invoiceId, "Invoice", {
             invoiceNumber,
             patientId,
             appointmentId,
             totalAmount,
             dueDate,
-            invoiceDate
+            invoiceDate,
         });
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
@@ -644,7 +913,7 @@ class InvoiceGeneratedEvent extends domain_event_1.DomainEvent {
             appointmentId: this.appointmentId,
             totalAmount: this.totalAmount,
             dueDate: this.dueDate,
-            invoiceDate: this.invoiceDate
+            invoiceDate: this.invoiceDate,
         };
     }
     containsPHI() {
@@ -661,13 +930,13 @@ exports.InvoiceGeneratedEvent = InvoiceGeneratedEvent;
  */
 class PaymentReceivedEvent extends domain_event_1.DomainEvent {
     constructor(paymentId, paymentNumber, invoiceId, patientId, amount, paymentMethod, paymentDate) {
-        super('PaymentReceived', paymentId, 'Payment', {
+        super("PaymentReceived", paymentId, "Payment", {
             paymentNumber,
             invoiceId,
             patientId,
             amount,
             paymentMethod,
-            paymentDate
+            paymentDate,
         });
         this.paymentId = paymentId;
         this.paymentNumber = paymentNumber;
@@ -684,7 +953,7 @@ class PaymentReceivedEvent extends domain_event_1.DomainEvent {
             patientId: this.patientId,
             amount: this.amount,
             paymentMethod: this.paymentMethod,
-            paymentDate: this.paymentDate
+            paymentDate: this.paymentDate,
         };
     }
     containsPHI() {
@@ -701,12 +970,12 @@ exports.PaymentReceivedEvent = PaymentReceivedEvent;
  */
 class InvoiceOverdueEvent extends domain_event_1.DomainEvent {
     constructor(invoiceId, invoiceNumber, patientId, totalAmount, dueDate, daysOverdue) {
-        super('InvoiceOverdue', invoiceId, 'Invoice', {
+        super("InvoiceOverdue", invoiceId, "Invoice", {
             invoiceNumber,
             patientId,
             totalAmount,
             dueDate,
-            daysOverdue
+            daysOverdue,
         });
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
@@ -721,7 +990,7 @@ class InvoiceOverdueEvent extends domain_event_1.DomainEvent {
             patientId: this.patientId,
             totalAmount: this.totalAmount,
             dueDate: this.dueDate,
-            daysOverdue: this.daysOverdue
+            daysOverdue: this.daysOverdue,
         };
     }
     containsPHI() {
@@ -733,18 +1002,67 @@ class InvoiceOverdueEvent extends domain_event_1.DomainEvent {
 }
 exports.InvoiceOverdueEvent = InvoiceOverdueEvent;
 /**
+ * Published when invoice is expired due to missed payment deadline
+ * Subscribers: Appointments Service, Notifications Service
+ */
+class InvoiceExpiredEvent extends domain_event_1.DomainEvent {
+    constructor(invoiceId, invoiceNumber, patientId, appointmentId, totalAmount, dueDate, expiredAt, reason) {
+        super("InvoiceExpired", invoiceId, "Invoice", {
+            invoiceId,
+            invoiceNumber,
+            patientId,
+            appointmentId,
+            totalAmount,
+            dueDate,
+            expiredAt,
+            reason,
+        }, 1, undefined, undefined, "system", {
+            priority: "high",
+            retryable: true,
+            tags: ["billing", "expired"],
+        });
+        this.invoiceId = invoiceId;
+        this.invoiceNumber = invoiceNumber;
+        this.patientId = patientId;
+        this.appointmentId = appointmentId;
+        this.totalAmount = totalAmount;
+        this.dueDate = dueDate;
+        this.expiredAt = expiredAt;
+        this.reason = reason;
+    }
+    getEventData() {
+        return {
+            invoiceId: this.invoiceId,
+            invoiceNumber: this.invoiceNumber,
+            patientId: this.patientId,
+            appointmentId: this.appointmentId,
+            totalAmount: this.totalAmount,
+            dueDate: this.dueDate,
+            expiredAt: this.expiredAt,
+            reason: this.reason,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId;
+    }
+}
+exports.InvoiceExpiredEvent = InvoiceExpiredEvent;
+/**
  * Published when insurance claim is submitted
  * Subscribers: Notification Service, Patient Service
  */
 class InsuranceClaimSubmittedEvent extends domain_event_1.DomainEvent {
     constructor(claimId, claimNumber, patientId, invoiceId, claimedAmount, insuranceProvider, submittedAt) {
-        super('InsuranceClaimSubmitted', claimId, 'InsuranceClaim', {
+        super("InsuranceClaimSubmitted", claimId, "InsuranceClaim", {
             claimNumber,
             patientId,
             invoiceId,
             claimedAmount,
             insuranceProvider,
-            submittedAt
+            submittedAt,
         });
         this.claimId = claimId;
         this.claimNumber = claimNumber;
@@ -761,7 +1079,7 @@ class InsuranceClaimSubmittedEvent extends domain_event_1.DomainEvent {
             invoiceId: this.invoiceId,
             claimedAmount: this.claimedAmount,
             insuranceProvider: this.insuranceProvider,
-            submittedAt: this.submittedAt
+            submittedAt: this.submittedAt,
         };
     }
     containsPHI() {
@@ -778,13 +1096,13 @@ exports.InsuranceClaimSubmittedEvent = InsuranceClaimSubmittedEvent;
  */
 class InsuranceClaimProcessedEvent extends domain_event_1.DomainEvent {
     constructor(claimId, claimNumber, patientId, status, approvedAmount, rejectedAmount, reason) {
-        super('InsuranceClaimProcessed', claimId, 'InsuranceClaim', {
+        super("InsuranceClaimProcessed", claimId, "InsuranceClaim", {
             claimNumber,
             patientId,
             status,
             approvedAmount,
             rejectedAmount,
-            reason
+            reason,
         });
         this.claimId = claimId;
         this.claimNumber = claimNumber;
@@ -801,7 +1119,7 @@ class InsuranceClaimProcessedEvent extends domain_event_1.DomainEvent {
             status: this.status,
             approvedAmount: this.approvedAmount,
             rejectedAmount: this.rejectedAmount,
-            reason: this.reason
+            reason: this.reason,
         };
     }
     containsPHI() {
@@ -821,12 +1139,12 @@ exports.InsuranceClaimProcessedEvent = InsuranceClaimProcessedEvent;
  */
 class NotificationSentEvent extends domain_event_1.DomainEvent {
     constructor(notificationId, userId, notificationType, channel, sentAt, success) {
-        super('NotificationSent', notificationId, 'Notification', {
+        super("NotificationSent", notificationId, "Notification", {
             userId,
             notificationType,
             channel,
             sentAt,
-            success
+            success,
         });
         this.notificationId = notificationId;
         this.userId = userId;
@@ -841,7 +1159,7 @@ class NotificationSentEvent extends domain_event_1.DomainEvent {
             notificationType: this.notificationType,
             channel: this.channel,
             sentAt: this.sentAt,
-            success: this.success
+            success: this.success,
         };
     }
     containsPHI() {
@@ -858,12 +1176,12 @@ exports.NotificationSentEvent = NotificationSentEvent;
  */
 class NotificationFailedEvent extends domain_event_1.DomainEvent {
     constructor(notificationId, userId, channel, errorMessage, retryCount, failedAt) {
-        super('NotificationFailed', notificationId, 'Notification', {
+        super("NotificationFailed", notificationId, "Notification", {
             userId,
             channel,
             errorMessage,
             retryCount,
-            failedAt
+            failedAt,
         });
         this.notificationId = notificationId;
         this.userId = userId;
@@ -878,7 +1196,7 @@ class NotificationFailedEvent extends domain_event_1.DomainEvent {
             channel: this.channel,
             errorMessage: this.errorMessage,
             retryCount: this.retryCount,
-            failedAt: this.failedAt
+            failedAt: this.failedAt,
         };
     }
     containsPHI() {
@@ -906,9 +1224,13 @@ exports.EVENT_TYPE_REGISTRY = {
     DoctorAvailabilityChanged: DoctorAvailabilityChangedEvent,
     // Scheduling Service Events
     AppointmentScheduled: AppointmentScheduledEvent,
+    AppointmentRescheduled: AppointmentRescheduledEvent,
+    AppointmentCheckedIn: AppointmentCheckedInEvent,
+    AppointmentStarted: AppointmentStartedEvent,
     AppointmentConfirmed: AppointmentConfirmedEvent,
     AppointmentCancelled: AppointmentCancelledEvent,
     AppointmentCompleted: AppointmentCompletedEvent,
+    AppointmentPaymentExpired: AppointmentPaymentExpiredEvent,
     // Clinical EMR Service Events
     MedicalRecordCreated: MedicalRecordCreatedEvent,
     PrescriptionCreated: PrescriptionCreatedEvent,
@@ -917,6 +1239,7 @@ exports.EVENT_TYPE_REGISTRY = {
     InvoiceGenerated: InvoiceGeneratedEvent,
     PaymentReceived: PaymentReceivedEvent,
     InvoiceOverdue: InvoiceOverdueEvent,
+    InvoiceExpired: InvoiceExpiredEvent,
     InsuranceClaimSubmitted: InsuranceClaimSubmittedEvent,
     InsuranceClaimProcessed: InsuranceClaimProcessedEvent,
     // Notification Service Events

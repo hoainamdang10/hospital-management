@@ -6,10 +6,10 @@
  * @version 3.0.0
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
-import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { IAuthorizationService } from '../services/IAuthorizationService';
-import { IReminderService } from '../services/IReminderService';
+import { BaseHealthcareUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import { IAuthorizationService } from "../services/IAuthorizationService";
+import { IReminderService } from "../services/IReminderService";
 export interface RescheduleAppointmentRequest {
     appointmentId: string;
     newAppointmentDate: string;

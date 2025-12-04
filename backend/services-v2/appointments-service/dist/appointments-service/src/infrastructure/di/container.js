@@ -217,6 +217,9 @@ class DIContainer {
         // Configure application-level publishers
         this.appEventPublisher = new EventBusPublisher_1.EventBusPublisher(eventBus);
         this.reschedulingService.setEventPublisher(this.appEventPublisher);
+        if (this.paymentCompletedHandler) {
+            this.paymentCompletedHandler.setEventBus(eventBus);
+        }
         console.log("[DI] ✅ Event publisher initialized and wired to repository");
     }
     /**
@@ -407,6 +410,7 @@ class DIContainer {
                 "billing.pre-authorization.*",
                 "billing.rate.updated",
                 "billing.insurance.verified",
+                "billing.invoice.expired",
             ],
         }, this.appointmentRepository, this.queueRepository, this.reminderService, this.conflictResolutionService, this.inboxRepository, this.paymentCompletedHandler);
         console.log("[DI] ✅ Event handlers initialized (5 total - Prepaid Billing Enabled)");

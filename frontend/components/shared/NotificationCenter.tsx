@@ -5,6 +5,7 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
 import {
   type NotificationStatusFilter,
   type UserNotification,
@@ -49,6 +50,7 @@ export function NotificationCenter() {
     filter,
     setFilter,
   } = useNotifications();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -110,7 +112,7 @@ export function NotificationCenter() {
                   className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-200"
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
-                  Danh dấu tất cả
+                  Đánh dấu tất cả
                 </button>
               )}
             </div>
@@ -141,7 +143,7 @@ export function NotificationCenter() {
 
             {notifications.map((notification) => {
               const isUnread = !notification.readAt;
-              const detailHref = buildNotificationLink(notification);
+              const detailHref = buildNotificationLink(notification, user?.role);
               const preview = formatNotificationPreview(notification);
               return (
                 <button
@@ -200,16 +202,40 @@ export function NotificationCenter() {
   );
 }
 
-function buildNotificationLink(notification: UserNotification): string {
+function buildNotificationLink(notification: UserNotification, role?: string): string {
   const context = notification.healthcareContext;
+  const normalizedRole = role?.toUpperCase();
+
   if (context?.appointmentId) {
-    return `/dashboard/appointments/${context.appointmentId}`;
+    if (normalizedRole === 'PATIENT') {
+      return `/patient/appointments/${context.appointmentId}`;
+    }
+    if (normalizedRole === 'DOCTOR') {
+      return `/doctor/appointments/${context.appointmentId}`;
+    }
+    if (normalizedRole === 'NURSE') {
+      return `/nurse/appointments/${context.appointmentId}`;
+    }
+    return `/admin/appointments/${context.appointmentId}`;
   }
   if (context?.invoiceId) {
-    return `/dashboard/billing/${context.invoiceId}`;
+    if (normalizedRole === 'PATIENT') {
+      return `/patient/billing?invoice=${context.invoiceId}`;
+    }
+    return `/admin/invoices/${context.invoiceId}`;
   }
   if (context?.medicalRecordId) {
-    return `/dashboard/records/${context.medicalRecordId}`;
+    if (normalizedRole === 'PATIENT') {
+      return `/patient/medical-history/${context.medicalRecordId}`;
+    }
+    if (normalizedRole === 'DOCTOR') {
+      return `/doctor/medical-records`;
+    }
+    return `/admin/patients/records`;
+  }
+
+  if (normalizedRole === 'PATIENT') {
+    return `/patient/notifications/${notification.notificationId}`;
   }
   return '/dashboard/notifications';
 }

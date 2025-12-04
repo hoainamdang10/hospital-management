@@ -39,9 +39,26 @@ class GetEmergencyContactsUseCase {
                     errors: ['INVALID_REQUESTED_BY']
                 };
             }
-            // 2. Find patient
-            const patientId = PatientId_1.PatientId.create(command.patientId);
-            const patient = await this.patientRepository.findById(patientId);
+            // 2. Find patient - Handle both UUID and PAT-YYYYMM-XXX formats
+            let patient = null;
+            const inputId = command.patientId.trim();
+            // Check if input is UUID format
+            const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+            if (uuidRegex.test(inputId)) {
+                // Try to find by userId (UUID)
+                patient = await this.patientRepository.findByUserId(inputId);
+            }
+            else {
+                // Assume it's PAT-YYYYMM-XXX format
+                try {
+                    const patientId = PatientId_1.PatientId.create(inputId);
+                    patient = await this.patientRepository.findById(patientId);
+                }
+                catch (error) {
+                    // If not valid PAT format, try to find by userId as fallback
+                    patient = await this.patientRepository.findByUserId(inputId);
+                }
+            }
             if (!patient) {
                 return {
                     success: false,
@@ -52,7 +69,7 @@ class GetEmergencyContactsUseCase {
             // 3. Get emergency contacts
             const contacts = patient.getEmergencyContacts();
             // 4. Map to DTOs
-            const contactDTOs = contacts.map(contact => ({
+            const contactDTOs = contacts.map((contact) => ({
                 id: contact.getId(),
                 name: contact.name,
                 relationship: contact.relationship,

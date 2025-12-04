@@ -26,6 +26,7 @@ export default function PatientInsurancePage() {
     try {
       setIsLoading(true);
       const result = await patientService.getInsurance(patientId);
+      // ✅ Backend now returns { patientId, insuranceInfo, hasInsurance }
       setInsurance(result.insuranceInfo);
     } catch (err) {
       toast.error('Không thể tải thông tin bảo hiểm');
@@ -207,9 +208,8 @@ function InsuranceCard({ insurance }: { insurance: Insurance }) {
             </p>
             <div className="mt-2 flex items-center space-x-2">
               <span
-                className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
-                  insurance.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}
+                className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${insurance.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}
               >
                 {insurance.isActive ? 'Còn hiệu lực' : 'Hết hiệu lực'}
               </span>

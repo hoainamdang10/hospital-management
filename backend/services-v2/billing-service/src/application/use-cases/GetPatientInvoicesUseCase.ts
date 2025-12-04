@@ -11,6 +11,7 @@ export interface GetPatientInvoicesResponse {
     invoiceId: string;
     invoiceNumber?: string;
     invoiceCode?: string;
+    patientName?: string;
     appointmentId?: string;
     appointmentCode?: string;
     doctorName?: string;
@@ -24,6 +25,8 @@ export interface GetPatientInvoicesResponse {
       unitPrice: number;
       totalPrice: number;
     }>;
+    subtotal: number;
+    tax: number;
     totalAmount: number;
     outstandingAmount: number;
     paidAmount: number;
@@ -74,30 +77,35 @@ export class GetPatientInvoicesUseCase extends BaseHealthcareUseCase<
       request.patientId,
     );
 
-    const computeNetPaid = (invoice: any): number => {
-      const paid = invoice.payments
-        .filter((p: any) => p.method !== "refund" && p.status === "completed")
-        .reduce((sum: number, p: any) => sum + p.amount.amount, 0);
-      const refunded = invoice.payments
-        .filter(
-          (p: any) =>
-            p.method === "refund" &&
-            (p.status === "completed" || p.status === "refund_pending"),
-        )
-        .reduce((sum: number, p: any) => sum + Math.abs(p.amount.amount), 0);
-      return Math.max(0, paid - refunded);
+    const computePaymentStats = (invoice: any) => {
+      const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
+      return payments.reduce(
+        (acc: { paid: number; refunded: number }, payment: any) => {
+          const amount = payment?.amount?.amount ?? 0;
+          if (payment.method === "refund") {
+            acc.refunded += Math.abs(amount);
+          } else if (payment.status === "completed") {
+            acc.paid += amount;
+          }
+          return acc;
+        },
+        { paid: 0, refunded: 0 },
+      );
     };
 
     return {
       invoices: invoices.map((invoice) => {
         const createdAt = invoice.createdAt;
-        const dueDate = new Date(createdAt.getTime() + 30 * 60 * 1000);
-        const netPaid = computeNetPaid(invoice);
+        const dueDate = invoice.dueDate;
+        const { paid: totalPaid, refunded: totalRefunded } =
+          computePaymentStats(invoice);
+        const hasRefund = totalRefunded > 0;
 
         return {
           invoiceId: invoice.id,
           invoiceNumber: invoice.invoiceNumber,
           invoiceCode: invoice.invoiceNumber,
+          patientName: invoice.metadata?.patientName,
           appointmentId: invoice.getAppointmentId?.() ?? undefined,
           appointmentCode: invoice.getAppointmentId?.() ?? undefined,
           doctorName: invoice.metadata?.doctorName,
@@ -111,17 +119,15 @@ export class GetPatientInvoicesUseCase extends BaseHealthcareUseCase<
             unitPrice: item.unitPrice.amount,
             totalPrice: item.totalPrice.amount,
           })),
+          subtotal: invoice.subtotal.amount,
+          tax: invoice.tax.amount,
           totalAmount: invoice.totalAmount.amount,
-          outstandingAmount: Math.max(0, invoice.totalAmount.amount - netPaid),
-          paidAmount: netPaid,
-          status: invoice.payments.some(
-            (p) =>
-              p.method === "refund" &&
-              (p.status === "completed" || p.status === "refund_pending") &&
-              Math.abs(p.amount.amount) >= invoice.totalAmount.amount,
-          )
-            ? "refunded"
-            : invoice.status.value,
+          outstandingAmount: Math.max(
+            0,
+            invoice.totalAmount.amount - totalPaid,
+          ),
+          paidAmount: totalPaid,
+          status: hasRefund ? "refunded" : invoice.status.value,
           createdAt,
           issuedAt: createdAt,
           issueDate: createdAt,

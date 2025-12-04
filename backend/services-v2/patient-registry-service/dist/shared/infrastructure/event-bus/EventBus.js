@@ -41,6 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventBusFactory = exports.InMemoryEventBus = exports.RabbitMQEventBus = void 0;
+const domain_event_1 = require("../../domain/base/domain-event");
 const domain_events_1 = require("../../domain/events/domain-events");
 /**
  * RabbitMQ Event Bus Implementation
@@ -51,21 +52,99 @@ class RabbitMQEventBus {
         this.connection = null;
         this.channel = null;
         this.subscriptions = new Map();
+        this.isReconnecting = false;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 10;
+        this.reconnectDelay = 3000; // 3 seconds
     }
     async connect() {
+        return this.connectWithRetry();
+    }
+    async connectWithRetry(attempt = 1) {
         try {
             // Dynamic import to avoid bundling issues
-            const amqp = await Promise.resolve().then(() => __importStar(require('amqplib')));
+            const amqp = await Promise.resolve().then(() => __importStar(require("amqplib")));
+            console.log(`[EventBus] Connecting to RabbitMQ (attempt ${attempt}/${this.maxReconnectAttempts})...`);
             this.connection = await amqp.connect(this.config.rabbitmqUrl);
             this.channel = await this.connection.createChannel();
             // Declare exchange for domain events
-            await this.channel.assertExchange(this.config.exchangeName, 'topic', { durable: true });
+            await this.channel.assertExchange(this.config.exchangeName, "topic", {
+                durable: true,
+            });
+            // Setup connection error handlers for auto-reconnect
+            this.connection.on("error", (err) => {
+                console.error("[EventBus] Connection error:", err.message);
+                if (!this.isReconnecting) {
+                    this.handleConnectionLost();
+                }
+            });
+            this.connection.on("close", () => {
+                console.log("[EventBus] Connection closed");
+                if (!this.isReconnecting) {
+                    this.handleConnectionLost();
+                }
+            });
+            this.reconnectAttempts = 0;
             console.log(`✅ Event Bus connected: ${this.config.serviceName}`);
         }
         catch (error) {
-            console.error('❌ Failed to connect to Event Bus:', error);
-            throw error;
+            console.error(`❌ Failed to connect to Event Bus (attempt ${attempt}):`, error);
+            if (attempt < this.maxReconnectAttempts) {
+                const delay = this.reconnectDelay * Math.min(attempt, 5); // Max 15s delay
+                console.log(`[EventBus] Retrying in ${delay}ms...`);
+                await this.sleep(delay);
+                return this.connectWithRetry(attempt + 1);
+            }
+            else {
+                throw new Error(`Failed to connect to RabbitMQ after ${this.maxReconnectAttempts} attempts`);
+            }
         }
+    }
+    async handleConnectionLost() {
+        if (this.isReconnecting) {
+            return;
+        }
+        this.isReconnecting = true;
+        console.log("[EventBus] Connection lost, attempting to reconnect...");
+        try {
+            // Clean up existing connection
+            this.connection = null;
+            this.channel = null;
+            // Wait before reconnecting
+            await this.sleep(this.reconnectDelay);
+            // Attempt to reconnect
+            await this.connectWithRetry();
+            // Restore subscriptions
+            await this.restoreSubscriptions();
+            console.log("[EventBus] ✅ Reconnected successfully");
+        }
+        catch (error) {
+            console.error("[EventBus] ❌ Failed to reconnect:", error);
+        }
+        finally {
+            this.isReconnecting = false;
+        }
+    }
+    async restoreSubscriptions() {
+        console.log("[EventBus] Restoring subscriptions...");
+        // Store current subscriptions
+        const subsToRestore = new Map(this.subscriptions);
+        // Clear subscription map to avoid duplicates
+        this.subscriptions.clear();
+        for (const [eventType, subs] of subsToRestore.entries()) {
+            for (const sub of subs) {
+                try {
+                    await this.subscribe(eventType, sub.handler, sub.queueName);
+                    console.log(`[EventBus] ✅ Restored subscription: ${eventType}`);
+                }
+                catch (error) {
+                    console.error(`[EventBus] ❌ Failed to restore subscription for ${eventType}:`, error);
+                }
+            }
+        }
+    }
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
     async disconnect() {
         try {
@@ -78,20 +157,23 @@ class RabbitMQEventBus {
             console.log(`✅ Event Bus disconnected: ${this.config.serviceName}`);
         }
         catch (error) {
-            console.error('❌ Failed to disconnect from Event Bus:', error);
+            console.error("❌ Failed to disconnect from Event Bus:", error);
             throw error;
         }
     }
     async publish(event) {
         if (!this.channel) {
-            throw new Error('Event Bus not connected. Call connect() first.');
+            throw new Error("Event Bus not connected. Call connect() first.");
         }
         try {
-            const routingKey = this.getRoutingKey(event.eventType);
+            // Check if event has custom getRoutingKey() method (e.g., AppointmentCancelledEvent)
+            const routingKey = typeof event.getRoutingKey === "function"
+                ? event.getRoutingKey()
+                : this.getRoutingKey(event.eventType);
             const message = this.serializeEvent(event);
             const published = this.channel.publish(this.config.exchangeName, routingKey, Buffer.from(message), {
                 persistent: true,
-                contentType: 'application/json',
+                contentType: "application/json",
                 timestamp: Date.now(),
                 messageId: event.eventId,
                 headers: {
@@ -115,7 +197,7 @@ class RabbitMQEventBus {
     }
     async subscribe(eventType, handler, queueName) {
         if (!this.channel) {
-            throw new Error('Event Bus not connected. Call connect() first.');
+            throw new Error("Event Bus not connected. Call connect() first.");
         }
         try {
             // Generate queue name if not provided
@@ -124,13 +206,19 @@ class RabbitMQEventBus {
             await this.channel.assertQueue(queue, {
                 durable: true,
                 arguments: {
-                    'x-message-ttl': 86400000, // 24 hours
-                    'x-max-length': 10000,
+                    "x-message-ttl": 86400000, // 24 hours
+                    "x-max-length": 10000,
                 },
             });
             // Bind queue to exchange with routing key
-            const routingKey = this.getRoutingKey(eventType);
-            await this.channel.bindQueue(queue, this.config.exchangeName, routingKey);
+            // Some events (e.g., AppointmentCancelled) publish different routing keys based on policy.
+            // Bind to all relevant keys so we don't miss refund vs. penalty paths.
+            const routingKeys = eventType === "AppointmentCancelled"
+                ? ["appointment.cancelled", "appointment.cancelled_late"]
+                : [this.getRoutingKey(eventType)];
+            for (const routingKey of routingKeys) {
+                await this.channel.bindQueue(queue, this.config.exchangeName, routingKey);
+            }
             // Consume messages
             await this.channel.consume(queue, async (msg) => {
                 if (!msg)
@@ -147,7 +235,7 @@ class RabbitMQEventBus {
                 catch (error) {
                     console.error(`❌ Failed to process event:`, error);
                     // Reject and requeue (with limit)
-                    const retryCount = (msg.properties.headers['x-retry-count'] || 0) + 1;
+                    const retryCount = (msg.properties.headers["x-retry-count"] || 0) + 1;
                     if (retryCount < 3) {
                         // Requeue with retry count
                         this.channel.nack(msg, false, true);
@@ -173,43 +261,148 @@ class RabbitMQEventBus {
     getRoutingKey(eventType) {
         // Handle special cases for billing service compatibility
         switch (eventType) {
-            case 'AppointmentCancelled':
+            case "AppointmentCancelled":
                 // Check if it's a late cancellation (would need to be determined from event data)
                 // For now, use cancelled_late as it's more specific for billing
-                return 'appointment.cancelled_late';
-            case 'AppointmentNoShow':
-                return 'appointment.no_show';
+                return "appointment.cancelled_late";
+            case "AppointmentNoShow":
+                return "appointment.no_show";
             default:
+                // If eventType already contains dots (e.g., 'billing.payment.completed'), return as-is
+                if (eventType.includes(".")) {
+                    return eventType;
+                }
                 // Convert PascalCase to dot.notation
                 // e.g., UserCreated -> user.created
                 return eventType
-                    .replace(/([A-Z])/g, '.$1')
+                    .replace(/([A-Z])/g, ".$1")
                     .toLowerCase()
                     .substring(1);
         }
     }
     serializeEvent(event) {
-        return JSON.stringify({
-            eventId: event.eventId,
-            eventType: event.eventType,
-            aggregateId: event.aggregateId,
-            occurredAt: event.occurredAt.toISOString(),
-            payload: event,
-        });
+        // FIX: Use toJSON() method which calls getEventData() internally
+        // This ensures we only serialize the event data, not the entire object
+        return JSON.stringify(event.toJSON());
     }
     deserializeEvent(message) {
         const data = JSON.parse(message);
         // Get event class from registry
         const EventClass = domain_events_1.EVENT_TYPE_REGISTRY[data.eventType];
+        // Fallback: handle integration events with dot notation (e.g., provider.staff.updated)
         if (!EventClass) {
-            throw new Error(`Unknown event type: ${data.eventType}`);
+            const eventData = data.eventData || data.payload || data.data || {};
+            const aggregateId = data.aggregateId ||
+                eventData.aggregateId ||
+                eventData.staffId ||
+                eventData.id ||
+                "unknown";
+            const genericEvent = Object.create(GenericIntegrationEvent.prototype);
+            Object.assign(genericEvent, {
+                eventId: data.eventId,
+                eventType: data.eventType,
+                aggregateId,
+                aggregateType: data.aggregateType || "Integration",
+                eventVersion: data.eventVersion || 1,
+                occurredAt: new Date(data.occurredAt),
+                correlationId: data.correlationId,
+                causationId: data.causationId,
+                userId: data.userId,
+                metadata: data.metadata || {
+                    source: "integration",
+                    priority: "normal",
+                    retryable: true,
+                    publishExternal: true,
+                },
+                data: eventData,
+                getEventData() {
+                    return this.data;
+                },
+                containsPHI() {
+                    return false;
+                },
+                getPatientId() {
+                    return null;
+                },
+                toJSON() {
+                    return {
+                        eventId: this.eventId,
+                        eventType: this.eventType,
+                        aggregateId: this.aggregateId,
+                        aggregateType: this.aggregateType,
+                        eventVersion: this.eventVersion,
+                        occurredAt: this.occurredAt,
+                        eventData: this.data,
+                        correlationId: this.correlationId,
+                        causationId: this.causationId,
+                        userId: this.userId,
+                        metadata: this.metadata,
+                    };
+                },
+            });
+            return genericEvent;
         }
-        // Reconstruct event
-        const event = Object.assign(new EventClass(), data.payload);
-        return event;
+        const eventData = data.eventData || data.payload || {};
+        // FIX: Use constructor for AppointmentScheduledEvent to properly initialize readonly properties
+        // This ensures all properties are set correctly during deserialization
+        try {
+            if (data.eventType === "AppointmentScheduled") {
+                return new EventClass(eventData.appointmentId, eventData.patientId, eventData.doctorId, eventData.appointmentDate, eventData.appointmentTime, eventData.durationMinutes, eventData.type, eventData.priority, eventData.status, eventData.consultationFee, eventData.createdBy, data.correlationId, data.causationId, data.userId);
+            }
+            // FALLBACK: For other events, use Object.create approach
+            // This is safer than Object.assign with readonly properties
+            const event = Object.create(EventClass.prototype);
+            // Assign all properties from serialized data
+            Object.assign(event, {
+                eventId: data.eventId,
+                eventType: data.eventType,
+                aggregateId: data.aggregateId,
+                aggregateType: data.aggregateType,
+                eventVersion: data.eventVersion || 1,
+                occurredAt: new Date(data.occurredAt),
+                correlationId: data.correlationId,
+                causationId: data.causationId,
+                userId: data.userId,
+                metadata: data.metadata || {
+                    source: "domain",
+                    priority: "normal",
+                    retryable: true,
+                },
+                ...eventData,
+            });
+            return event;
+        }
+        catch (error) {
+            console.error(`[EventBus] Failed to deserialize event: ${data.eventType}`, error);
+            throw new Error(`Failed to deserialize event ${data.eventType}: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
     }
 }
 exports.RabbitMQEventBus = RabbitMQEventBus;
+/**
+ * Generic integration event fallback for events not registered in EVENT_TYPE_REGISTRY
+ * Handles dot-notation event types like provider.staff.updated
+ */
+class GenericIntegrationEvent extends domain_event_1.DomainEvent {
+    constructor(eventType, aggregateId, aggregateType, eventData) {
+        super(eventType, aggregateId, aggregateType, eventData, 1, undefined, undefined, undefined, {
+            source: "integration",
+            priority: "normal",
+            publishExternal: true,
+            retryable: true,
+        });
+        this.data = eventData;
+    }
+    getEventData() {
+        return this.data;
+    }
+    containsPHI() {
+        return false;
+    }
+    getPatientId() {
+        return null;
+    }
+}
 /**
  * In-Memory Event Bus for Testing
  */
@@ -219,12 +412,12 @@ class InMemoryEventBus {
         this.publishedEvents = [];
     }
     async connect() {
-        console.log('✅ In-Memory Event Bus connected');
+        console.log("✅ In-Memory Event Bus connected");
     }
     async disconnect() {
         this.handlers.clear();
         this.publishedEvents = [];
-        console.log('✅ In-Memory Event Bus disconnected');
+        console.log("✅ In-Memory Event Bus disconnected");
     }
     async publish(event) {
         this.publishedEvents.push(event);
@@ -257,7 +450,7 @@ exports.InMemoryEventBus = InMemoryEventBus;
  */
 class EventBusFactory {
     static create(config, useInMemory = false) {
-        if (useInMemory || process.env.NODE_ENV === 'test') {
+        if (useInMemory || process.env.NODE_ENV === "test") {
             return new InMemoryEventBus();
         }
         return new RabbitMQEventBus(config);

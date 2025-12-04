@@ -50,6 +50,13 @@ class BillingService {
             const insuranceCoverage = request.insuranceInfo
                 ? this.calculateInsuranceCoverage(baseFee, request.insuranceInfo, "consultation")
                 : 0;
+            const appointmentDateLocal = request.appointmentDateLocal ||
+                this.formatDateComponent(request.scheduledAt);
+            const appointmentTimeLocal = request.appointmentTimeLocal ||
+                this.formatTimeComponent(request.scheduledAt);
+            const combinedLocal = appointmentDateLocal && appointmentTimeLocal
+                ? `${appointmentDateLocal}T${appointmentTimeLocal}`
+                : undefined;
             // Create invoice using CreateInvoiceUseCase
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
@@ -59,9 +66,17 @@ class BillingService {
                     invoiceType: "appointment_booking",
                     serviceName,
                     serviceCategory: request.serviceType,
-                    serviceDescription: `Đặt lịch khám lúc ${request.scheduledAt.toISOString()}`,
+                    serviceDescription: `Đặt lịch khám lúc ${appointmentDateLocal} ${appointmentTimeLocal}`,
                     appointmentId: request.appointmentId,
                     appointmentTime: request.scheduledAt.toISOString(),
+                    appointmentStartAtUtc: request.scheduledAt.toISOString(),
+                    appointmentDate: appointmentDateLocal,
+                    appointment_date: appointmentDateLocal,
+                    appointmentTimeLocal,
+                    appointment_time_local: appointmentTimeLocal,
+                    appointmentDateTime: combinedLocal,
+                    appointment_date_time: combinedLocal,
+                    patientName: request.patientName,
                     doctorName: request.doctorName,
                     doctorDepartment: request.doctorDepartment,
                 },
@@ -439,6 +454,24 @@ class BillingService {
     /**
      * Helper methods
      */
+    formatDateComponent(date) {
+        if (!(date instanceof Date) || isNaN(date.getTime())) {
+            return "";
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+    formatTimeComponent(date) {
+        if (!(date instanceof Date) || isNaN(date.getTime())) {
+            return "";
+        }
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+        return `${hours}:${minutes}:${seconds}`;
+    }
     calculateConsultationFee(serviceType, duration) {
         const baseRates = {
             consultation: 200000, // 200,000 VND base

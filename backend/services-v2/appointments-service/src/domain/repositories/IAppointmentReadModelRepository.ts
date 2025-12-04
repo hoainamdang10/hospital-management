@@ -48,6 +48,15 @@ export interface IAppointmentReadModelRepository {
   ): Promise<void>;
 
   /**
+   * Update cancellation metadata (timestamp + reason)
+   */
+  updateCancellationDetails(
+    appointmentId: string,
+    cancelledAt?: Date,
+    cancellationReason?: string,
+  ): Promise<void>;
+
+  /**
    * Update appointment core schedule fields when rescheduled
    */
   updateSchedule(

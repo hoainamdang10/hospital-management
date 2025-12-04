@@ -29,6 +29,10 @@ export interface IAppointmentReadModelRepository {
      */
     updatePaymentStatus(appointmentId: string, paymentStatus: string): Promise<void>;
     /**
+     * Update cancellation metadata (timestamp + reason)
+     */
+    updateCancellationDetails(appointmentId: string, cancelledAt?: Date, cancellationReason?: string): Promise<void>;
+    /**
      * Update appointment core schedule fields when rescheduled
      */
     updateSchedule(appointmentId: string, appointmentDate: Date, appointmentTime: string, durationMinutes: number, status?: string): Promise<void>;

@@ -48,6 +48,7 @@ export interface EmergencyContact {
 }
 
 export interface InsuranceInfo {
+  insuranceId?: string;
   provider: string;
   policyNumber: string;
   groupNumber?: string;

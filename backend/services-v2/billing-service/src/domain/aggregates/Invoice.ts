@@ -9,6 +9,7 @@ import { InvoiceCreatedEvent } from "../events/InvoiceCreatedEvent";
 import { PaymentProcessedEvent } from "../events/PaymentProcessedEvent";
 import { PaymentRefundRequestedEvent } from "../events/PaymentRefundRequestedEvent";
 import { PaymentRefundedEvent } from "../events/PaymentRefundedEvent";
+import { InvoiceExpiredEvent } from "@shared/domain/events/domain-events";
 // REMOVED: InvoiceFinalizedEvent, InvoiceCancelledEvent, InsuranceClaimProcessedEvent - Out of scope for Phase 1
 
 export interface InvoiceProps {
@@ -28,6 +29,7 @@ export interface InvoiceProps {
   paidAt?: Date; // Timestamp when invoice was fully paid
   createdAt: Date;
   updatedAt: Date;
+  dueDate: Date;
   // REMOVED (Phase 1 Prepaid Model): finalizedAt, cancelledAt, cancellationReason, insurance, insuranceCoverage
 }
 
@@ -69,7 +71,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     // Generate invoice number automatically
     const invoiceNumber = Invoice.generateInvoiceNumber();
 
-    const invoiceDueDate = new Date(now.getTime() + 30 * 60 * 1000);
+    const invoiceDueDate = new Date(now.getTime() + 10 * 60 * 1000);
 
     const invoice = new Invoice({
       id: invoiceId,
@@ -85,6 +87,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       paidAt: undefined, // Not paid yet
       createdAt: now,
       updatedAt: now,
+      dueDate: invoiceDueDate,
       metadata: {},
     });
 
@@ -295,6 +298,40 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     );
   }
 
+  /**
+   * Mark invoice as expired (payment timeout)
+   */
+  public markAsExpired(reason: string, expiredBy: string = "system"): void {
+    if (this.props.status.value === "expired") {
+      return;
+    }
+
+    if (this.props.status.isPaid() || this.props.status.isRefunded()) {
+      throw new Error("Cannot expire a settled invoice");
+    }
+
+    this.props.status = InvoiceStatus.expired();
+    this.props.updatedAt = new Date();
+    this.props.metadata = {
+      ...(this.props.metadata || {}),
+      expiredReason: reason,
+      expiredBy,
+    };
+
+    this.addDomainEvent(
+      new InvoiceExpiredEvent(
+        this.props.id.value,
+        this.props.invoiceNumber || this.props.id.value,
+        this.props.patientId,
+        this.props.appointmentId,
+        this.props.totalAmount.amount,
+        this.props.dueDate,
+        this.props.updatedAt,
+        reason,
+      ),
+    );
+  }
+
   public processPayment(payment: Payment): void {
     if (this.props.status.isCancelled()) {
       throw new Error("Cannot process payment for cancelled invoice");
@@ -408,6 +445,7 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       paidAt: this.props.paidAt,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
+      dueDate: this.props.dueDate,
       // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
     };
   }
@@ -475,5 +513,9 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
   get paidAt(): Date | undefined {
     return this.props.paidAt;
+  }
+
+  get dueDate(): Date {
+    return this.props.dueDate;
   }
 }

@@ -76,8 +76,8 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     /**
      * Factory method: Reconstitute from persistence
      */
-    static reconstitute(props) {
-        return new Patient(props);
+    static reconstitute(props, id) {
+        return new Patient(props, id);
     }
     static buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts) {
         return {
@@ -153,11 +153,11 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'personal_info', updatedBy, {
+        "personal_info", updatedBy, {
             fullName: personalInfo.fullName,
             dateOfBirth: personalInfo.dateOfBirth,
             gender: personalInfo.gender,
-            citizenId: personalInfo.nationalId
+            citizenId: personalInfo.nationalId,
         }));
     }
     /**
@@ -170,10 +170,10 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'contact_info', updatedBy, undefined, {
+        "contact_info", updatedBy, undefined, {
             phoneNumber: contactInfo.primaryPhone,
             email: contactInfo.email,
-            address: contactInfo.address
+            address: contactInfo.address,
         }));
     }
     /**
@@ -186,7 +186,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'basic_medical_info', updatedBy));
+        "basic_medical_info", updatedBy));
     }
     /**
      * Update insurance information
@@ -198,7 +198,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'insurance_info', updatedBy));
+        "insurance_info", updatedBy));
     }
     /**
      * Add emergency contact
@@ -210,7 +210,7 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.updatedBy = updatedBy;
         const patientId = this.props.id.value;
         this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(patientId, this.props.userId, // Identity Service user ID
-        'emergency_contact', updatedBy));
+        "emergency_contact", updatedBy));
     }
     /* POST-MVP: Advanced Emergency Contact Management - Not required for graduation project
     /**
@@ -559,22 +559,92 @@ class Patient extends aggregate_root_1.HealthcareAggregateRoot {
     // ==================== Business Invariants ====================
     validateBusinessInvariants() {
         if (!this.props.personalInfo) {
-            throw new Error('Thông tin cá nhân không được để trống');
+            throw new Error("Thông tin cá nhân không được để trống");
         }
         if (!this.props.contactInfo) {
-            throw new Error('Thông tin liên hệ không được để trống');
+            throw new Error("Thông tin liên hệ không được để trống");
         }
         if (!this.props.basicMedicalInfo) {
-            throw new Error('Thông tin y tế cơ bản không được để trống');
+            throw new Error("Thông tin y tế cơ bản không được để trống");
         }
         if (this.props.status === PatientStatus_1.PatientStatus.MERGED && !this.props.mergedInto) {
-            throw new Error('Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính');
+            throw new Error("Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính");
         }
     }
     ensureCanUpdate() {
         if (this.props.status !== PatientStatus_1.PatientStatus.ACTIVE) {
             throw new Error(`Không thể cập nhật bệnh nhân với trạng thái: ${this.props.status}`);
         }
+    }
+    // ==================== Photo Management (FHIR: photo field) ====================
+    /* POST-MVP: FHIR Photo Management - Patient.photo field not needed for graduation project
+    /**
+     * Update patient photo URL
+     *
+    public updatePhoto(photoUrl: string, updatedBy: string): void {
+      this.ensureCanUpdate();
+  
+      if (!photoUrl || photoUrl.trim() === '') {
+        throw new Error('URL ảnh không được để trống');
+      }
+  
+      this.props.photoUrl = photoUrl;
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = updatedBy;
+  
+      this.addDomainEvent(
+        new PatientUpdatedEvent(
+          this.props.id.getValue(),
+          this.props.userId, // Add identityUserId as second parameter
+          'photo_updated',
+          updatedBy,
+        ),
+      );
+    }
+  
+    /**
+     * Remove patient photo
+     *
+    public removePhoto(updatedBy: string): void {
+      this.ensureCanUpdate();
+  
+      this.props.photoUrl = undefined;
+      this.props.updatedAt = new Date();
+      this.props.updatedBy = updatedBy;
+  
+      this.addDomainEvent(
+        new PatientUpdatedEvent(
+          this.props.id.getValue(),
+          this.props.userId, // Add identityUserId as second parameter
+          'photo_removed',
+          updatedBy,
+        ),
+      );
+    }
+  
+    /**
+     * Get patient photo URL
+     *
+    public getPhotoUrl(): string | undefined {
+      return this.props.photoUrl;
+    }
+    END POST-MVP: FHIR Photo Management */
+    // ==================== Communication Preferences (FHIR: communication field) ====================
+    /**
+     * Update communication preferences
+     */
+    updateCommunicationPreference(preference, updatedBy) {
+        this.ensureCanUpdate();
+        this.props.communicationPreference = preference;
+        this.props.updatedAt = new Date();
+        this.props.updatedBy = updatedBy;
+        this.addDomainEvent(new PatientUpdatedEvent_1.PatientUpdatedEvent(this.props.id.getValue(), this.props.userId, "communication_preference_updated", updatedBy));
+    }
+    /**
+     * Get communication preferences (if any)
+     */
+    getCommunicationPreference() {
+        return this.props.communicationPreference;
     }
 }
 exports.Patient = Patient;

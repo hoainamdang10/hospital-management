@@ -189,6 +189,7 @@ export class InvoiceMapper {
       paidAt: record.paid_at ? new Date(record.paid_at) : undefined,
       createdAt: new Date(record.created_at),
       updatedAt: new Date(record.updated_at),
+      dueDate: record.due_date ? new Date(record.due_date) : new Date(),
       finalizedAt: record.finalized_at
         ? new Date(record.finalized_at)
         : undefined,
@@ -212,9 +213,16 @@ export class InvoiceMapper {
 
     // Main invoice record
     const issuedAtIso = persistence.createdAt.toISOString();
-    const defaultDueDate = new Date(
-      persistence.createdAt.getTime() + 30 * 60 * 1000,
-    ).toISOString();
+    const dueDateSource =
+      persistence.dueDate instanceof Date
+        ? persistence.dueDate
+        : new Date(
+            (persistence.dueDate as Date | string | undefined) ||
+              persistence.createdAt,
+          );
+    const dueDateIso = Number.isNaN(dueDateSource.getTime())
+      ? new Date(persistence.createdAt.getTime() + 30 * 60 * 1000).toISOString()
+      : dueDateSource.toISOString();
 
     const invoiceRecord: Partial<InvoiceRecord> = {
       id: persistence.id,
@@ -237,7 +245,7 @@ export class InvoiceMapper {
       // REMOVED (Phase 1 Prepaid Model): insurance_type, insurance_number, insurance_coverage_level, insurance_issued_by - nullable in schema for Phase 2
       issued_by: "00000000-0000-0000-0000-000000000000", // System-generated invoice
       issued_at: issuedAtIso,
-      due_date: defaultDueDate,
+      due_date: dueDateIso,
       paid_at: persistence.paidAt?.toISOString(),
       created_at: issuedAtIso,
       updated_at: persistence.updatedAt.toISOString(),

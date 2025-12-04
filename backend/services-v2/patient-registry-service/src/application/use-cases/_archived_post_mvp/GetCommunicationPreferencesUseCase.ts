@@ -7,9 +7,12 @@
  * @compliance Clean Architecture, FHIR R6 (communication field)
  */
 
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { Language, ContactMethod } from '../../domain/value-objects/CommunicationPreference';
+import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
+import { PatientId } from "../../../domain/value-objects/PatientId";
+import {
+  Language,
+  ContactMethod,
+} from "../../../domain/value-objects/CommunicationPreference";
 
 export interface GetCommunicationPreferencesQuery {
   patientId: string;
@@ -29,11 +32,11 @@ export class GetCommunicationPreferencesUseCase {
   constructor(private patientRepository: IPatientRepository) {}
 
   async execute(
-    query: GetCommunicationPreferencesQuery
+    query: GetCommunicationPreferencesQuery,
   ): Promise<GetCommunicationPreferencesResponse> {
     // Validate input
-    if (!query.patientId || query.patientId.trim() === '') {
-      throw new Error('ID bệnh nhân không được để trống');
+    if (!query.patientId || query.patientId.trim() === "") {
+      throw new Error("ID bệnh nhân không được để trống");
     }
 
     // Find patient
@@ -41,7 +44,7 @@ export class GetCommunicationPreferencesUseCase {
     const patient = await this.patientRepository.findById(patientId);
 
     if (!patient) {
-      throw new Error('Không tìm thấy bệnh nhân');
+      throw new Error("Không tìm thấy bệnh nhân");
     }
 
     // Get communication preference
@@ -50,14 +53,13 @@ export class GetCommunicationPreferencesUseCase {
     if (!preference) {
       return {
         hasPreference: false,
-        preference: null
+        preference: null,
       };
     }
 
     return {
       hasPreference: true,
-      preference: preference.toDTO()
+      preference: preference.toDTO(),
     };
   }
 }
-

@@ -7,9 +7,13 @@
  * @compliance Clean Architecture, FHIR R6 (communication field)
  */
 
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { CommunicationPreference, Language, ContactMethod } from '../../domain/value-objects/CommunicationPreference';
+import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
+import { PatientId } from "../../../domain/value-objects/PatientId";
+import {
+  CommunicationPreference,
+  Language,
+  ContactMethod,
+} from "../../../domain/value-objects/CommunicationPreference";
 
 export interface UpdateCommunicationPreferencesCommand {
   patientId: string;
@@ -35,11 +39,11 @@ export class UpdateCommunicationPreferencesUseCase {
   constructor(private patientRepository: IPatientRepository) {}
 
   async execute(
-    command: UpdateCommunicationPreferencesCommand
+    command: UpdateCommunicationPreferencesCommand,
   ): Promise<UpdateCommunicationPreferencesResponse> {
     // Validate input
-    if (!command.patientId || command.patientId.trim() === '') {
-      throw new Error('ID bệnh nhân không được để trống');
+    if (!command.patientId || command.patientId.trim() === "") {
+      throw new Error("ID bệnh nhân không được để trống");
     }
 
     // Find patient
@@ -47,7 +51,7 @@ export class UpdateCommunicationPreferencesUseCase {
     const patient = await this.patientRepository.findById(patientId);
 
     if (!patient) {
-      throw new Error('Không tìm thấy bệnh nhân');
+      throw new Error("Không tìm thấy bệnh nhân");
     }
 
     // Create communication preference
@@ -55,7 +59,7 @@ export class UpdateCommunicationPreferencesUseCase {
       language: command.language,
       preferred: command.preferred,
       contactMethod: command.contactMethod,
-      timezone: command.timezone
+      timezone: command.timezone,
     });
 
     // Update patient
@@ -66,9 +70,8 @@ export class UpdateCommunicationPreferencesUseCase {
 
     return {
       success: true,
-      message: 'Cập nhật tùy chọn liên hệ thành công',
-      preference: preference.toDTO()
+      message: "Cập nhật tùy chọn liên hệ thành công",
+      preference: preference.toDTO(),
     };
   }
 }
-

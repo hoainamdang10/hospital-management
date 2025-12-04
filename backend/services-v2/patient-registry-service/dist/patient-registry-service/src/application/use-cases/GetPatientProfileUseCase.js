@@ -77,6 +77,7 @@ class GetPatientProfileUseCase {
                 success: true,
                 message: 'Lấy thông tin bệnh nhân thành công',
                 data: {
+                    id: patient.id,
                     patientId: patient.getPatientId() || '',
                     userId: patient.getUserId(),
                     personalInfo: {

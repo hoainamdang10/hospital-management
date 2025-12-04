@@ -120,6 +120,12 @@ class AppointmentEventConsumer {
                 case "appointment.rescheduled":
                     await this.handleAppointmentRescheduled(this.buildAppointmentRescheduledPayload(normalizedPayload, rawEvent));
                     break;
+                case "appointment.payment.expired":
+                case "appointments.payment.expired":
+                case "AppointmentPaymentExpired":
+                case "AppointmentPaymentExpiredEvent":
+                    await this.handleAppointmentPaymentExpired(this.buildAppointmentPaymentExpiredPayload(normalizedPayload, rawEvent));
+                    break;
                 default:
                     this.loggerInstance.warn("Unhandled routing key", { routingKey });
                     break;
@@ -160,11 +166,23 @@ class AppointmentEventConsumer {
             payload?.appointment?.consultationFee ||
             payload?.billing?.consultationFee;
         const consultationFee = this.toNumber(consultationFeeRaw, NaN);
+        const appointmentDateRaw = payload?.appointmentDate ||
+            payload?.appointment_date ||
+            payload?.timeSlot?.appointmentDate ||
+            undefined;
+        const appointmentTimeRaw = payload?.appointmentTime ||
+            payload?.appointment_time ||
+            payload?.timeSlot?.appointmentTime ||
+            undefined;
         return {
             appointmentId: common.appointmentId,
             patientId: common.patientId || common.patientRecordId || common.patientCode || "",
             patientRecordId: common.patientRecordId,
             patientCode: common.patientCode,
+            patientName: payload?.patientName ||
+                payload?.patient_name ||
+                payload?.patient?.fullName ||
+                payload?.patient?.name,
             staffId: common.staffId,
             departmentId: common.departmentId,
             scheduledAt: common.scheduledAt,
@@ -178,6 +196,8 @@ class AppointmentEventConsumer {
                 ? consultationFee
                 : undefined,
             notes: payload?.notes || payload?.reason || undefined,
+            appointmentDateLocal: appointmentDateRaw,
+            appointmentTimeLocal: appointmentTimeRaw,
         };
     }
     buildAppointmentCancelledPayload(payload, rawEvent) {
@@ -210,6 +230,17 @@ class AppointmentEventConsumer {
             noShowFeeApplied: this.toBoolean(payload?.noShowFeeApplied),
             noShowFeeAmount: this.toNumber(payload?.noShowFeeAmount),
             noShowCount: this.toNumber(payload?.noShowCount),
+        };
+    }
+    buildAppointmentPaymentExpiredPayload(payload, rawEvent) {
+        const common = this.extractCommonAppointmentFields(payload, rawEvent);
+        return {
+            appointmentId: common.appointmentId,
+            patientId: common.patientId || common.patientRecordId || common.patientCode || "",
+            invoiceId: payload?.invoiceId || payload?.invoice_id,
+            paymentId: payload?.paymentId || payload?.payment_id,
+            amount: this.toNumber(payload?.amount),
+            reason: payload?.reason || "Payment deadline exceeded",
         };
     }
     buildAppointmentCancelledRefundPayload(payload, rawEvent) {
@@ -318,14 +349,23 @@ class AppointmentEventConsumer {
         };
     }
     resolveScheduledAt(payload) {
-        if (payload?.scheduledAt) {
-            return new Date(payload.scheduledAt);
-        }
         if (payload?.appointmentDate && payload?.appointmentTime) {
-            return new Date(`${payload.appointmentDate}T${payload.appointmentTime}`);
+            const combined = new Date(`${payload.appointmentDate}T${payload.appointmentTime}`);
+            if (!isNaN(combined.getTime())) {
+                return combined;
+            }
         }
         if (payload?.appointmentDate) {
-            return new Date(payload.appointmentDate);
+            const dateOnly = new Date(payload.appointmentDate);
+            if (!isNaN(dateOnly.getTime())) {
+                return dateOnly;
+            }
+        }
+        if (payload?.scheduledAt) {
+            const scheduled = new Date(payload.scheduledAt);
+            if (!isNaN(scheduled.getTime())) {
+                return scheduled;
+            }
         }
         return new Date();
     }
@@ -454,6 +494,7 @@ class AppointmentEventConsumer {
             const enrichedData = await this.enrichDoctorInfo({
                 ...data,
                 staffId: staffUuid || data.staffId,
+                patientName: patient.fullName,
             });
             this.loggerInstance.info("Processing appointment scheduled for billing (Prepaid Model)", {
                 appointmentId: enrichedData.appointmentId,
@@ -476,7 +517,10 @@ class AppointmentEventConsumer {
                 scheduledAt: enrichedData.scheduledAt,
                 duration: enrichedData.duration,
                 consultationFee: enrichedData.consultationFee,
+                appointmentDateLocal: enrichedData.appointmentDateLocal,
+                appointmentTimeLocal: enrichedData.appointmentTimeLocal,
                 insuranceInfo: patient.insuranceInfo,
+                patientName: patient.fullName,
             });
             this.loggerInstance.info("Invoice created for scheduled appointment (Prepaid)", {
                 appointmentId: data.appointmentId,
@@ -616,6 +660,44 @@ class AppointmentEventConsumer {
         }
         catch (error) {
             this.loggerInstance.error("Failed to generate no-show fee", {
+                appointmentId: data.appointmentId,
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            throw error;
+        }
+    }
+    async handleAppointmentPaymentExpired(data) {
+        if (!this.refundPaymentUseCase) {
+            this.loggerInstance.warn("Refund use case not configured, cannot auto-refund expired payment");
+            return;
+        }
+        if (!data.appointmentId || !data.patientId) {
+            this.loggerInstance.warn("Invalid appointment.payment.expired payload", data);
+            return;
+        }
+        try {
+            const result = await this.refundPaymentUseCase.execute({
+                appointmentId: data.appointmentId,
+                patientId: data.patientId,
+                refundPercentage: 100,
+                reason: data.reason || "Payment deadline exceeded",
+                refundedBy: "system",
+            });
+            if (!result?.success) {
+                this.loggerInstance.warn("Refund use case returned unsuccessful result for expired payment", {
+                    appointmentId: data.appointmentId,
+                    errors: result?.errors,
+                });
+            }
+            else {
+                this.loggerInstance.info("Auto refund requested for expired payment", {
+                    appointmentId: data.appointmentId,
+                    refundId: result.refundId,
+                });
+            }
+        }
+        catch (error) {
+            this.loggerInstance.error("Failed to process appointment.payment.expired event", {
                 appointmentId: data.appointmentId,
                 error: error instanceof Error ? error.message : "Unknown error",
             });

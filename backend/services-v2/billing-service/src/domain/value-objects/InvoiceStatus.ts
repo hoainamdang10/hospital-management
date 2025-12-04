@@ -1,6 +1,14 @@
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from "@shared/domain/base/value-object";
 
-export type InvoiceStatusType = 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'overdue' | 'refunded';
+export type InvoiceStatusType =
+  | "draft"
+  | "pending"
+  | "partially_paid"
+  | "paid"
+  | "cancelled"
+  | "overdue"
+  | "refunded"
+  | "expired";
 
 export interface InvoiceStatusProps {
   value: InvoiceStatusType;
@@ -16,31 +24,35 @@ export class InvoiceStatus extends ValueObject<InvoiceStatusProps> {
   }
 
   public static draft(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'draft' });
+    return new InvoiceStatus({ value: "draft" });
   }
 
   public static pending(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'pending' });
+    return new InvoiceStatus({ value: "pending" });
   }
 
   public static partiallyPaid(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'partially_paid' });
+    return new InvoiceStatus({ value: "partially_paid" });
   }
 
   public static paid(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'paid' });
+    return new InvoiceStatus({ value: "paid" });
   }
 
   public static cancelled(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'cancelled' });
+    return new InvoiceStatus({ value: "cancelled" });
   }
 
   public static overdue(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'overdue' });
+    return new InvoiceStatus({ value: "overdue" });
   }
 
   public static refunded(): InvoiceStatus {
-    return new InvoiceStatus({ value: 'refunded' });
+    return new InvoiceStatus({ value: "refunded" });
+  }
+
+  public static expired(): InvoiceStatus {
+    return new InvoiceStatus({ value: "expired" });
   }
 
   get value(): InvoiceStatusType {
@@ -48,35 +60,48 @@ export class InvoiceStatus extends ValueObject<InvoiceStatusProps> {
   }
 
   public isDraft(): boolean {
-    return this.props.value === 'draft';
+    return this.props.value === "draft";
   }
 
   public isPending(): boolean {
-    return this.props.value === 'pending';
+    return this.props.value === "pending";
   }
 
   public isPartiallyPaid(): boolean {
-    return this.props.value === 'partially_paid';
+    return this.props.value === "partially_paid";
   }
 
   public isPaid(): boolean {
-    return this.props.value === 'paid';
+    return this.props.value === "paid";
   }
 
   public isCancelled(): boolean {
-    return this.props.value === 'cancelled';
+    return this.props.value === "cancelled";
   }
 
   public isOverdue(): boolean {
-    return this.props.value === 'overdue';
+    return this.props.value === "overdue";
   }
 
   public isRefunded(): boolean {
-    return this.props.value === 'refunded';
+    return this.props.value === "refunded";
+  }
+
+  public isExpired(): boolean {
+    return this.props.value === "expired";
   }
 
   protected validateFormat(): void {
-    const validStatuses: InvoiceStatusType[] = ['draft', 'pending', 'partially_paid', 'paid', 'cancelled', 'overdue', 'refunded'];
+    const validStatuses: InvoiceStatusType[] = [
+      "draft",
+      "pending",
+      "partially_paid",
+      "paid",
+      "cancelled",
+      "overdue",
+      "refunded",
+      "expired",
+    ];
     if (!validStatuses.includes(this.props.value)) {
       throw new Error(`Invalid invoice status: ${this.props.value}`);
     }

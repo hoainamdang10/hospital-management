@@ -91,7 +91,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-white shadow-sm">
+    <nav className="fixed inset-x-0 top-0 z-[60] border-b bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:backdrop-blur">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left Section: Hamburger + Logo */}
         <div className="flex items-center space-x-4">

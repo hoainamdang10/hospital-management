@@ -303,6 +303,26 @@ export declare class AppointmentCompletedEvent extends DomainEvent {
     getPatientId(): string | null;
 }
 /**
+ * Published when a prepaid appointment receives payment after deadline
+ * Subscribers: Billing Service (refund), Notifications (inform patient)
+ */
+export declare class AppointmentPaymentExpiredEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly invoiceId?: string | undefined;
+    readonly paymentId?: string | undefined;
+    readonly amount?: number | undefined;
+    readonly currency?: string | undefined;
+    readonly expiredAt: Date;
+    readonly paymentDeadline?: Date | undefined;
+    readonly reason: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, invoiceId?: string | undefined, paymentId?: string | undefined, amount?: number | undefined, currency?: string | undefined, expiredAt?: Date, paymentDeadline?: Date | undefined, reason?: string);
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
  * Published when medical record is created
  * Subscribers: Patient Service, Billing Service, Notification Service
  */
@@ -401,6 +421,24 @@ export declare class InvoiceOverdueEvent extends DomainEvent {
     readonly dueDate: Date;
     readonly daysOverdue: number;
     constructor(invoiceId: string, invoiceNumber: string, patientId: string, totalAmount: number, dueDate: Date, daysOverdue: number);
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * Published when invoice is expired due to missed payment deadline
+ * Subscribers: Appointments Service, Notifications Service
+ */
+export declare class InvoiceExpiredEvent extends DomainEvent {
+    readonly invoiceId: string;
+    readonly invoiceNumber: string | undefined;
+    readonly patientId: string;
+    readonly appointmentId: string | undefined;
+    readonly totalAmount: number;
+    readonly dueDate: Date | undefined;
+    readonly expiredAt: Date;
+    readonly reason?: string | undefined;
+    constructor(invoiceId: string, invoiceNumber: string | undefined, patientId: string, appointmentId: string | undefined, totalAmount: number, dueDate: Date | undefined, expiredAt: Date, reason?: string | undefined);
     getEventData(): any;
     containsPHI(): boolean;
     getPatientId(): string | null;

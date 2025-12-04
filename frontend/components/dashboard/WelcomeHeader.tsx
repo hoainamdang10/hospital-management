@@ -59,6 +59,9 @@ export function WelcomeHeader({ userName = 'Bệnh nhân' }: { userName?: string
               <Calendar className="mr-2 h-4 w-4" />
               {getCurrentDate()}
             </p>
+            <p className="mt-2 text-sm text-primary-100 italic">
+              Chúc bạn một ngày tốt lành. Đừng quên uống thuốc đúng giờ nhé!
+            </p>
           </div>
         </div>
 

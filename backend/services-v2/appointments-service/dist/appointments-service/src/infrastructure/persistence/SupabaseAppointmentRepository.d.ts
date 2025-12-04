@@ -87,6 +87,7 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
     exists(appointmentId: AppointmentId): Promise<boolean>;
     findByIds(appointmentIds: AppointmentId[]): Promise<Appointment[]>;
     findByTimeSlot(providerId: string, startTime: Date, endTime: Date): Promise<Appointment[]>;
+    private formatDateInProviderTimezone;
     findFollowUpAppointments(originalAppointmentId: string): Promise<Appointment[]>;
     getPatientHistory(patientId: string, limit?: number, offset?: number): Promise<{
         appointments: Appointment[];
@@ -129,11 +130,6 @@ export declare class SupabaseAppointmentRepository implements IAppointmentReposi
      * Convert domain aggregate to database record
      */
     private toPersistence;
-    /**
-     * Convert local (service timezone) date/time to UTC Date.
-     * Assumes input time is expressed in local clinic timezone (default Asia/Ho_Chi_Minh, UTC+7).
-     */
-    private toUtcFromLocal;
     /**
      * Convert database record to domain aggregate
      */

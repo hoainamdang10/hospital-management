@@ -151,7 +151,13 @@ export default function AppointmentDetailPage() {
         },
         (payload: any) => {
           const newMsg = payload.new as ChatMessage;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => {
+            // Prevent duplicate: check if message already exists
+            if (prev.some(m => m.id === newMsg.id)) {
+              return prev;
+            }
+            return [...prev, newMsg];
+          });
           if (!isChatOpen && newMsg.sender_role !== 'patient') {
             setUnreadCount((prev) => prev + 1);
             toast.info('Bạn có tin nhắn mới từ bác sĩ');
@@ -174,7 +180,13 @@ export default function AppointmentDetailPage() {
       setChatInput('');
       const sentMessage = response?.message;
       if (sentMessage) {
-        setMessages((prev) => [...prev, sentMessage]);
+        setMessages((prev) => {
+          // Prevent duplicate: check if message already exists
+          if (prev.some(m => m.id === sentMessage.id)) {
+            return prev;
+          }
+          return [...prev, sentMessage];
+        });
       }
       if (!isSupabaseConfigured()) {
         await loadMessages(conversationId, chatContext);
@@ -290,43 +302,49 @@ export default function AppointmentDetailPage() {
 
   const statusConfig = {
     SCHEDULED: {
-      color: 'bg-blue-50 text-blue-700 border-blue-200',
-      gradient: 'from-blue-500 to-blue-600',
+      bg: 'bg-blue-50',
+      text: 'text-blue-700',
+      border: 'border-blue-100',
       icon: Clock,
       label: 'Đã đặt',
       description: 'Lịch hẹn đang chờ xác nhận từ phòng khám',
     },
     CONFIRMED: {
-      color: 'bg-green-50 text-green-700 border-green-200',
-      gradient: 'from-green-500 to-emerald-600',
+      bg: 'bg-[#ECFDF3]', // Requested light green
+      text: 'text-[#027A48]',
+      border: 'border-[#D1FADF]',
       icon: CheckCircle,
       label: 'Đã xác nhận',
       description: 'Lịch hẹn đã được xác nhận. Vui lòng đến đúng giờ.',
     },
     CANCELLED: {
-      color: 'bg-red-50 text-red-700 border-red-200',
-      gradient: 'from-red-500 to-rose-600',
+      bg: 'bg-red-50',
+      text: 'text-red-700',
+      border: 'border-red-200',
       icon: X,
       label: 'Đã hủy',
       description: 'Lịch hẹn đã bị hủy',
     },
     COMPLETED: {
-      color: 'bg-gray-50 text-gray-700 border-gray-200',
-      gradient: 'from-gray-500 to-slate-600',
+      bg: 'bg-gray-50',
+      text: 'text-gray-700',
+      border: 'border-gray-200',
       icon: CheckCircle,
       label: 'Đã hoàn thành',
       description: 'Buổi khám đã hoàn thành',
     },
     NO_SHOW: {
-      color: 'bg-orange-50 text-orange-700 border-orange-200',
-      gradient: 'from-orange-500 to-amber-600',
+      bg: 'bg-orange-50',
+      text: 'text-orange-700',
+      border: 'border-orange-200',
       icon: AlertCircle,
       label: 'Không đến',
       description: 'Bạn đã không đến khám',
     },
     PENDING_PAYMENT: {
-      color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      gradient: 'from-yellow-500 to-amber-500',
+      bg: 'bg-yellow-50',
+      text: 'text-yellow-700',
+      border: 'border-yellow-200',
       icon: CreditCard,
       label: 'Chờ thanh toán',
       description: 'Vui lòng thanh toán để xác nhận lịch hẹn',
@@ -334,7 +352,7 @@ export default function AppointmentDetailPage() {
   };
 
   const normalizeStatus = (status: string): keyof typeof statusConfig => {
-    const s = status.toUpperCase();
+    const s = status?.toUpperCase();
     if (s === 'SCHEDULED') return 'SCHEDULED';
     if (s === 'CONFIRMED') return 'CONFIRMED';
     if (s === 'CANCELLED') return 'CANCELLED';
@@ -354,21 +372,21 @@ export default function AppointmentDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="relative min-h-screen pb-20">
-        <div className="mx-auto max-w-7xl space-y-8 p-4 md:p-6">
+      <div className="relative min-h-screen bg-[#F9FAFB] pb-20">
+        <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
           {/* Header Section */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-4">
               <Link href="/patient/appointments">
-                <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-100">
-                  <ArrowLeft className="h-6 w-6 text-gray-600" />
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-100 -ml-2">
+                  <ArrowLeft className="h-5 w-5 text-gray-600" />
                 </Button>
               </Link>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                   Chi tiết lịch hẹn
                 </h1>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
                   <span>Mã: #{appointment.appointmentId}</span>
                   <span className="h-1 w-1 rounded-full bg-gray-300"></span>
                   <span>{format(parseISO(appointment.createdAt), 'dd/MM/yyyy')}</span>
@@ -376,10 +394,11 @@ export default function AppointmentDetailPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 print:hidden">
+            <div className="flex gap-2 print:hidden">
               <Button
                 variant="outline"
-                className="rounded-full border-gray-200 hover:bg-gray-50 hover:text-gray-900"
+                size="sm"
+                className="rounded-lg border-gray-200 bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
                 onClick={handlePrint}
               >
                 <Printer className="mr-2 h-4 w-4" />
@@ -390,15 +409,17 @@ export default function AppointmentDetailPage() {
                   <Link href={`/patient/appointments/${appointment.id}/reschedule`}>
                     <Button
                       variant="outline"
-                      className="rounded-full border-gray-200 hover:bg-gray-50 hover:text-blue-600"
+                      size="sm"
+                      className="rounded-lg border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-blue-600 shadow-sm"
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       Đổi lịch
                     </Button>
                   </Link>
                   <Button
-                    variant="destructive"
-                    className="rounded-full border border-red-100 bg-red-50 text-red-600 shadow-none hover:bg-red-100"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg border-red-100 bg-white text-red-600 hover:bg-red-50 hover:border-red-200 shadow-sm"
                     onClick={handleCancel}
                     disabled={cancelling}
                   >
@@ -411,39 +432,24 @@ export default function AppointmentDetailPage() {
           </div>
 
           {/* Status Banner */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${config.gradient} p-8 text-white shadow-lg`}
+          <div
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm ${config.bg} ${config.border}`}
           >
-            <div className="relative z-10 flex items-center gap-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur-md">
-                <StatusIcon className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">{config.label}</h2>
-                <p className="mt-1 text-lg font-medium text-blue-50/90">{config.description}</p>
-              </div>
+            <StatusIcon className={`h-5 w-5 shrink-0 ${config.text}`} />
+            <div>
+              <h3 className={`font-semibold ${config.text}`}>{config.label}</h3>
+              <p className={`text-sm ${config.text} opacity-90`}>{config.description}</p>
             </div>
-            {/* Decorative circles */}
-            <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-            <div className="absolute right-20 -bottom-10 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
-          </motion.div>
+          </div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column: Details (2/3 width) */}
-            <div className="space-y-8 lg:col-span-2">
+            <div className="space-y-6 lg:col-span-2">
               {/* Appointment Info Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="border-b border-gray-50 bg-gray-50/50 px-6 py-4">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                    <Calendar className="h-5 w-5 text-blue-600" />
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-6 py-4">
+                  <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                    <Calendar className="h-4 w-4 text-blue-600" />
                     Thông tin khám bệnh
                   </h3>
                 </div>
@@ -453,7 +459,7 @@ export default function AppointmentDetailPage() {
                       <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                         Ngày khám
                       </label>
-                      <p className="text-lg font-semibold text-gray-900 capitalize">
+                      <p className="text-base font-semibold text-gray-900 capitalize">
                         {formattedDate}
                       </p>
                     </div>
@@ -461,8 +467,8 @@ export default function AppointmentDetailPage() {
                       <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                         Giờ khám
                       </label>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {appointment.appointmentTime}
+                      <p className="text-base font-semibold text-gray-900">
+                        {appointment.appointmentTime?.substring(0, 5)}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -471,7 +477,7 @@ export default function AppointmentDetailPage() {
                       </label>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-400" />
-                        <p className="text-base font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900">
                           {appointment.durationMinutes} phút
                         </p>
                       </div>
@@ -480,7 +486,7 @@ export default function AppointmentDetailPage() {
                       <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                         Loại khám
                       </label>
-                      <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                         {appointment.type.toUpperCase() === 'CONSULTATION'
                           ? 'Khám mới'
                           : 'Tái khám'}
@@ -490,35 +496,30 @@ export default function AppointmentDetailPage() {
 
                   {appointment.reason && (
                     <div className="mt-6 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-xs font-medium text-gray-500 uppercase">
                         Lý do khám
                       </label>
-                      <p className="text-gray-600">{appointment.reason}</p>
+                      <p className="text-sm text-gray-700">{appointment.reason}</p>
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
 
               {/* Doctor Info */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="border-b border-gray-50 bg-gray-50/50 px-6 py-4">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                    <User className="h-5 w-5 text-blue-600" />
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-6 py-4">
+                  <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                    <User className="h-4 w-4 text-blue-600" />
                     Bác sĩ phụ trách
                   </h3>
                 </div>
                 <div className="p-6">
-                  <div className="mb-6 flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-inner">
-                      <User className="h-8 w-8" />
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                      <User className="h-6 w-6" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-gray-900">
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-gray-900">
                         BS.{' '}
                         {appointment.doctorName ||
                           (appointment as any).doctorFullName ||
@@ -529,86 +530,78 @@ export default function AppointmentDetailPage() {
                           (appointment as any).doctorDepartment ||
                           'Chuyên khoa đang cập nhật'}
                       </p>
+                      <div className="pt-2 space-y-1 text-sm text-gray-500">
+                        {(appointment as any).doctorDepartment && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5" />
+                            <span>Khoa: {(appointment as any).doctorDepartment}</span>
+                          </div>
+                        )}
+                        {(appointment as any).doctorEmail && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-3.5 w-3.5" />
+                            <span>{(appointment as any).doctorEmail}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-3 text-sm">
-                    {(appointment as any).doctorDepartment && (
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <MapPin className="h-4 w-4" />
-                        <span>Khoa: {(appointment as any).doctorDepartment}</span>
-                      </div>
-                    )}
-                    {(appointment as any).doctorEmail && (
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <Mail className="h-4 w-4" />
-                        <span>{(appointment as any).doctorEmail}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Patient Info */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="border-b border-gray-50 bg-gray-50/50 px-6 py-4">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                    <FileText className="h-5 w-5 text-blue-600" />
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-6 py-4">
+                  <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                    <FileText className="h-4 w-4 text-blue-600" />
                     Thông tin bệnh nhân
                   </h3>
                 </div>
-                <div className="space-y-4 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
-                      <User className="h-5 w-5 text-gray-600" />
+                <div className="p-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase text-gray-500 font-medium">Họ và tên</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {appointment.patient?.fullName ||
+                            (appointment as any).patientFullName ||
+                            (appointment as any).patientName ||
+                            'Đang cập nhật'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Họ và tên</p>
-                      <p className="font-semibold text-gray-900">
-                        {appointment.patient?.fullName ||
-                          (appointment as any).patientFullName ||
-                          (appointment as any).patientName ||
-                          'Đang cập nhật'}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                        <Phone className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase text-gray-500 font-medium">Số điện thoại</p>
+                        <p className="text-sm font-semibold text-gray-900">{appointment.patientPhone}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
-                      <Phone className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Số điện thoại</p>
-                      <p className="font-semibold text-gray-900">{appointment.patientPhone}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
-                      <Mail className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Email</p>
-                      <p className="font-semibold text-gray-900">{appointment.patientEmail}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                        <Mail className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase text-gray-500 font-medium">Email</p>
+                        <p className="text-sm font-semibold text-gray-900 break-all" title={appointment.patientEmail}>{appointment.patientEmail}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
 
             {/* Right Column: Payment & Notes (1/3 width) */}
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Payment Info */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
-              >
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900">
+                  <CreditCard className="h-4 w-4 text-blue-600" />
                   Thanh toán
                 </h3>
 
@@ -616,22 +609,22 @@ export default function AppointmentDetailPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Phí khám bệnh</span>
                     <span className="font-medium text-gray-900">
-                      {appointment.consultationFee.toLocaleString('vi-VN')} đ
+                      {(appointment.consultationFee || 0).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
                   <div className="border-t border-dashed border-gray-200 pt-3">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-gray-900">Tổng cộng</span>
-                      <span className="text-xl font-bold text-blue-600">
-                        {appointment.consultationFee.toLocaleString('vi-VN')} đ
+                      <span className="text-lg font-bold text-blue-600">
+                        {(appointment.consultationFee || 0).toLocaleString('vi-VN')} đ
                       </span>
                     </div>
                   </div>
                   <div className="pt-2">
                     <div
-                      className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold ${appointment.paymentStatus?.toUpperCase() === 'PAID'
-                        ? 'border border-green-100 bg-green-50 text-green-700'
-                        : 'border border-yellow-100 bg-yellow-50 text-yellow-700'
+                      className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium ${appointment.paymentStatus?.toUpperCase() === 'PAID'
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-yellow-50 text-yellow-700'
                         }`}
                     >
                       {appointment.paymentStatus?.toUpperCase() === 'PAID' ? (
@@ -648,17 +641,12 @@ export default function AppointmentDetailPage() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Important Notes */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-                className="rounded-2xl border border-amber-100 bg-amber-50/50 p-6"
-              >
-                <h3 className="mb-3 flex items-center gap-2 font-semibold text-amber-900">
-                  <Info className="h-5 w-5" />
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-6">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900">
+                  <Info className="h-4 w-4" />
                   Lưu ý quan trọng
                 </h3>
                 <ul className="space-y-2 text-sm text-amber-800/80">
@@ -675,7 +663,7 @@ export default function AppointmentDetailPage() {
                     <span>Mang theo hồ sơ bệnh án cũ (nếu có)</span>
                   </li>
                 </ul>
-              </motion.div>
+              </div>
             </div>
           </div>
         </div>

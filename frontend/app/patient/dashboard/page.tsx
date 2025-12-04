@@ -1,25 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Calendar,
-  FileText,
-  CreditCard,
-  User,
-  Loader2,
-  ArrowRight,
-  Activity,
-  ShieldCheck,
-} from 'lucide-react';
+import { Calendar, FileText, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
-import { UpcomingAppointments } from '@/components/dashboard/UpcomingAppointments';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { useAuth } from '@/hooks/useAuth';
 import { usePatient } from '@/hooks/usePatient';
 import { getPatientDashboardStats, type DashboardStats } from '@/lib/api/dashboard.service';
-import { useBilling } from '@/hooks/useBilling';
 import { patientService } from '@/lib/api/patient.service';
 import { cn } from '@/lib/utils';
 
@@ -31,12 +21,6 @@ export default function PatientDashboardPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { patient, patientId, internalId } = usePatient();
   const billingPatientId = internalId || patient?.id || patientId || null;
-  const {
-    summary,
-    invoices,
-    pendingInvoices,
-    isLoading: isBillingLoading,
-  } = useBilling(billingPatientId);
   const [hasInsurance, setHasInsurance] = useState<boolean>(false);
   const [hasEmergencyContact, setHasEmergencyContact] = useState<boolean>(false);
 
@@ -86,10 +70,22 @@ export default function PatientDashboardPage() {
     try {
       const idToUse = internalId || patientId;
       const [insuranceRes, contactsRes] = await Promise.all([
-        patientService.getInsurance(idToUse).catch(() => ({ insuranceInfo: null })),
-        patientService.getEmergencyContacts(idToUse).catch(() => ({ contacts: [] })),
+        patientService.getInsurance(idToUse).catch(() => ({
+          patientId: idToUse,
+          insuranceInfo: null,
+          hasInsurance: false,
+        })),
+        patientService.getEmergencyContacts(idToUse).catch(() => ({
+          patientId: idToUse,
+          contacts: [],
+          totalCount: 0,
+        })),
       ]);
-      setHasInsurance(!!insuranceRes.insuranceInfo);
+
+      // ✅ Backend now returns: { patientId, insuranceInfo, hasInsurance }
+      setHasInsurance(insuranceRes.hasInsurance && insuranceRes.insuranceInfo !== null);
+
+      // ✅ Backend returns: { patientId, contacts, totalCount }
       setHasEmergencyContact(
         Array.isArray(contactsRes.contacts) && contactsRes.contacts.length > 0
       );
@@ -125,34 +121,34 @@ export default function PatientDashboardPage() {
         {/* Quick Stats */}
         <motion.div variants={item} className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <PremiumStatCard
-            title="Lịch hẹn sắp tới"
-            subtitle="Trong 7 ngày tới"
+            title="Lịch đã giữ chỗ"
+            subtitle="Đã xác nhận (7 ngày tới)"
             value={stats.upcomingConfirmed7DaysCount.toString()}
             icon={Calendar}
             color="blue"
             isLoading={isLoadingStats}
           />
           <PremiumStatCard
-            title="Chờ thanh toán"
-            subtitle="Hóa đơn chưa trả"
+            title="Thanh toán đang xử lý"
+            subtitle="Giao dịch prepaid chờ duyệt"
             value={stats.pendingPaymentsCount.toString()}
             icon={CreditCard}
             color="orange"
             isLoading={isLoadingStats}
           />
           <PremiumStatCard
-            title="Hoạt động gần đây"
-            subtitle="Đã khám/Hủy"
+            title="Lịch được xử lý"
+            subtitle="Hoàn tất / Hủy (30 ngày)"
             value={stats.recentCompletedOrCancelledCount.toString()}
-            icon={Activity}
+            icon={FileText}
             color="green"
             isLoading={isLoadingStats}
           />
           <PremiumStatCard
-            title="Hồ sơ hoàn chỉnh"
-            subtitle="Thông tin cá nhân"
+            title="Hồ sơ & giấy tờ"
+            subtitle="Hoàn thiện trước khi đặt lịch"
             value={`${stats.profileCompletion}%`}
-            icon={User}
+            icon={ShieldCheck}
             color="purple"
             isLoading={isLoadingStats}
             isProgress
@@ -163,143 +159,18 @@ export default function PatientDashboardPage() {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left Column (Main Content) */}
           <motion.div variants={item} className="space-y-8 lg:col-span-2">
-            {/* Upcoming Appointments */}
-            <div className="rounded-3xl border border-white/50 bg-white/60 p-1 shadow-xl backdrop-blur-xl">
-              <UpcomingAppointments patientId={patientId || undefined} />
-            </div>
-
-            {/* Recent Activity (Moved to Main Column) */}
-            <div className="rounded-3xl border border-white/50 bg-white/60 p-1 shadow-xl backdrop-blur-xl">
-              <RecentActivity patientId={patientId || undefined} />
-            </div>
+            {/* Dashboard Overview (Tabs: Appointments & Analytics) */}
+            <DashboardOverview patientId={patientId || undefined} />
           </motion.div>
 
           {/* Right Column (Sidebar Widgets) */}
           <motion.div variants={item} className="space-y-8 lg:col-span-1">
             {/* Profile Summary (Priority 1) */}
-            <GlassCard className="p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-blue-100 p-2">
-                    <User className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">Hồ sơ cá nhân</h2>
-                </div>
-                <a
-                  href="/patient/profile"
-                  className="group text-primary-600 hover:text-primary-700 flex items-center text-sm font-medium"
-                >
-                  Cập nhật
-                  <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </a>
-              </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-xl bg-gray-50/50 p-3 transition-colors hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 font-bold text-white">
-                      {user?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {user?.fullName || 'Chưa cập nhật'}
-                      </p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <ProfileBadge
-                    icon={ShieldCheck}
-                    label="Bảo hiểm y tế"
-                    active={hasInsurance}
-                    activeText="Đã có thông tin"
-                    inactiveText="Chưa có thông tin"
-                    color="green"
-                  />
-                  <ProfileBadge
-                    icon={Activity}
-                    label="Liên hệ khẩn cấp"
-                    active={hasEmergencyContact}
-                    activeText="Đã thiết lập"
-                    inactiveText="Chưa thiết lập"
-                    color="blue"
-                  />
-                </div>
-              </div>
-            </GlassCard>
-
-            {/* Quick Actions (Priority 2) */}
-            <div className="grid gap-4">
-              <PremiumActionCard
-                title="Đặt lịch khám"
-                description="Chọn bác sĩ và thời gian phù hợp"
-                href="/patient/appointments/book"
-                icon={Calendar}
-                gradient="from-blue-500 to-indigo-600"
-              />
-              <PremiumActionCard
-                title="Hồ sơ bệnh án"
-                description="Xem lịch sử khám và đơn thuốc"
-                href="/patient/medical-history"
-                icon={FileText}
-                gradient="from-emerald-500 to-teal-600"
-              />
+            {/* Recent Activity (Moved to Sidebar) */}
+            <div className="rounded-3xl border border-white/50 bg-white/60 p-1 shadow-xl backdrop-blur-xl">
+              <RecentActivity patientId={patientId || undefined} />
             </div>
-
-            {/* Billing Summary (Priority 3) */}
-            <GlassCard className="p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-orange-100 p-2">
-                    <CreditCard className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">Thanh toán</h2>
-                </div>
-                <a
-                  href="/patient/billing"
-                  className="group text-primary-600 hover:text-primary-700 flex items-center text-sm font-medium"
-                >
-                  Xem chi tiết
-                  <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </a>
-              </div>
-
-              <div className="space-y-4">
-                <BillingStat
-                  label="Tổng tiền chưa thanh toán"
-                  value={
-                    isBillingLoading
-                      ? '...'
-                      : (summary?.outstandingAmount ?? 0).toLocaleString('vi-VN') + ' ₫'
-                  }
-                  color="text-orange-600"
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <BillingStat
-                    label="Đã thanh toán"
-                    value={
-                      isBillingLoading
-                        ? '...'
-                        : invoices
-                            .filter(
-                              (i) =>
-                                i.status === 'paid' &&
-                                new Date(i.updatedAt).getMonth() === new Date().getMonth()
-                            )
-                            .length.toString()
-                    }
-                    color="text-green-600"
-                  />
-                  <BillingStat
-                    label="Đang chờ"
-                    value={isBillingLoading ? '...' : pendingInvoices.length.toString()}
-                    color="text-purple-600"
-                  />
-                </div>
-              </div>
-            </GlassCard>
           </motion.div>
         </div>
       </motion.div>
@@ -413,15 +284,6 @@ function PremiumStatCard({
   );
 }
 
-function BillingStat({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 transition-colors hover:border-gray-200">
-      <p className="mb-1 text-sm text-gray-500">{label}</p>
-      <p className={cn('text-lg font-bold', color)}>{value}</p>
-    </div>
-  );
-}
-
 function ProfileBadge({
   icon: Icon,
   label,
@@ -465,13 +327,33 @@ function PremiumActionCard({
   href,
   icon: Icon,
   gradient,
+  variant = 'default',
 }: {
   title: string;
   description: string;
   href: string;
   icon: any;
   gradient: string;
+  variant?: 'default' | 'light';
 }) {
+  if (variant === 'light') {
+    return (
+      <a href={href} className="group block">
+        <div className="relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-200 hover:shadow-lg">
+          <div className="relative flex items-center justify-between">
+            <div>
+              <h3 className="mb-1 text-lg font-bold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-500">{description}</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-green-600 transition-transform group-hover:scale-110 group-hover:bg-green-100">
+              <Icon className="h-6 w-6" />
+            </div>
+          </div>
+        </div>
+      </a>
+    );
+  }
+
   return (
     <a href={href} className="group block">
       <div

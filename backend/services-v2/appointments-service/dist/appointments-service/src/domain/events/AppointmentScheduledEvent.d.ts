@@ -21,6 +21,8 @@ export interface AppointmentScheduledEventData {
     consultationFee: number;
     createdBy: string;
     scheduledAt: Date;
+    reason?: string;
+    notes?: string;
 }
 /**
  * Appointment Scheduled Domain Event
@@ -41,7 +43,9 @@ export declare class AppointmentScheduledEvent extends DomainEvent {
     readonly status: string;
     readonly consultationFee: number;
     readonly createdBy: string;
-    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, durationMinutes: number, type: string, priority: string, status: string, consultationFee: number, createdBy: string, correlationId?: string, causationId?: string, userId?: string);
+    readonly reason?: string | undefined;
+    readonly notes?: string | undefined;
+    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, durationMinutes: number, type: string, priority: string, status: string, consultationFee: number, createdBy: string, reason?: string | undefined, notes?: string | undefined, correlationId?: string, causationId?: string, userId?: string);
     /**
      * Get event data payload (required by DomainEvent base class)
      */

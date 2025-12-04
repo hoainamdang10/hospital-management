@@ -6,11 +6,12 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Repository Pattern
  */
-import { Notification } from '../aggregates/Notification';
-import { NotificationId } from '../value-objects/NotificationId';
-export type NotificationStatus = 'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'SENT' | 'PARTIALLY_SENT' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
-export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+import { Notification } from "../aggregates/Notification";
+import { NotificationId } from "../value-objects/NotificationId";
+export type NotificationStatus = "DRAFT" | "SCHEDULED" | "PROCESSING" | "SENT" | "PARTIALLY_SENT" | "FAILED" | "CANCELLED" | "EXPIRED";
+export type NotificationPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export interface NotificationSearchCriteria {
+    notificationId?: string;
     recipientId?: string;
     recipientType?: string;
     templateType?: string;
@@ -33,8 +34,8 @@ export interface NotificationSearchCriteria {
     hasFailures?: boolean;
     limit?: number;
     offset?: number;
-    sortBy?: 'createdAt' | 'scheduledAt' | 'priority' | 'status';
-    sortOrder?: 'ASC' | 'DESC';
+    sortBy?: "createdAt" | "scheduledAt" | "priority" | "status";
+    sortOrder?: "ASC" | "DESC";
 }
 export interface NotificationStatistics {
     totalNotifications: number;

@@ -22,6 +22,7 @@ export interface GetPatientProfileResponse {
     message: string;
     errors?: string[];
     data?: {
+        id: string;
         patientId: string;
         userId: string;
         personalInfo: {

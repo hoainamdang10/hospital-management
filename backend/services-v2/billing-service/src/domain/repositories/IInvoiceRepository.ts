@@ -1,4 +1,4 @@
-import { Invoice } from '../aggregates/Invoice';
+import { Invoice } from "../aggregates/Invoice";
 
 export interface SearchCriteria {
   patientId?: string;
@@ -28,6 +28,7 @@ export interface IInvoiceRepository {
   findByAppointmentId(appointmentId: string): Promise<Invoice | null>;
   findAllByAppointmentId(appointmentId: string): Promise<Invoice[]>;
   findOverdueInvoices(daysOverdue?: number): Promise<Invoice[]>;
+  findExpiredPendingInvoices(referenceDate: Date): Promise<Invoice[]>;
   search(criteria: SearchCriteria): Promise<Invoice[]>;
   getRevenueSummary(fromDate: Date, toDate: Date): Promise<RevenueSummary>;
   delete(id: string): Promise<void>;

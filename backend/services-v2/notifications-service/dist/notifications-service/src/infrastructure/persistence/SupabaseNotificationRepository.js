@@ -11,6 +11,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseNotificationRepository = void 0;
 const Notification_1 = require("../../domain/aggregates/Notification");
+const NotificationId_1 = require("../../domain/value-objects/NotificationId");
 const RecipientInfo_1 = require("../../domain/value-objects/RecipientInfo");
 const NotificationContent_1 = require("../../domain/value-objects/NotificationContent");
 const NotificationChannel_1 = require("../../domain/value-objects/NotificationChannel");
@@ -140,6 +141,9 @@ class SupabaseNotificationRepository {
                 .from("notifications")
                 .select("*")
                 .eq("is_deleted", false);
+            if (criteria.notificationId) {
+                query = query.eq("notification_id", criteria.notificationId);
+            }
             // Apply filters
             if (criteria.recipientId)
                 query = query.eq("recipient_id", criteria.recipientId);
@@ -369,14 +373,58 @@ class SupabaseNotificationRepository {
     async countByCriteria(criteria) {
         let query = this.supabase
             .from("notifications")
-            .select("*", { count: "exact", head: true })
+            .select("notification_id", { count: "exact", head: true })
             .eq("is_deleted", false);
+        if (criteria.notificationId)
+            query = query.eq("notification_id", criteria.notificationId);
         if (criteria.recipientId)
             query = query.eq("recipient_id", criteria.recipientId);
+        if (criteria.recipientType)
+            query = query.eq("recipient_type", criteria.recipientType);
+        if (criteria.templateType)
+            query = query.eq("template_type", criteria.templateType);
         if (criteria.status)
             query = query.eq("status", criteria.status);
         if (criteria.priority)
             query = query.eq("priority", criteria.priority);
+        if (criteria.channels?.length)
+            query = query.contains("channels", criteria.channels);
+        if (criteria.scheduledAfter)
+            query = query.gte("scheduled_at", criteria.scheduledAfter.toISOString());
+        if (criteria.scheduledBefore)
+            query = query.lte("scheduled_at", criteria.scheduledBefore.toISOString());
+        if (criteria.createdAfter)
+            query = query.gte("created_at", criteria.createdAfter.toISOString());
+        if (criteria.createdBefore)
+            query = query.lte("created_at", criteria.createdBefore.toISOString());
+        if (criteria.isRead !== undefined) {
+            query = criteria.isRead
+                ? query.not("read_at", "is", null)
+                : query.is("read_at", null);
+        }
+        if (criteria.healthcareContext?.patientId) {
+            query = query.contains("healthcare_context", {
+                patientId: criteria.healthcareContext.patientId,
+            });
+        }
+        if (criteria.healthcareContext?.doctorId) {
+            query = query.contains("healthcare_context", {
+                doctorId: criteria.healthcareContext.doctorId,
+            });
+        }
+        if (criteria.healthcareContext?.appointmentId) {
+            query = query.contains("healthcare_context", {
+                appointmentId: criteria.healthcareContext.appointmentId,
+            });
+        }
+        if (criteria.healthcareContext?.medicalRecordId) {
+            query = query.contains("healthcare_context", {
+                medicalRecordId: criteria.healthcareContext.medicalRecordId,
+            });
+        }
+        if (criteria.isUrgent) {
+            query = query.eq("priority", "URGENT");
+        }
         const { count, error } = await query;
         if (error)
             throw new Error(`Supabase error: ${error.message}`);
@@ -868,6 +916,7 @@ class SupabaseNotificationRepository {
         const channels = Array.isArray(record.channels)
             ? record.channels.map((ch) => NotificationChannel_1.NotificationChannel.create(ch))
             : [];
+        const persistedNotificationId = NotificationId_1.NotificationId.fromString(record.notification_id);
         const notification = Notification_1.Notification.create({
             recipient,
             templateType: record.template_type,
@@ -882,6 +931,9 @@ class SupabaseNotificationRepository {
                 healthcareContext: record.healthcare_context,
             },
         });
+        // Override generated ID with persisted ID
+        notification.props.notificationId = persistedNotificationId;
+        notification._id = persistedNotificationId.value;
         // Set additional fields from database
         if (record.sent_at) {
             notification.props.sentAt = new Date(record.sent_at);

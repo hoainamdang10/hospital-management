@@ -64,6 +64,8 @@ export declare class BillingEventConsumer {
      * Handle insurance coverage verified event
      */
     private handleInsuranceCoverageVerified;
+    private buildInvoiceExpiredPayload;
+    private handleInvoiceExpired;
     /**
      * Disconnect from RabbitMQ
      */

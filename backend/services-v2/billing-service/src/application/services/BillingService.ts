@@ -19,6 +19,7 @@ export interface AppointmentInvoiceRequest {
   patientId: string;
   staffId: string;
   departmentId: string;
+  patientName?: string;
   doctorName?: string;
   doctorDepartment?: string;
   serviceType: "consultation" | "procedure" | "follow_up";
@@ -201,6 +202,7 @@ export class BillingService {
           appointment_time_local: appointmentTimeLocal,
           appointmentDateTime: combinedLocal,
           appointment_date_time: combinedLocal,
+          patientName: request.patientName,
           doctorName: request.doctorName,
           doctorDepartment: request.doctorDepartment,
         },

@@ -8,15 +8,31 @@ export interface GetPatientInvoicesResponse {
     invoices: Array<{
         invoiceId: string;
         invoiceNumber?: string;
+        invoiceCode?: string;
+        patientName?: string;
         appointmentId?: string;
+        appointmentCode?: string;
         doctorName?: string;
         doctorDepartment?: string;
         cancellationReason?: string;
+        metadata?: Record<string, any>;
+        items: Array<{
+            id: string;
+            description: string;
+            quantity: number;
+            unitPrice: number;
+            totalPrice: number;
+        }>;
+        subtotal: number;
+        tax: number;
         totalAmount: number;
         outstandingAmount: number;
         paidAmount: number;
         status: string;
         createdAt: Date;
+        issuedAt: Date;
+        issueDate: Date;
+        dueDate: Date;
         payments: Array<{
             id: string;
             amount: number;

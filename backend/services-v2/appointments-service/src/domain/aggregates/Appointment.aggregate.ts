@@ -77,7 +77,7 @@ export interface AppointmentProps {
   roomId?: string;
   departmentId?: string;
   requiredEquipment?: string[];
-  
+
   // Billing Reference (immutable, for billing-service)
   // Appointments service does NOT manage payment state
   // Only stores fee as reference for billing-service to consume via events
@@ -350,7 +350,9 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         // ✅ FIX: Event status should match aggregate status
         'pending_payment',
         consultationFee,
-        createdBy
+        createdBy,
+        details.reason,
+        details.notes
       )
     );
 
@@ -404,7 +406,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     // ===== GUARD 1: Validate current status =====
     // Allow confirm from both PENDING_PAYMENT (prepaid flow) and SCHEDULED (traditional flow)
     const validStatuses = [AppointmentStatus.PENDING_PAYMENT, AppointmentStatus.SCHEDULED];
-    
+
     if (!validStatuses.includes(this.props.status)) {
       throw new Error(
         `Cannot confirm appointment in ${this.props.status} status. ` +
@@ -428,13 +430,13 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
 
     // ===== STATE MUTATION =====
     const previousStatus = this.props.status;
-    
+
     this.props.status = AppointmentStatus.CONFIRMED;
     this.props.confirmedAt = new Date();
     this.props.confirmedBy = confirmedBy;
     this.props.updatedAt = new Date();
     this.props.lastModifiedBy = confirmedBy;
-    
+
     // Update payment status if in prepaid flow
     if (this.props.paymentStatus === 'pending') {
       this.props.paymentStatus = 'paid';
@@ -466,7 +468,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     );
 
     this.incrementVersion();
-    
+
     // ✅ NO LOGGING HERE - Pure domain logic only
     // Logging sẽ được thực hiện ở application/infrastructure layer
   }
@@ -476,7 +478,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
    */
   public checkIn(checkInTime?: Date): void {
     if (this.props.status !== AppointmentStatus.CONFIRMED &&
-        this.props.status !== AppointmentStatus.SCHEDULED) {
+      this.props.status !== AppointmentStatus.SCHEDULED) {
       throw new Error('Only confirmed or scheduled appointments can be checked in');
     }
 
@@ -534,8 +536,8 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
    */
   public complete(): void {
     // Relaxed state machine: Allow complete from ARRIVED or IN_PROGRESS
-    if (this.props.status !== AppointmentStatus.IN_PROGRESS && 
-        this.props.status !== AppointmentStatus.ARRIVED) {
+    if (this.props.status !== AppointmentStatus.IN_PROGRESS &&
+      this.props.status !== AppointmentStatus.ARRIVED) {
       throw new Error('Only in-progress or arrived appointments can be completed');
     }
 
@@ -644,7 +646,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
    */
   public markAsNoShow(markedBy: string): void {
     if (this.props.status !== AppointmentStatus.CONFIRMED &&
-        this.props.status !== AppointmentStatus.SCHEDULED) {
+      this.props.status !== AppointmentStatus.SCHEDULED) {
       throw new Error('Only scheduled/confirmed appointments can be marked as no-show');
     }
 
@@ -697,7 +699,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     const transferNote = `[${new Date().toISOString()}] Transferred from doctor ${oldDoctorId} to ${newDoctorId}. Reason: ${reason}`;
     const currentNotes = this.props.details.notes || '';
     const updatedNotes = currentNotes ? `${currentNotes}\n${transferNote}` : transferNote;
-    
+
     this.props.details = AppointmentDetails.create(
       this.props.details.reason,
       this.props.details.chiefComplaint,
@@ -768,14 +770,14 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     if (this.props.status === AppointmentStatus.COMPLETED) {
       throw new Error('Cannot reschedule completed appointment');
     }
-    
+
     if (this.props.status === AppointmentStatus.CANCELLED) {
       throw new Error('Cannot reschedule cancelled appointment');
     }
 
     this.props.status = AppointmentStatus.RESCHEDULED;
     this.props.updatedAt = new Date();
-    this.props.notes = this.props.notes 
+    this.props.notes = this.props.notes
       ? `${this.props.notes}\nMarked for reschedule: ${reason}`
       : `Marked for reschedule: ${reason}`;
 

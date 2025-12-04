@@ -23,12 +23,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="flex">
+      <div className="flex pt-16">
         <Sidebar />
-        <main 
+        <main
           className={cn(
-            "flex-1 p-6 transition-all duration-300",
-            isCollapsed ? "lg:ml-20" : "lg:ml-64"
+            'flex-1 p-6 transition-all duration-300',
+            isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
           )}
         >
           <div className="mx-auto max-w-7xl">{children}</div>

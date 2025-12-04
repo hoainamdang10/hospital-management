@@ -9,29 +9,29 @@
  * @compliance Clean Architecture, DDD, HL7 FHIR, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
-import { PatientId } from '../value-objects/PatientId';
-import { PersonalInfo } from '../value-objects/PersonalInfo';
-import { ContactInfo } from '../value-objects/ContactInfo';
-import { BasicMedicalInfo } from '../value-objects/BasicMedicalInfo';
-import { PatientLink } from '../value-objects/PatientLink';
-import { PatientStatus } from '../value-objects/PatientStatus';
-import { CommunicationPreference } from '../value-objects/CommunicationPreference';
-import { InsuranceInfo } from '../entities/InsuranceInfo';
-import { EmergencyContact } from '../entities/EmergencyContact';
-import { PatientConsent } from '../entities/PatientConsent';
+import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
+import { DomainEvent } from "@shared/domain/base/domain-event";
+import { PatientId } from "../value-objects/PatientId";
+import { PersonalInfo } from "../value-objects/PersonalInfo";
+import { ContactInfo } from "../value-objects/ContactInfo";
+import { BasicMedicalInfo } from "../value-objects/BasicMedicalInfo";
+import { PatientLink } from "../value-objects/PatientLink";
+import { PatientStatus } from "../value-objects/PatientStatus";
+import { CommunicationPreference } from "../value-objects/CommunicationPreference";
+import { InsuranceInfo } from "../entities/InsuranceInfo";
+import { EmergencyContact } from "../entities/EmergencyContact";
+import { PatientConsent } from "../entities/PatientConsent";
 import {
   PatientRegisteredEvent,
   PatientRegisteredEventAdditionalData,
   PatientRegisteredEventContactInfo,
   PatientRegisteredEventEmergencyContact,
   PatientRegisteredEventInsuranceInfo,
-} from '../events/PatientRegisteredEvent';
-import { PatientUpdatedEvent } from '../events/PatientUpdatedEvent';
+} from "../events/PatientRegisteredEvent";
+import { PatientUpdatedEvent } from "../events/PatientUpdatedEvent";
 // import { PatientMergedEvent } from '../events/PatientMergedEvent'; // Event removed in scope reduction
 // import { PatientLinkedEvent } from '../events/PatientLinkedEvent'; // Event removed in scope reduction
-import { PatientDeactivatedEvent } from '../events/PatientDeactivatedEvent';
+import { PatientDeactivatedEvent } from "../events/PatientDeactivatedEvent";
 // import { PatientConsentGrantedEvent } from '../events/PatientConsentGrantedEvent'; // Event removed in scope reduction
 
 export interface PatientProps {
@@ -122,7 +122,11 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
         personalInfo.dateOfBirth,
         personalInfo.gender,
         personalInfo.nationalId,
-        Patient.buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts),
+        Patient.buildRegisteredEventData(
+          contactInfo,
+          insuranceInfo,
+          emergencyContacts,
+        ),
       ),
     );
 
@@ -171,7 +175,11 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
         personalInfo.dateOfBirth,
         personalInfo.gender,
         personalInfo.nationalId,
-        Patient.buildRegisteredEventData(contactInfo, insuranceInfo, emergencyContacts),
+        Patient.buildRegisteredEventData(
+          contactInfo,
+          insuranceInfo,
+          emergencyContacts,
+        ),
       ),
     );
 
@@ -212,14 +220,14 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       email: contactInfo.email,
       address: address
         ? {
-          street: address.street,
-          ward: address.ward,
-          district: address.district,
-          city: address.city,
-          province: address.province,
-          postalCode: address.postalCode,
-          country: address.country,
-        }
+            street: address.street,
+            ward: address.ward,
+            district: address.district,
+            city: address.city,
+            province: address.province,
+            postalCode: address.postalCode,
+            country: address.country,
+          }
         : undefined,
       preferredContactMethod: contactInfo.preferredContactMethod,
     };
@@ -286,14 +294,14 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         patientId,
         this.props.userId, // Identity Service user ID
-        'personal_info',
+        "personal_info",
         updatedBy,
         {
           fullName: personalInfo.fullName,
           dateOfBirth: personalInfo.dateOfBirth,
           gender: personalInfo.gender,
-          citizenId: personalInfo.nationalId
-        }
+          citizenId: personalInfo.nationalId,
+        },
       ),
     );
   }
@@ -313,14 +321,14 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         patientId,
         this.props.userId, // Identity Service user ID
-        'contact_info',
+        "contact_info",
         updatedBy,
         undefined,
         {
           phoneNumber: contactInfo.primaryPhone,
           email: contactInfo.email,
-          address: contactInfo.address
-        }
+          address: contactInfo.address,
+        },
       ),
     );
   }
@@ -343,8 +351,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         patientId,
         this.props.userId, // Identity Service user ID
-        'basic_medical_info',
-        updatedBy
+        "basic_medical_info",
+        updatedBy,
       ),
     );
   }
@@ -367,8 +375,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         patientId,
         this.props.userId, // Identity Service user ID
-        'insurance_info',
-        updatedBy
+        "insurance_info",
+        updatedBy,
       ),
     );
   }
@@ -391,8 +399,8 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
       new PatientUpdatedEvent(
         patientId,
         this.props.userId, // Identity Service user ID
-        'emergency_contact',
-        updatedBy
+        "emergency_contact",
+        updatedBy,
       ),
     );
   }
@@ -778,20 +786,20 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   protected validateBusinessInvariants(): void {
     if (!this.props.personalInfo) {
-      throw new Error('Thông tin cá nhân không được để trống');
+      throw new Error("Thông tin cá nhân không được để trống");
     }
 
     if (!this.props.contactInfo) {
-      throw new Error('Thông tin liên hệ không được để trống');
+      throw new Error("Thông tin liên hệ không được để trống");
     }
 
     if (!this.props.basicMedicalInfo) {
-      throw new Error('Thông tin y tế cơ bản không được để trống');
+      throw new Error("Thông tin y tế cơ bản không được để trống");
     }
 
     if (this.props.status === PatientStatus.MERGED && !this.props.mergedInto) {
       throw new Error(
-        'Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính',
+        "Bệnh nhân đã gộp phải có tham chiếu đến bệnh nhân chính",
       );
     }
   }
@@ -861,10 +869,9 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
 
   // ==================== Communication Preferences (FHIR: communication field) ====================
 
-  /* POST-MVP: FHIR Communication Preferences - Patient.communication field not needed for graduation project
   /**
    * Update communication preferences
-   *
+   */
   public updateCommunicationPreference(
     preference: CommunicationPreference,
     updatedBy: string,
@@ -878,18 +885,17 @@ export class Patient extends HealthcareAggregateRoot<PatientProps> {
     this.addDomainEvent(
       new PatientUpdatedEvent(
         this.props.id.getValue(),
-        this.props.userId, // Add identityUserId as second parameter
-        'communication_preference_updated',
+        this.props.userId,
+        "communication_preference_updated",
         updatedBy,
       ),
     );
   }
 
   /**
-   * Get communication preferences
-   *
+   * Get communication preferences (if any)
+   */
   public getCommunicationPreference(): CommunicationPreference | undefined {
     return this.props.communicationPreference;
   }
-  END POST-MVP: FHIR Communication Preferences */
 }

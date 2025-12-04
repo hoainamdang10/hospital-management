@@ -8,8 +8,22 @@
  * @compliance Clean Architecture, CQRS
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MarkNotificationAsReadUseCase = void 0;
+exports.MarkNotificationAsReadUseCase = exports.NotificationAccessDeniedError = exports.NotificationNotFoundError = void 0;
 const NotificationId_1 = require("../../domain/value-objects/NotificationId");
+class NotificationNotFoundError extends Error {
+    constructor() {
+        super("NOTIFICATION_NOT_FOUND");
+        this.name = "NotificationNotFoundError";
+    }
+}
+exports.NotificationNotFoundError = NotificationNotFoundError;
+class NotificationAccessDeniedError extends Error {
+    constructor() {
+        super("NOTIFICATION_ACCESS_DENIED");
+        this.name = "NotificationAccessDeniedError";
+    }
+}
+exports.NotificationAccessDeniedError = NotificationAccessDeniedError;
 class MarkNotificationAsReadUseCase {
     constructor(notificationRepository) {
         this.notificationRepository = notificationRepository;
@@ -20,11 +34,21 @@ class MarkNotificationAsReadUseCase {
             // Find notification
             const notification = await this.notificationRepository.findById(notificationId);
             if (!notification) {
-                throw new Error('Notification not found');
+                throw new NotificationNotFoundError();
             }
             // Authorization check - user can only mark their own notifications
-            if (notification.getRecipient().getRecipientId() !== command.userId) {
-                throw new Error('Unauthorized: You can only mark your own notifications');
+            const normalizedRequestedUserId = command.userId.trim();
+            const context = notification.getHealthcareContext?.();
+            const allowedRecipientIds = new Set([
+                notification.getRecipient().getRecipientId(),
+                notification.metadata?.userId,
+                context?.patientId,
+                context?.doctorId,
+            ]
+                .filter((value) => Boolean(value))
+                .map((value) => value.trim()));
+            if (!allowedRecipientIds.has(normalizedRequestedUserId)) {
+                throw new NotificationAccessDeniedError();
             }
             // Update read_at timestamp
             const readAt = command.isRead ? new Date() : null;
@@ -34,12 +58,16 @@ class MarkNotificationAsReadUseCase {
                 notificationId: command.notificationId,
                 readAt,
                 message: command.isRead
-                    ? 'Notification marked as read'
-                    : 'Notification marked as unread'
+                    ? "Notification marked as read"
+                    : "Notification marked as unread",
             };
         }
         catch (error) {
-            throw new Error(`Failed to mark notification as ${command.isRead ? 'read' : 'unread'}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            if (error instanceof NotificationNotFoundError ||
+                error instanceof NotificationAccessDeniedError) {
+                throw error;
+            }
+            throw new Error(`Failed to mark notification as ${command.isRead ? "read" : "unread"}: ${error instanceof Error ? error.message : "Unknown error"}`);
         }
     }
 }

@@ -188,7 +188,11 @@ class PatientService {
   }
 
   // Insurance
-  async getInsurance(patientId: string): Promise<{ insuranceInfo: Insurance }> {
+  async getInsurance(patientId: string): Promise<{
+    patientId: string;
+    insuranceInfo: Insurance | null;
+    hasInsurance: boolean;
+  }> {
     const resolvedId = await this.resolvePatientId(patientId);
     return await this.request(`/${resolvedId}/insurance`);
   }

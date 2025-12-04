@@ -8,6 +8,7 @@ import apiClient from '@/lib/api/axios';
 export interface Invoice {
   id: string;
   patientId: string;
+  patientName?: string;
   appointmentId?: string;
   appointmentCode?: string;
   doctorName?: string;
@@ -22,7 +23,15 @@ export interface Invoice {
   outstandingAmount: number;
   paidAmount?: number;
   currency: string;
-  status: 'draft' | 'pending' | 'partially_paid' | 'paid' | 'cancelled' | 'refunded' | 'overdue';
+  status:
+    | 'draft'
+    | 'pending'
+    | 'partially_paid'
+    | 'paid'
+    | 'cancelled'
+    | 'refunded'
+    | 'overdue'
+    | 'expired';
   insurance?: {
     provider: string;
     policyNumber: string;
@@ -216,16 +225,18 @@ class BillingService {
       invoice?.status || invoice?.invoiceStatus || invoice?.paymentStatus || 'pending';
     const normalizedStatus = (() => {
       const statusValue = (rawStatus as string).toString().toLowerCase();
-      if (
-        statusValue === 'paid' ||
-        statusValue === 'pending' ||
-        statusValue === 'partially_paid' ||
-        statusValue === 'cancelled' ||
-        statusValue === 'refunded' ||
-        statusValue === 'draft' ||
-        statusValue === 'overdue'
-      ) {
-        return statusValue;
+      const supportedStatuses: Invoice['status'][] = [
+        'paid',
+        'pending',
+        'partially_paid',
+        'cancelled',
+        'refunded',
+        'draft',
+        'overdue',
+        'expired',
+      ];
+      if (supportedStatuses.includes(statusValue as Invoice['status'])) {
+        return statusValue as Invoice['status'];
       }
       return 'pending';
     })() as Invoice['status'];
@@ -256,6 +267,7 @@ class BillingService {
       ...invoice,
       id: normalizedId.toString(),
       metadata: invoice?.metadata || invoice?.meta || {},
+      patientName: invoice?.patientName || invoice?.patient_name || invoice?.metadata?.patientName,
       items: invoice?.items || [],
       invoiceNumber:
         invoice?.invoiceNumber ||

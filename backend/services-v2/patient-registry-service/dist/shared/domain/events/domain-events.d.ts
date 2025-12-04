@@ -5,7 +5,7 @@
  * These events replace cross-schema foreign keys and enable
  * event-driven architecture between microservices.
  */
-import { DomainEvent } from '../base/domain-event';
+import { DomainEvent } from "../base/domain-event";
 /**
  * Published when a new user is created
  * Subscribers: Patient Service, Doctor Service, Notification Service
@@ -14,10 +14,24 @@ export declare class UserCreatedEvent extends DomainEvent {
     readonly userId: string;
     readonly email: string;
     readonly fullName: string;
-    readonly roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist';
+    readonly roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist";
     readonly citizenId?: string | undefined;
     readonly phoneNumber?: string | undefined;
-    constructor(userId: string, email: string, fullName: string, roleType: 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist', citizenId?: string | undefined, phoneNumber?: string | undefined);
+    readonly dateOfBirth?: string | undefined;
+    readonly gender?: string | undefined;
+    readonly address?: unknown | undefined;
+    readonly department?: string | undefined;
+    readonly specializationCode?: string | undefined;
+    readonly specializationName?: string | undefined;
+    readonly licenseNumber?: string | undefined;
+    readonly education?: string[] | undefined;
+    readonly yearsOfExperience?: number | undefined;
+    readonly position?: string | undefined;
+    readonly title?: string | undefined;
+    readonly employmentType?: string | undefined;
+    readonly workSchedule?: unknown | undefined;
+    readonly consultationFee?: number | undefined;
+    constructor(userId: string, email: string, fullName: string, roleType: "admin" | "doctor" | "nurse" | "patient" | "receptionist", citizenId?: string | undefined, phoneNumber?: string | undefined, dateOfBirth?: string | undefined, gender?: string | undefined, address?: unknown | undefined, department?: string | undefined, specializationCode?: string | undefined, specializationName?: string | undefined, licenseNumber?: string | undefined, education?: string[] | undefined, yearsOfExperience?: number | undefined, position?: string | undefined, title?: string | undefined, employmentType?: string | undefined, workSchedule?: unknown | undefined, consultationFee?: number | undefined);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;
@@ -162,22 +176,78 @@ export declare class DoctorAvailabilityChangedEvent extends DomainEvent {
     getPatientId(): string | null;
 }
 /**
- * Published when appointment is scheduled
- * Subscribers: Patient Service, Doctor Service, Notification Service, Billing Service
+ * PLACEHOLDER: AppointmentScheduledEvent
+ *
+ * This is a placeholder class for EVENT_TYPE_REGISTRY.
+ * The actual implementation is in appointments-service/src/domain/events/AppointmentScheduledEvent.ts
+ *
+ * FIXED: Constructor now accepts all 11 parameters to properly initialize readonly properties
+ * during deserialization.
  */
 export declare class AppointmentScheduledEvent extends DomainEvent {
     readonly appointmentId: string;
-    readonly appointmentIdCode: string;
     readonly patientId: string;
     readonly doctorId: string;
-    readonly appointmentDate: Date;
-    readonly startTime: string;
-    readonly endTime: string;
-    readonly appointmentType: string;
-    readonly reason: string;
+    readonly appointmentDate: string;
+    readonly appointmentTime: string;
+    readonly durationMinutes: number;
+    readonly type: string;
     readonly priority: string;
-    constructor(appointmentId: string, appointmentIdCode: string, // TYPE-DEPT-YYYYMM-SEQ
-    patientId: string, doctorId: string, appointmentDate: Date, startTime: string, endTime: string, appointmentType: string, reason: string, priority: string);
+    readonly status: string;
+    readonly consultationFee: number;
+    readonly createdBy: string;
+    readonly scheduledAt: Date;
+    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, durationMinutes: number, type: string, priority: string, status: string, consultationFee: number, createdBy: string, correlationId?: string, causationId?: string, userId?: string);
+    getEventData(): Record<string, unknown>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * PLACEHOLDER: AppointmentRescheduledEvent
+ *
+ * Lightweight definition for deserialization in EVENT_TYPE_REGISTRY.
+ * Full domain logic lives inside appointments-service.
+ */
+export declare class AppointmentRescheduledEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly newStartTime: Date;
+    readonly newEndTime: Date;
+    readonly rescheduleReason?: string;
+    readonly rescheduledBy?: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, newStartTime: Date | string, newEndTime: Date | string, rescheduleReason?: string, rescheduledBy?: string, correlationId?: string, causationId?: string, userId?: string);
+    getEventData(): Record<string, unknown>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * PLACEHOLDER: AppointmentCheckedInEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+export declare class AppointmentCheckedInEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly checkedInAt: Date | string;
+    readonly priority: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, checkedInAt: Date | string, priority: string, correlationId?: string, causationId?: string, userId?: string);
+    getEventData(): Record<string, unknown>;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * PLACEHOLDER: AppointmentStartedEvent
+ * Lightweight definition for EVENT_TYPE_REGISTRY.
+ */
+export declare class AppointmentStartedEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly appointmentDate: string;
+    readonly appointmentTime: string;
+    readonly startedBy: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, appointmentDate: string, appointmentTime: string, startedBy: string, correlationId?: string, causationId?: string, userId?: string);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;
@@ -206,10 +276,10 @@ export declare class AppointmentCancelledEvent extends DomainEvent {
     readonly patientId: string;
     readonly doctorId: string;
     readonly cancelledBy: string;
-    readonly cancellationType: 'patient' | 'doctor' | 'system' | 'emergency';
+    readonly cancellationType: "patient" | "doctor" | "system" | "emergency";
     readonly reason: string;
     readonly cancelledAt: Date;
-    constructor(appointmentId: string, patientId: string, doctorId: string, cancelledBy: string, cancellationType: 'patient' | 'doctor' | 'system' | 'emergency', reason: string, cancelledAt: Date);
+    constructor(appointmentId: string, patientId: string, doctorId: string, cancelledBy: string, cancellationType: "patient" | "doctor" | "system" | "emergency", reason: string, cancelledAt: Date);
     getEventData(): any;
     containsPHI(): boolean;
     getPatientId(): string | null;
@@ -228,6 +298,26 @@ export declare class AppointmentCompletedEvent extends DomainEvent {
     readonly notes?: string | undefined;
     readonly consultationFee?: number | undefined;
     constructor(appointmentId: string, patientId: string, doctorId: string, completedAt: Date, duration: number, notes?: string | undefined, consultationFee?: number | undefined);
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
+ * Published when a prepaid appointment receives payment after deadline
+ * Subscribers: Billing Service (refund), Notifications (inform patient)
+ */
+export declare class AppointmentPaymentExpiredEvent extends DomainEvent {
+    readonly appointmentId: string;
+    readonly patientId: string;
+    readonly doctorId: string;
+    readonly invoiceId?: string | undefined;
+    readonly paymentId?: string | undefined;
+    readonly amount?: number | undefined;
+    readonly currency?: string | undefined;
+    readonly expiredAt: Date;
+    readonly paymentDeadline?: Date | undefined;
+    readonly reason: string;
+    constructor(appointmentId: string, patientId: string, doctorId: string, invoiceId?: string | undefined, paymentId?: string | undefined, amount?: number | undefined, currency?: string | undefined, expiredAt?: Date, paymentDeadline?: Date | undefined, reason?: string);
     getEventData(): any;
     containsPHI(): boolean;
     getPatientId(): string | null;
@@ -336,6 +426,24 @@ export declare class InvoiceOverdueEvent extends DomainEvent {
     getPatientId(): string | null;
 }
 /**
+ * Published when invoice is expired due to missed payment deadline
+ * Subscribers: Appointments Service, Notifications Service
+ */
+export declare class InvoiceExpiredEvent extends DomainEvent {
+    readonly invoiceId: string;
+    readonly invoiceNumber: string | undefined;
+    readonly patientId: string;
+    readonly appointmentId: string | undefined;
+    readonly totalAmount: number;
+    readonly dueDate: Date | undefined;
+    readonly expiredAt: Date;
+    readonly reason?: string | undefined;
+    constructor(invoiceId: string, invoiceNumber: string | undefined, patientId: string, appointmentId: string | undefined, totalAmount: number, dueDate: Date | undefined, expiredAt: Date, reason?: string | undefined);
+    getEventData(): any;
+    containsPHI(): boolean;
+    getPatientId(): string | null;
+}
+/**
  * Published when insurance claim is submitted
  * Subscribers: Notification Service, Patient Service
  */
@@ -360,11 +468,11 @@ export declare class InsuranceClaimProcessedEvent extends DomainEvent {
     readonly claimId: string;
     readonly claimNumber: string;
     readonly patientId: string;
-    readonly status: 'approved' | 'rejected' | 'partially_approved';
+    readonly status: "approved" | "rejected" | "partially_approved";
     readonly approvedAmount: number;
     readonly rejectedAmount: number;
     readonly reason?: string | undefined;
-    constructor(claimId: string, claimNumber: string, patientId: string, status: 'approved' | 'rejected' | 'partially_approved', approvedAmount: number, rejectedAmount: number, reason?: string | undefined);
+    constructor(claimId: string, claimNumber: string, patientId: string, status: "approved" | "rejected" | "partially_approved", approvedAmount: number, rejectedAmount: number, reason?: string | undefined);
     getEventData(): any;
     containsPHI(): boolean;
     getPatientId(): string | null;

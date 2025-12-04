@@ -52,6 +52,10 @@ class ListAppointmentsQuery {
             patient_id: readModel.patientId,
             patient_full_name: readModel.patientFullName,
             patient_phone: readModel.patientPhone,
+            patient_gender: readModel.patientGender,
+            patient_date_of_birth: readModel.patientDateOfBirth
+                ? readModel.patientDateOfBirth.toISOString().split("T")[0]
+                : undefined,
             doctor_id: readModel.doctorId,
             doctor_full_name: readModel.doctorFullName,
             doctor_specialization: readModel.doctorSpecialization,

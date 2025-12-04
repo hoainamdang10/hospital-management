@@ -7,7 +7,7 @@
  * event-driven architecture between microservices.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EVENT_TYPE_REGISTRY = exports.NotificationFailedEvent = exports.NotificationSentEvent = exports.InsuranceClaimProcessedEvent = exports.InsuranceClaimSubmittedEvent = exports.InvoiceOverdueEvent = exports.PaymentReceivedEvent = exports.InvoiceGeneratedEvent = exports.LabResultsReadyEvent = exports.PrescriptionCreatedEvent = exports.MedicalRecordCreatedEvent = exports.AppointmentCompletedEvent = exports.AppointmentCancelledEvent = exports.AppointmentConfirmedEvent = exports.AppointmentStartedEvent = exports.AppointmentCheckedInEvent = exports.AppointmentRescheduledEvent = exports.AppointmentScheduledEvent = exports.DoctorAvailabilityChangedEvent = exports.DoctorScheduleUpdatedEvent = exports.DoctorRegisteredEvent = exports.PatientInsuranceUpdatedEvent = exports.PatientUpdatedEvent = exports.PatientRegisteredEvent = exports.UserDeactivatedEvent = exports.UserRoleChangedEvent = exports.UserAuthenticatedEvent = exports.UserCreatedEvent = void 0;
+exports.EVENT_TYPE_REGISTRY = exports.NotificationFailedEvent = exports.NotificationSentEvent = exports.InsuranceClaimProcessedEvent = exports.InsuranceClaimSubmittedEvent = exports.InvoiceExpiredEvent = exports.InvoiceOverdueEvent = exports.PaymentReceivedEvent = exports.InvoiceGeneratedEvent = exports.LabResultsReadyEvent = exports.PrescriptionCreatedEvent = exports.MedicalRecordCreatedEvent = exports.AppointmentPaymentExpiredEvent = exports.AppointmentCompletedEvent = exports.AppointmentCancelledEvent = exports.AppointmentConfirmedEvent = exports.AppointmentStartedEvent = exports.AppointmentCheckedInEvent = exports.AppointmentRescheduledEvent = exports.AppointmentScheduledEvent = exports.DoctorAvailabilityChangedEvent = exports.DoctorScheduleUpdatedEvent = exports.DoctorRegisteredEvent = exports.PatientInsuranceUpdatedEvent = exports.PatientUpdatedEvent = exports.PatientRegisteredEvent = exports.UserDeactivatedEvent = exports.UserRoleChangedEvent = exports.UserAuthenticatedEvent = exports.UserCreatedEvent = void 0;
 const domain_event_1 = require("../base/domain-event");
 // ============================================================================
 // IDENTITY SERVICE EVENTS
@@ -699,6 +699,61 @@ class AppointmentCompletedEvent extends domain_event_1.DomainEvent {
     }
 }
 exports.AppointmentCompletedEvent = AppointmentCompletedEvent;
+/**
+ * Published when a prepaid appointment receives payment after deadline
+ * Subscribers: Billing Service (refund), Notifications (inform patient)
+ */
+class AppointmentPaymentExpiredEvent extends domain_event_1.DomainEvent {
+    constructor(appointmentId, patientId, doctorId, invoiceId, paymentId, amount, currency, expiredAt = new Date(), paymentDeadline, reason = "Payment deadline exceeded") {
+        super("AppointmentPaymentExpired", appointmentId, "Appointment", {
+            appointmentId,
+            patientId,
+            doctorId,
+            invoiceId,
+            paymentId,
+            amount,
+            currency,
+            expiredAt,
+            paymentDeadline,
+            reason,
+        }, 1, undefined, undefined, "system", {
+            priority: "high",
+            retryable: true,
+            tags: ["billing", "payment", "expired"],
+        });
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.invoiceId = invoiceId;
+        this.paymentId = paymentId;
+        this.amount = amount;
+        this.currency = currency;
+        this.expiredAt = expiredAt;
+        this.paymentDeadline = paymentDeadline;
+        this.reason = reason;
+    }
+    getEventData() {
+        return {
+            appointmentId: this.appointmentId,
+            patientId: this.patientId,
+            doctorId: this.doctorId,
+            invoiceId: this.invoiceId,
+            paymentId: this.paymentId,
+            amount: this.amount,
+            currency: this.currency,
+            expiredAt: this.expiredAt,
+            paymentDeadline: this.paymentDeadline,
+            reason: this.reason,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId || null;
+    }
+}
+exports.AppointmentPaymentExpiredEvent = AppointmentPaymentExpiredEvent;
 // ============================================================================
 // CLINICAL EMR SERVICE EVENTS
 // ============================================================================
@@ -947,6 +1002,55 @@ class InvoiceOverdueEvent extends domain_event_1.DomainEvent {
 }
 exports.InvoiceOverdueEvent = InvoiceOverdueEvent;
 /**
+ * Published when invoice is expired due to missed payment deadline
+ * Subscribers: Appointments Service, Notifications Service
+ */
+class InvoiceExpiredEvent extends domain_event_1.DomainEvent {
+    constructor(invoiceId, invoiceNumber, patientId, appointmentId, totalAmount, dueDate, expiredAt, reason) {
+        super("InvoiceExpired", invoiceId, "Invoice", {
+            invoiceId,
+            invoiceNumber,
+            patientId,
+            appointmentId,
+            totalAmount,
+            dueDate,
+            expiredAt,
+            reason,
+        }, 1, undefined, undefined, "system", {
+            priority: "high",
+            retryable: true,
+            tags: ["billing", "expired"],
+        });
+        this.invoiceId = invoiceId;
+        this.invoiceNumber = invoiceNumber;
+        this.patientId = patientId;
+        this.appointmentId = appointmentId;
+        this.totalAmount = totalAmount;
+        this.dueDate = dueDate;
+        this.expiredAt = expiredAt;
+        this.reason = reason;
+    }
+    getEventData() {
+        return {
+            invoiceId: this.invoiceId,
+            invoiceNumber: this.invoiceNumber,
+            patientId: this.patientId,
+            appointmentId: this.appointmentId,
+            totalAmount: this.totalAmount,
+            dueDate: this.dueDate,
+            expiredAt: this.expiredAt,
+            reason: this.reason,
+        };
+    }
+    containsPHI() {
+        return true;
+    }
+    getPatientId() {
+        return this.patientId;
+    }
+}
+exports.InvoiceExpiredEvent = InvoiceExpiredEvent;
+/**
  * Published when insurance claim is submitted
  * Subscribers: Notification Service, Patient Service
  */
@@ -1126,6 +1230,7 @@ exports.EVENT_TYPE_REGISTRY = {
     AppointmentConfirmed: AppointmentConfirmedEvent,
     AppointmentCancelled: AppointmentCancelledEvent,
     AppointmentCompleted: AppointmentCompletedEvent,
+    AppointmentPaymentExpired: AppointmentPaymentExpiredEvent,
     // Clinical EMR Service Events
     MedicalRecordCreated: MedicalRecordCreatedEvent,
     PrescriptionCreated: PrescriptionCreatedEvent,
@@ -1134,6 +1239,7 @@ exports.EVENT_TYPE_REGISTRY = {
     InvoiceGenerated: InvoiceGeneratedEvent,
     PaymentReceived: PaymentReceivedEvent,
     InvoiceOverdue: InvoiceOverdueEvent,
+    InvoiceExpired: InvoiceExpiredEvent,
     InsuranceClaimSubmitted: InsuranceClaimSubmittedEvent,
     InsuranceClaimProcessed: InsuranceClaimProcessedEvent,
     // Notification Service Events

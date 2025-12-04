@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, FHIR R6 (communication field)
  */
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { Language, ContactMethod } from '../../domain/value-objects/CommunicationPreference';
+import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
+import { Language, ContactMethod } from "../../../domain/value-objects/CommunicationPreference";
 export interface GetCommunicationPreferencesQuery {
     patientId: string;
 }

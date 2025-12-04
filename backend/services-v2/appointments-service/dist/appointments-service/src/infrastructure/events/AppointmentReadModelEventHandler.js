@@ -271,7 +271,15 @@ class AppointmentReadModelEventHandler {
     async handleAppointmentCancelled(event) {
         try {
             console.log(`[ReadModel] Processing AppointmentCancelledEvent: ${event.appointmentId}`);
-            await this.readModelRepo.updateStatus(event.appointmentId, "cancelled");
+            const normalizedStatus = "CANCELLED";
+            await this.readModelRepo.updateStatus(event.appointmentId, normalizedStatus);
+            if (event.paymentStatusUpdate) {
+                await this.readModelRepo.updatePaymentStatus(event.appointmentId, event.paymentStatusUpdate.toUpperCase());
+            }
+            const cancelledAt = event.cancelledAt
+                ? new Date(event.cancelledAt)
+                : new Date();
+            await this.readModelRepo.updateCancellationDetails(event.appointmentId, cancelledAt, event.cancellationReason);
             console.log(`[ReadModel] Marked appointment as cancelled: ${event.appointmentId}`);
         }
         catch (error) {

@@ -29,5 +29,8 @@ export declare class PayInvoiceWithWalletUseCase extends BaseHealthcareUseCase<P
     involvesPHI(request: PayInvoiceWithWalletRequest): boolean;
     getPatientId(request: PayInvoiceWithWalletRequest): string | null;
     private isSameIdentifier;
+    private preventPaymentIfExpired;
+    private expireInvoice;
+    private publishInvoiceEvents;
 }
 //# sourceMappingURL=PayInvoiceWithWalletUseCase.d.ts.map

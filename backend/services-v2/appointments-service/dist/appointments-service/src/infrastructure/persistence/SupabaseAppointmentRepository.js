@@ -17,6 +17,7 @@ const AppointmentId_vo_1 = require("../../domain/value-objects/AppointmentId.vo"
 const TimeSlot_vo_1 = require("../../domain/value-objects/TimeSlot.vo");
 const AppointmentDetails_vo_1 = require("../../domain/value-objects/AppointmentDetails.vo");
 const TenantId_vo_1 = require("../../domain/value-objects/TenantId.vo");
+const timezone_1 = require("../../../../shared/utils/timezone");
 /**
  * Supabase Appointment Repository
  * Implements persistence for Appointment aggregate
@@ -663,17 +664,40 @@ class SupabaseAppointmentRepository {
     async findByTimeSlot(providerId, startTime, endTime) {
         const startUtc = startTime.toISOString();
         const endUtc = endTime.toISOString();
-        const { data, error } = await this.supabase
+        const windowDurationMs = endTime.getTime() - startTime.getTime();
+        const startDateLocal = this.formatDateInProviderTimezone(startTime);
+        const endDateLocal = this.formatDateInProviderTimezone(endTime);
+        const isSingleDayWindow = startDateLocal === endDateLocal &&
+            windowDurationMs >= 20 * 60 * 60 * 1000;
+        let query = this.supabase
             .from(this.tableName)
             .select("*")
             .eq("doctor_id", providerId)
-            .gte("start_at_utc", startUtc)
-            .lte("end_at_utc", endUtc)
-            .order("start_at_utc", { ascending: true });
+            .not("status", "in", "(CANCELLED,RESCHEDULED,NO_SHOW)");
+        if (isSingleDayWindow) {
+            query = query
+                .eq("appointment_date", startDateLocal)
+                .order("appointment_time", { ascending: true });
+        }
+        else {
+            query = query
+                .gte("start_at_utc", startUtc)
+                .lte("end_at_utc", endUtc)
+                .order("start_at_utc", { ascending: true });
+        }
+        const { data, error } = await query;
         if (error) {
             throw new Error(`Failed to find appointments by time slot: ${error.message}`);
         }
         return (data || []).map((record) => this.toDomain(record));
+    }
+    formatDateInProviderTimezone(date) {
+        return new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        }).format(date);
     }
     async findFollowUpAppointments(originalAppointmentId) {
         const { data, error } = await this.supabase
@@ -1014,7 +1038,7 @@ class SupabaseAppointmentRepository {
         const props = appointment.props; // Access private props
         // Calculate UTC timestamps from timeSlot
         const startAtUtc = props.timeSlot.startAtUtc ||
-            this.toUtcFromLocal(props.timeSlot.appointmentDate, props.timeSlot.appointmentTime);
+            (0, timezone_1.convertClinicLocalToUtc)(props.timeSlot.appointmentDate, props.timeSlot.appointmentTime);
         const endAtUtc = props.timeSlot.endAtUtc ||
             new Date(startAtUtc.getTime() + props.durationMinutes * 60 * 1000);
         return {
@@ -1062,20 +1086,6 @@ class SupabaseAppointmentRepository {
             created_at: props.createdAt.toISOString(),
             updated_at: props.updatedAt.toISOString(),
         };
-    }
-    /**
-     * Convert local (service timezone) date/time to UTC Date.
-     * Assumes input time is expressed in local clinic timezone (default Asia/Ho_Chi_Minh, UTC+7).
-     */
-    toUtcFromLocal(dateStr, timeStr) {
-        const offsetMinutes = Number(process.env.APPOINTMENT_TIMEZONE_OFFSET_MINUTES || "420"); // default +07:00
-        // Build ISO with explicit offset to avoid Node default timezone surprises
-        const sign = offsetMinutes >= 0 ? "+" : "-";
-        const abs = Math.abs(offsetMinutes);
-        const hh = String(Math.floor(abs / 60)).padStart(2, "0");
-        const mm = String(abs % 60).padStart(2, "0");
-        const isoWithOffset = `${dateStr}T${timeStr}${sign}${hh}:${mm}`;
-        return new Date(isoWithOffset);
     }
     /**
      * Convert database record to domain aggregate

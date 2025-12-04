@@ -11,10 +11,12 @@ export interface GetUserNotificationsQuery {
     priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
     startDate?: Date;
     endDate?: Date;
+    notificationId?: string;
 }
 export interface GetUserNotificationsResult {
     notifications: Array<{
         notificationId: string;
+        recipientId: string;
         templateType?: string;
         subject: string;
         body: string;

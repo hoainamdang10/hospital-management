@@ -1,28 +1,29 @@
 /**
  * INotificationRepository - Domain Repository Interface
  * Repository interface for notification persistence operations
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Repository Pattern
  */
 
-import { Notification } from '../aggregates/Notification';
-import { NotificationId } from '../value-objects/NotificationId';
+import { Notification } from "../aggregates/Notification";
+import { NotificationId } from "../value-objects/NotificationId";
 
-export type NotificationStatus = 
-  | 'DRAFT'
-  | 'SCHEDULED'
-  | 'PROCESSING'
-  | 'SENT'
-  | 'PARTIALLY_SENT'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+export type NotificationStatus =
+  | "DRAFT"
+  | "SCHEDULED"
+  | "PROCESSING"
+  | "SENT"
+  | "PARTIALLY_SENT"
+  | "FAILED"
+  | "CANCELLED"
+  | "EXPIRED";
 
-export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+export type NotificationPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
 export interface NotificationSearchCriteria {
+  notificationId?: string;
   recipientId?: string;
   recipientType?: string;
   templateType?: string;
@@ -45,8 +46,8 @@ export interface NotificationSearchCriteria {
   hasFailures?: boolean;
   limit?: number;
   offset?: number;
-  sortBy?: 'createdAt' | 'scheduledAt' | 'priority' | 'status';
-  sortOrder?: 'ASC' | 'DESC';
+  sortBy?: "createdAt" | "scheduledAt" | "priority" | "status";
+  sortOrder?: "ASC" | "DESC";
 }
 
 export interface NotificationStatistics {
@@ -99,7 +100,11 @@ export interface INotificationRepository {
   /**
    * Find notifications by recipient
    */
-  findByRecipient(recipientId: string, limit?: number, offset?: number): Promise<Notification[]>;
+  findByRecipient(
+    recipientId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find notifications by multiple criteria
@@ -109,17 +114,28 @@ export interface INotificationRepository {
   /**
    * Find scheduled notifications ready for processing
    */
-  findScheduledForProcessing(beforeTime?: Date, limit?: number): Promise<Notification[]>;
+  findScheduledForProcessing(
+    beforeTime?: Date,
+    limit?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find failed notifications eligible for retry
    */
-  findFailedForRetry(beforeTime?: Date, maxAttempts?: number, limit?: number): Promise<Notification[]>;
+  findFailedForRetry(
+    beforeTime?: Date,
+    maxAttempts?: number,
+    limit?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find notifications by status
    */
-  findByStatus(status: NotificationStatus, limit?: number, offset?: number): Promise<Notification[]>;
+  findByStatus(
+    status: NotificationStatus,
+    limit?: number,
+    offset?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find urgent notifications
@@ -129,32 +145,53 @@ export interface INotificationRepository {
   /**
    * Find notifications by healthcare context
    */
-  findByHealthcareContext(context: {
-    patientId?: string;
-    doctorId?: string;
-    appointmentId?: string;
-    medicalRecordId?: string;
-  }, limit?: number): Promise<Notification[]>;
+  findByHealthcareContext(
+    context: {
+      patientId?: string;
+      doctorId?: string;
+      appointmentId?: string;
+      medicalRecordId?: string;
+    },
+    limit?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find notifications by template type
    */
-  findByTemplateType(templateType: string, limit?: number, offset?: number): Promise<Notification[]>;
+  findByTemplateType(
+    templateType: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find notifications by channel
    */
-  findByChannel(channel: string, limit?: number, offset?: number): Promise<Notification[]>;
+  findByChannel(
+    channel: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find notifications by date range
    */
-  findByDateRange(startDate: Date, endDate: Date, limit?: number, offset?: number): Promise<Notification[]>;
+  findByDateRange(
+    startDate: Date,
+    endDate: Date,
+    limit?: number,
+    offset?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Find duplicate notifications (same recipient, template, content hash)
    */
-  findDuplicates(recipientId: string, templateType: string, contentHash: string, withinHours?: number): Promise<Notification[]>;
+  findDuplicates(
+    recipientId: string,
+    templateType: string,
+    contentHash: string,
+    withinHours?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Count notifications by criteria
@@ -194,12 +231,17 @@ export interface INotificationRepository {
   /**
    * Get notification statistics
    */
-  getStatistics(dateRange?: { start: Date; end: Date }): Promise<NotificationStatistics>;
+  getStatistics(dateRange?: {
+    start: Date;
+    end: Date;
+  }): Promise<NotificationStatistics>;
 
   /**
    * Get delivery metrics
    */
-  getDeliveryMetrics(criteria?: NotificationSearchCriteria): Promise<DeliveryMetrics[]>;
+  getDeliveryMetrics(
+    criteria?: NotificationSearchCriteria,
+  ): Promise<DeliveryMetrics[]>;
 
   /**
    * Get notifications requiring immediate attention (failed urgent notifications)
@@ -209,7 +251,11 @@ export interface INotificationRepository {
   /**
    * Get notification history for recipient
    */
-  getRecipientHistory(recipientId: string, limit?: number, offset?: number): Promise<Notification[]>;
+  getRecipientHistory(
+    recipientId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Get recent notifications for dashboard
@@ -234,7 +280,11 @@ export interface INotificationRepository {
   /**
    * Get notifications by priority and status
    */
-  findByPriorityAndStatus(priority: NotificationPriority, status: NotificationStatus, limit?: number): Promise<Notification[]>;
+  findByPriorityAndStatus(
+    priority: NotificationPriority,
+    status: NotificationStatus,
+    limit?: number,
+  ): Promise<Notification[]>;
 
   /**
    * Update notification status
@@ -244,17 +294,29 @@ export interface INotificationRepository {
   /**
    * Update notification retry information
    */
-  updateRetryInfo(id: NotificationId, retryCount: number, nextRetryAt?: Date): Promise<void>;
+  updateRetryInfo(
+    id: NotificationId,
+    retryCount: number,
+    nextRetryAt?: Date,
+  ): Promise<void>;
 
   /**
    * Mark notification as processed
    */
-  markAsProcessed(id: NotificationId, processedAt: Date, deliveryResults: any[]): Promise<void>;
+  markAsProcessed(
+    id: NotificationId,
+    processedAt: Date,
+    deliveryResults: any[],
+  ): Promise<void>;
 
   /**
    * Mark notification as failed
    */
-  markAsFailed(id: NotificationId, failureReason: string, failedAt: Date): Promise<void>;
+  markAsFailed(
+    id: NotificationId,
+    failureReason: string,
+    failedAt: Date,
+  ): Promise<void>;
 
   /**
    * Mark notification as read/unread
@@ -264,12 +326,15 @@ export interface INotificationRepository {
   /**
    * Bulk update notifications
    */
-  bulkUpdate(ids: NotificationId[], updates: Partial<{
-    status: NotificationStatus;
-    retryCount: number;
-    nextRetryAt: Date;
-    processedAt: Date;
-  }>): Promise<void>;
+  bulkUpdate(
+    ids: NotificationId[],
+    updates: Partial<{
+      status: NotificationStatus;
+      retryCount: number;
+      nextRetryAt: Date;
+      processedAt: Date;
+    }>,
+  ): Promise<void>;
 
   /**
    * Get notification queue size by priority
@@ -279,17 +344,26 @@ export interface INotificationRepository {
   /**
    * Get average processing time
    */
-  getAverageProcessingTime(templateType?: string, channel?: string): Promise<number>;
+  getAverageProcessingTime(
+    templateType?: string,
+    channel?: string,
+  ): Promise<number>;
 
   /**
    * Get failure rate by channel
    */
-  getFailureRateByChannel(dateRange?: { start: Date; end: Date }): Promise<Record<string, number>>;
+  getFailureRateByChannel(dateRange?: {
+    start: Date;
+    end: Date;
+  }): Promise<Record<string, number>>;
 
   /**
    * Get success rate by template type
    */
-  getSuccessRateByTemplateType(dateRange?: { start: Date; end: Date }): Promise<Record<string, number>>;
+  getSuccessRateByTemplateType(dateRange?: {
+    start: Date;
+    end: Date;
+  }): Promise<Record<string, number>>;
 
   /**
    * Get peak usage hours
@@ -299,12 +373,14 @@ export interface INotificationRepository {
   /**
    * Get notification trends
    */
-  getNotificationTrends(days: number): Promise<Array<{
-    date: Date;
-    total: number;
-    successful: number;
-    failed: number;
-  }>>;
+  getNotificationTrends(days: number): Promise<
+    Array<{
+      date: Date;
+      total: number;
+      successful: number;
+      failed: number;
+    }>
+  >;
 
   /**
    * Archive old notifications

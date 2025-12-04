@@ -24,7 +24,7 @@ import {
   MoreVertical,
   Phone,
   Mail,
-  MapPin
+  MapPin,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -122,7 +122,9 @@ export default function DoctorAppointmentsPage() {
           if (profile?.staffId) {
             setDoctorStaffId(profile.staffId);
           } else {
-            console.warn('[DoctorAppointments] Không tìm thấy staffId cho bác sĩ', { userId: user.userId });
+            console.warn('[DoctorAppointments] Không tìm thấy staffId cho bác sĩ', {
+              userId: user.userId,
+            });
             toast.error('Không tìm thấy mã bác sĩ trong hồ sơ nhân sự');
             setDoctorStaffId(null);
           }
@@ -139,7 +141,9 @@ export default function DoctorAppointmentsPage() {
     };
 
     resolveStaffId();
-    return () => { isCancelled = true; };
+    return () => {
+      isCancelled = true;
+    };
   }, [doctorStaffId, user]);
 
   // Fetch Appointments
@@ -150,13 +154,53 @@ export default function DoctorAppointmentsPage() {
     setIsLoading(true);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const res = await appointmentsService.getDoctorAppointments(resolvedDoctorId, {
+      const baseFilters = {
         startDate: dateFilter === 'TODAY' ? today : undefined,
         endDate: dateFilter === 'TODAY' ? today : undefined,
+      };
+      console.log('[DEBUG] Fetching appointments with:', {
+        doctorId: resolvedDoctorId,
+        dateFilter,
+        ...baseFilters,
       });
 
-      if (res.appointments) {
-        const mapped = res.appointments.map((apt: any) => {
+      const aggregatedAppointments: any[] = [];
+      const PAGE_SIZE = 50;
+      const MAX_PAGES = 10;
+      let page = 1;
+      let hasMore = true;
+      let pagesFetched = 0;
+
+      while (hasMore && page <= MAX_PAGES) {
+        const res = await appointmentsService.getDoctorAppointments(resolvedDoctorId, {
+          ...baseFilters,
+          page,
+          pageSize: PAGE_SIZE,
+        });
+
+        const batch = res.appointments || [];
+        aggregatedAppointments.push(...batch);
+        pagesFetched += 1;
+
+        hasMore = res.hasMore && batch.length === PAGE_SIZE;
+        if (!res.hasMore || batch.length < PAGE_SIZE) {
+          break;
+        }
+        page += 1;
+      }
+
+      console.log('[DEBUG] Aggregated appointments:', {
+        totalAppointments: aggregatedAppointments.length,
+        pagesFetched,
+        statusDistribution: aggregatedAppointments.reduce((acc: any, apt: any) => {
+          const status = apt.status || apt.appointment_status || 'UNKNOWN';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {}),
+      });
+
+      if (aggregatedAppointments.length) {
+        const mapped = aggregatedAppointments.map((apt: any) => {
           // Calculate age if DOB is available
           let age = undefined;
           const dob = apt.patient_date_of_birth || apt.patientDateOfBirth || apt.patient_dob;
@@ -187,7 +231,18 @@ export default function DoctorAppointmentsPage() {
         });
 
         mapped.sort((a: any, b: any) => a.appointmentTime.localeCompare(b.appointmentTime));
+        console.log(
+          'Appointments Data:',
+          mapped.map((a: any) => ({
+            time: a.appointmentTime,
+            status: a.status,
+            payment: a.paymentStatus,
+            cancelReason: a.cancellationReason || a.cancellation_reason,
+          }))
+        );
         setAppointments(mapped);
+      } else {
+        setAppointments([]);
       }
     } catch (error) {
       console.error('Failed to fetch appointments:', error);
@@ -223,18 +278,20 @@ export default function DoctorAppointmentsPage() {
   // Filter Logic
   const filteredAppointments = useMemo(() => {
     return appointments.filter((apt) => {
-      const matchesSearch = apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch =
+        apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         apt.patientId.toLowerCase().includes(searchTerm.toLowerCase());
 
       let matchesTab = true;
+      const normalizedStatus = apt.status.toUpperCase();
       if (activeTab === 'WAITING') {
-        matchesTab = ['CHECKED_IN', 'CONFIRMED', 'PENDING'].includes(apt.status);
+        matchesTab = ['CHECKED_IN', 'CONFIRMED', 'PENDING'].includes(normalizedStatus);
       } else if (activeTab === 'IN_PROGRESS') {
-        matchesTab = apt.status === 'IN_PROGRESS';
+        matchesTab = normalizedStatus === 'IN_PROGRESS';
       } else if (activeTab === 'COMPLETED') {
-        matchesTab = apt.status === 'COMPLETED';
+        matchesTab = normalizedStatus === 'COMPLETED';
       } else if (activeTab === 'CANCELLED') {
-        matchesTab = ['CANCELLED', 'NO_SHOW'].includes(apt.status);
+        matchesTab = ['CANCELLED', 'NO_SHOW'].includes(normalizedStatus);
       }
 
       return matchesSearch && matchesTab;
@@ -242,38 +299,52 @@ export default function DoctorAppointmentsPage() {
   }, [appointments, searchTerm, activeTab]);
 
   // Stats Logic
-  const stats = useMemo(() => [
-    {
-      title: 'Tổng bệnh nhân',
-      value: appointments.length,
-      icon: Users,
-      color: 'text-blue-600',
-      bg: 'bg-blue-100',
-    },
-    {
-      title: 'Đang chờ',
-      value: appointments.filter((a) => ['CHECKED_IN', 'CONFIRMED'].includes(a.status)).length,
-      icon: Clock,
-      color: 'text-amber-600',
-      bg: 'bg-amber-100',
-    },
-    {
-      title: 'Hoàn thành',
-      value: appointments.filter((a) => a.status === 'COMPLETED').length,
-      icon: CheckCircle2,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-100',
-    },
-  ], [appointments]);
+  const stats = useMemo(
+    () => [
+      {
+        title: 'Tổng bệnh nhân',
+        value: appointments.length,
+        icon: Users,
+        color: 'text-blue-600',
+        bg: 'bg-blue-100',
+      },
+      {
+        title: 'Đang chờ',
+        value: appointments.filter((a) =>
+          ['CHECKED_IN', 'CONFIRMED'].includes(a.status.toUpperCase())
+        ).length,
+        icon: Clock,
+        color: 'text-amber-600',
+        bg: 'bg-amber-100',
+      },
+      {
+        title: 'Hoàn thành',
+        value: appointments.filter((a) => a.status.toUpperCase() === 'COMPLETED').length,
+        icon: CheckCircle2,
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-100',
+      },
+    ],
+    [appointments]
+  );
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = (status: string, paymentStatus?: string) => {
+    if (status === 'CANCELLED')
+      return { label: 'Đã hủy', color: 'text-red-600 bg-red-100', icon: AlertCircle };
+    if (paymentStatus === 'PENDING')
+      return { label: 'Chờ thanh toán', color: 'text-orange-600 bg-orange-100', icon: Clock };
+
     switch (status) {
-      case 'CHECKED_IN': return { label: 'Đã đến', color: 'text-green-600 bg-green-100', icon: MapPin };
-      case 'IN_PROGRESS': return { label: 'Đang khám', color: 'text-blue-600 bg-blue-100', icon: Activity };
-      case 'COMPLETED': return { label: 'Đã xong', color: 'text-gray-600 bg-gray-100', icon: CheckCircle2 };
-      case 'CONFIRMED': return { label: 'Chờ đến', color: 'text-amber-600 bg-amber-100', icon: Clock };
-      case 'CANCELLED': return { label: 'Đã hủy', color: 'text-red-600 bg-red-100', icon: AlertCircle };
-      default: return { label: status, color: 'text-gray-600 bg-gray-100', icon: AlertCircle };
+      case 'CHECKED_IN':
+        return { label: 'Đã đến', color: 'text-green-600 bg-green-100', icon: MapPin };
+      case 'IN_PROGRESS':
+        return { label: 'Đang khám', color: 'text-blue-600 bg-blue-100', icon: Activity };
+      case 'COMPLETED':
+        return { label: 'Đã xong', color: 'text-gray-600 bg-gray-100', icon: CheckCircle2 };
+      case 'CONFIRMED':
+        return { label: 'Chờ đến', color: 'text-amber-600 bg-amber-100', icon: Clock };
+      default:
+        return { label: status, color: 'text-gray-600 bg-gray-100', icon: AlertCircle };
     }
   };
 
@@ -292,14 +363,18 @@ export default function DoctorAppointmentsPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Lịch khám bệnh</h1>
-                <p className="mt-1 text-blue-100">Quản lý danh sách bệnh nhân và lịch hẹn hôm nay</p>
+                <p className="mt-1 text-blue-100">
+                  Quản lý danh sách bệnh nhân và lịch hẹn hôm nay
+                </p>
               </div>
             </div>
 
             <div className="flex items-center gap-4 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
               <div className="text-right">
                 <p className="text-sm font-medium text-blue-100">Hôm nay</p>
-                <p className="text-xl font-bold">{format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })}</p>
+                <p className="text-xl font-bold">
+                  {format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })}
+                </p>
               </div>
               <div className="h-10 w-[1px] bg-white/20" />
               <Button
@@ -326,7 +401,9 @@ export default function DoctorAppointmentsPage() {
             >
               <Card className="border-none shadow-lg transition-all hover:shadow-xl">
                 <CardContent className="flex items-center p-6">
-                  <div className={`mr-4 flex h-14 w-14 items-center justify-center rounded-full ${stat.bg}`}>
+                  <div
+                    className={`mr-4 flex h-14 w-14 items-center justify-center rounded-full ${stat.bg}`}
+                  >
                     <stat.icon className={`h-7 w-7 ${stat.color}`} />
                   </div>
                   <div>
@@ -342,9 +419,14 @@ export default function DoctorAppointmentsPage() {
         {/* Main Content Area */}
         <div className="grid gap-8 lg:grid-cols-12">
           {/* Left Column: Filters & List */}
-          <div className="lg:col-span-12 space-y-6">
+          <div className="space-y-6 lg:col-span-12">
             <div className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-              <Tabs defaultValue="ALL" value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+              <Tabs
+                defaultValue="ALL"
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="w-full md:w-auto"
+              >
                 <TabsList className="grid w-full grid-cols-4 md:w-[400px]">
                   <TabsTrigger value="ALL">Tất cả</TabsTrigger>
                   <TabsTrigger value="WAITING">Chờ khám</TabsTrigger>
@@ -355,10 +437,10 @@ export default function DoctorAppointmentsPage() {
 
               <div className="flex items-center gap-3">
                 <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     placeholder="Tìm tên hoặc mã BN..."
-                    className="pl-9 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all"
+                    className="rounded-xl border-gray-200 bg-gray-50 pl-9 transition-all focus:bg-white"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -376,7 +458,7 @@ export default function DoctorAppointmentsPage() {
             </div>
 
             {/* Appointment List - Timeline Style */}
-            <div className="rounded-3xl bg-white p-6 shadow-xl min-h-[500px]">
+            <div className="min-h-[500px] rounded-3xl bg-white p-6 shadow-xl">
               {isLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3, 4].map((i) => (
@@ -396,16 +478,35 @@ export default function DoctorAppointmentsPage() {
                     <ClipboardList className="h-12 w-12 text-blue-200" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900">Không có lịch hẹn</h3>
-                  <p className="text-gray-500">Không tìm thấy lịch hẹn nào phù hợp với bộ lọc hiện tại.</p>
+                  <p className="text-gray-500">
+                    Không tìm thấy lịch hẹn nào phù hợp với bộ lọc hiện tại.
+                  </p>
                 </div>
               ) : (
                 <div className="relative space-y-0">
                   {/* Timeline Line */}
-                  <div className="absolute left-8 top-4 bottom-4 w-[2px] bg-gray-100" />
+                  <div className="absolute top-4 bottom-4 left-8 w-[2px] bg-gray-100" />
 
                   <AnimatePresence mode="popLayout">
                     {filteredAppointments.map((apt, index) => {
-                      const statusConfig = getStatusConfig(apt.status);
+                      // Inline logic to guarantee priority
+                      let statusConfig = getStatusConfig(apt.status, apt.paymentStatus);
+
+                      // Force override if status is CANCELLED
+                      if (apt.status === 'CANCELLED') {
+                        statusConfig = {
+                          label: 'Đã hủy',
+                          color: 'text-red-600 bg-red-100',
+                          icon: AlertCircle,
+                        };
+                      } else if (apt.paymentStatus === 'PENDING' && apt.status !== 'CANCELLED') {
+                        statusConfig = {
+                          label: 'Chờ thanh toán',
+                          color: 'text-orange-600 bg-orange-100',
+                          icon: Clock,
+                        };
+                      }
+
                       const StatusIcon = statusConfig.icon;
 
                       return (
@@ -419,8 +520,13 @@ export default function DoctorAppointmentsPage() {
                         >
                           {/* Time Column */}
                           <div className="relative z-10 flex flex-col items-center">
-                            <div className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border-2 bg-white shadow-sm transition-colors group-hover:border-blue-500 group-hover:shadow-md ${apt.status === 'IN_PROGRESS' ? 'border-blue-500 bg-blue-50' : 'border-gray-100'
-                              }`}>
+                            <div
+                              className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border-2 bg-white shadow-sm transition-colors group-hover:border-blue-500 group-hover:shadow-md ${
+                                apt.status === 'IN_PROGRESS'
+                                  ? 'border-blue-500 bg-blue-50'
+                                  : 'border-gray-100'
+                              }`}
+                            >
                               <span className="text-lg font-bold text-gray-900">
                                 {apt.appointmentTime.substring(0, 5)}
                               </span>
@@ -432,34 +538,44 @@ export default function DoctorAppointmentsPage() {
 
                           {/* Card Content */}
                           <div
-                            className={`flex-1 cursor-pointer rounded-2xl border bg-white p-5 transition-all hover:shadow-lg hover:border-blue-200 ${apt.status === 'IN_PROGRESS' ? 'ring-2 ring-blue-500 ring-offset-2 border-blue-200' : 'border-gray-100 shadow-sm'
-                              }`}
+                            className={`flex-1 cursor-pointer rounded-2xl border bg-white p-5 transition-all hover:border-blue-200 hover:shadow-lg ${
+                              apt.status === 'IN_PROGRESS'
+                                ? 'border-blue-200 ring-2 ring-blue-500 ring-offset-2'
+                                : 'border-gray-100 shadow-sm'
+                            }`}
                             onClick={() => router.push(`/doctor/appointments/${apt.id}`)}
                           >
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                               {/* Patient Info */}
                               <div className="flex items-center gap-4">
                                 <Avatar className="h-14 w-14 border-2 border-white shadow-sm">
-                                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${apt.patientName}`} />
-                                  <AvatarFallback>{apt.patientName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                  <AvatarImage
+                                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${apt.patientName}`}
+                                  />
+                                  <AvatarFallback>
+                                    {apt.patientName.substring(0, 2).toUpperCase()}
+                                  </AvatarFallback>
                                 </Avatar>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                    <h3 className="text-lg font-bold text-gray-900 transition-colors group-hover:text-blue-600">
                                       {apt.patientName}
                                     </h3>
-                                    <Badge variant="outline" className="text-xs font-normal text-gray-500">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs font-normal text-gray-500"
+                                    >
                                       {apt.patientId}
                                     </Badge>
                                   </div>
-                                  <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                  <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
                                     <span className="flex items-center gap-1">
                                       <User className="h-3.5 w-3.5" />
                                       {translateGender(apt.patientGender)}
                                       {apt.patientAge ? `, ${apt.patientAge} tuổi` : ''}
                                     </span>
                                     <span className="h-1 w-1 rounded-full bg-gray-300" />
-                                    <span className="flex items-center gap-1 text-blue-600 font-medium">
+                                    <span className="flex items-center gap-1 font-medium text-blue-600">
                                       {apt.type === 'FOLLOW_UP' ? 'Tái khám' : 'Khám mới'}
                                     </span>
                                   </div>
@@ -468,33 +584,54 @@ export default function DoctorAppointmentsPage() {
 
                               {/* Reason & Status */}
                               <div className="flex flex-1 items-center justify-between gap-4 md:justify-end">
-                                <div className="hidden md:block text-right mr-4">
-                                  <p className="text-xs text-gray-400 mb-1">Lý do khám</p>
-                                  <p className="text-sm font-medium text-gray-700 max-w-[200px] truncate" title={apt.reason}>
+                                <div className="mr-4 hidden text-right md:block">
+                                  <p className="mb-1 text-xs text-gray-400">Lý do khám</p>
+                                  <p
+                                    className="max-w-[200px] truncate text-sm font-medium text-gray-700"
+                                    title={apt.reason}
+                                  >
                                     {apt.reason || 'Không có lý do'}
                                   </p>
                                 </div>
 
                                 <div className="flex items-center gap-3">
-                                  <Badge className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 ${statusConfig.color} border-none`}>
+                                  <Badge
+                                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 ${statusConfig.color} border-none`}
+                                  >
                                     <StatusIcon className="h-3.5 w-3.5" />
                                     {statusConfig.label}
                                   </Badge>
 
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100" onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 rounded-full hover:bg-gray-100"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
                                         <MoreVertical className="h-4 w-4 text-gray-500" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
                                       <DropdownMenuLabel>Hành động</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/doctor/appointments/${apt.id}`); }}>
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          router.push(`/doctor/appointments/${apt.id}`);
+                                        }}
+                                      >
                                         <Stethoscope className="mr-2 h-4 w-4" /> Xem chi tiết
                                       </DropdownMenuItem>
                                       {apt.status === 'CHECKED_IN' && (
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStartExam(apt.id); }} className="text-green-600 focus:text-green-700">
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStartExam(apt.id);
+                                          }}
+                                          className="text-green-600 focus:text-green-700"
+                                        >
                                           <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
                                         </DropdownMenuItem>
                                       )}
@@ -512,8 +649,11 @@ export default function DoctorAppointmentsPage() {
                               <div className="mt-4 flex justify-end border-t border-gray-50 pt-3 md:hidden">
                                 <Button
                                   size="sm"
-                                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                                  onClick={(e) => { e.stopPropagation(); handleStartExam(apt.id); }}
+                                  className="w-full bg-green-600 text-white hover:bg-green-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartExam(apt.id);
+                                  }}
                                 >
                                   <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám ngay
                                 </Button>

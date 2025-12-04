@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -78,7 +78,7 @@ const STATUS_FILTERS: { value: StatusFilterValue; label: string }[] = [
 ];
 
 const PENDING_STATUSES: Invoice['status'][] = ['pending', 'partially_paid', 'overdue', 'draft'];
-const NON_PAYABLE_STATUSES: Invoice['status'][] = ['cancelled', 'refunded'];
+const NON_PAYABLE_STATUSES: Invoice['status'][] = ['cancelled', 'refunded', 'expired'];
 const ITEMS_PER_PAGE = 5;
 
 const APPOINTMENT_DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
@@ -108,6 +108,13 @@ export default function PatientBillingPage() {
   const [topUpAmount, setTopUpAmount] = useState('');
   const [topUpDescription, setTopUpDescription] = useState('');
   const [isCreatingTopUpLink, setIsCreatingTopUpLink] = useState(false);
+
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Ưu tiên dùng patient UUID cho các API nội bộ; fallback sang mã PAT nếu thiếu
   const walletPatientId = patient?.id || patient?.patientId || null;
@@ -238,6 +245,11 @@ export default function PatientBillingPage() {
       return;
     }
 
+    if (hasInvoiceExpired(invoice, currentTime)) {
+      toast.error('Hóa đơn này đã hết hạn thanh toán, vui lòng đặt lịch mới');
+      return;
+    }
+
     try {
       setProcessingPayment(invoice.id);
       toast.loading('Đang tạo link thanh toán...', { id: 'payment-loading' });
@@ -265,6 +277,11 @@ export default function PatientBillingPage() {
   const handleWalletPayment = async (invoice: Invoice) => {
     if (!walletPatientId || !walletAccount) {
       toast.error('Ví chưa sẵn sàng, vui lòng thử lại sau');
+      return;
+    }
+
+    if (hasInvoiceExpired(invoice, currentTime)) {
+      toast.error('Hóa đơn này đã hết hạn thanh toán');
       return;
     }
 
@@ -382,26 +399,6 @@ export default function PatientBillingPage() {
         transition={{ duration: 0.5 }}
         className="space-y-8 p-1"
       >
-        {/* Header Section */}
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              Thanh toán & Hóa đơn
-            </h1>
-            <p className="mt-1 text-gray-500">
-              Quản lý tài chính cá nhân và lịch sử giao dịch y tế
-            </p>
-          </div>
-          {patient && (
-            <div className="hidden text-right md:block">
-              <p className="font-medium text-gray-900">
-                {patient.firstName} {patient.lastName}
-              </p>
-              <p className="text-sm text-gray-500">ID: {patient.patientId}</p>
-            </div>
-          )}
-        </div>
-
         {walletPatientId && (
           <WalletSection
             account={walletAccount}
@@ -437,154 +434,184 @@ export default function PatientBillingPage() {
           </Card>
         ) : (
           <>
-            {/* Summary Cards */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <SummaryCard
-                title="Tổng chi phí"
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 gap-4 rounded-xl border border-gray-100 bg-white p-6 shadow-sm md:grid-cols-4 md:gap-8">
+              <StatItem
+                label="Tổng chi phí"
                 value={resolvedSummary.totalAmount}
                 icon={Wallet}
-                tone="primary"
-                subtext={`${resolvedSummary.pendingCount + resolvedSummary.paidCount} hóa đơn`}
+                color="text-blue-600"
+                bg="bg-blue-50"
               />
-              <SummaryCard
-                title="Cần thanh toán"
+              <div className="hidden w-px bg-gray-100 md:block" />
+              <StatItem
+                label="Cần thanh toán"
                 value={resolvedSummary.totalOutstanding}
                 icon={AlertCircle}
-                tone="warning"
-                subtext={`${resolvedSummary.pendingCount} hóa đơn chưa trả`}
-                highlight
+                color="text-amber-600"
+                bg="bg-amber-50"
+                highlight={resolvedSummary.totalOutstanding > 0}
               />
-              <SummaryCard
-                title="Đã thanh toán"
+              <div className="hidden w-px bg-gray-100 md:block" />
+              <StatItem
+                label="Đã thanh toán"
                 value={resolvedSummary.totalPaid}
                 icon={CheckCircle}
-                tone="success"
-                subtext={`${resolvedSummary.paidCount} hóa đơn hoàn tất`}
+                color="text-emerald-600"
+                bg="bg-emerald-50"
               />
-              <SummaryCard
-                title="Đã hoàn tiền"
+              <div className="hidden w-px bg-gray-100 md:block" />
+              <StatItem
+                label="Đã hoàn tiền"
                 value={resolvedSummary.totalRefunded}
                 icon={ArrowUpRight}
-                tone="info"
-                subtext="Tổng tiền được hoàn lại"
+                color="text-indigo-600"
+                bg="bg-indigo-50"
               />
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex flex-col gap-6 lg:flex-row">
-              {/* Left Column: Filters & List */}
-              <div className="flex-1 space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <Tabs
-                    defaultValue="all"
-                    value={statusFilter}
-                    onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}
-                    className="w-full sm:w-auto"
-                  >
-                    <TabsList className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto">
-                      <TabsTrigger value="all">Tất cả</TabsTrigger>
-                      <TabsTrigger value="pending">Chưa trả</TabsTrigger>
-                      <TabsTrigger value="paid">Đã trả</TabsTrigger>
-                      <TabsTrigger value="refunded">Hoàn tiền</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+            {/* Invoices Section */}
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <Tabs
+                  defaultValue="all"
+                  value={statusFilter}
+                  onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}
+                  className="w-full sm:w-auto"
+                >
+                  <TabsList className="grid w-full grid-cols-4 bg-gray-100/50 p-1 sm:inline-flex sm:w-auto">
+                    <TabsTrigger
+                      value="all"
+                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Tất cả
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="pending"
+                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Chưa trả
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="paid"
+                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Đã trả
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="refunded"
+                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Hoàn tiền
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
-                  <div className="relative w-full sm:w-72">
-                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      className="bg-white pl-9"
-                      placeholder="Tìm kiếm hóa đơn..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <AnimatePresence mode="popLayout">
-                    {filteredInvoices.length === 0 ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                      >
-                        <EmptyState />
-                      </motion.div>
-                    ) : (
-                      paginatedInvoices.map((invoice, index) => (
-                        <motion.div
-                          key={invoice.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                        >
-                          <InvoiceCard
-                            invoice={invoice}
-                            onPayment={handlePayment}
-                            onWalletPayment={handleWalletPayment}
-                            canPayWithWallet={canWalletCoverInvoice(invoice)}
-                            onDownload={handleDownloadInvoice}
-                            onViewDetails={setSelectedInvoice}
-                            isProcessing={processingPayment === invoice.id}
-                            isWalletProcessing={walletPayingInvoice === invoice.id}
-                            isDownloading={downloadingInvoice === invoice.id}
-                            formatDate={formatDate}
-                          />
-                        </motion.div>
-                      ))
-                    )}
-                  </AnimatePresence>
-
-                  {/* Pagination Controls */}
-                  {filteredInvoices.length > ITEMS_PER_PAGE && (
-                    <div className="flex items-center justify-center gap-2 pt-4">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setCurrentPage(1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8"
-                      >
-                        <ChevronsLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-
-                      <div className="mx-2 flex items-center gap-1">
-                        <span className="text-sm font-medium text-gray-700">
-                          Trang {currentPage} / {totalPages}
-                        </span>
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setCurrentPage(totalPages)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8"
-                      >
-                        <ChevronsRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    className="border-gray-200 bg-white pl-9 focus-visible:ring-blue-500"
+                    placeholder="Tìm kiếm hóa đơn..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
+
+              <Card className="overflow-hidden border-none shadow-sm">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-gray-50/50">
+                      <TableRow className="border-gray-100 hover:bg-transparent">
+                        <TableHead className="w-[180px]">Mã hóa đơn</TableHead>
+                        <TableHead className="min-w-[200px]">Dịch vụ</TableHead>
+                        <TableHead>Ngày tạo</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead className="text-right">Số tiền</TableHead>
+                        <TableHead className="w-[140px] text-right">Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence mode="popLayout">
+                        {filteredInvoices.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="h-64 text-center">
+                              <EmptyState />
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          paginatedInvoices.map((invoice, index) => (
+                            <InvoiceRow
+                              key={invoice.id}
+                              invoice={invoice}
+                              index={index}
+                              currentTime={currentTime}
+                              onPayment={handlePayment}
+                              onWalletPayment={handleWalletPayment}
+                              canPayWithWallet={canWalletCoverInvoice(invoice)}
+                              onDownload={handleDownloadInvoice}
+                              onViewDetails={setSelectedInvoice}
+                              isProcessing={processingPayment === invoice.id}
+                              isWalletProcessing={walletPayingInvoice === invoice.id}
+                              isDownloading={downloadingInvoice === invoice.id}
+                              formatDate={formatDate}
+                            />
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
+
+              {/* Pagination Controls */}
+              {filteredInvoices.length > ITEMS_PER_PAGE && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 border-gray-200"
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 border-gray-200"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  <div className="mx-2 flex items-center gap-1">
+                    <span className="text-sm font-medium text-gray-700">
+                      Trang {currentPage} / {totalPages}
+                    </span>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 border-gray-200"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 border-gray-200"
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -593,6 +620,7 @@ export default function PatientBillingPage() {
           invoice={selectedInvoice}
           onClose={() => setSelectedInvoice(null)}
           formatDate={formatDate}
+          currentTime={currentTime}
         />
         {walletPatientId && (
           <WalletTopUpDialog
@@ -634,158 +662,164 @@ function WalletSection({
   onTopUp: () => void;
 }) {
   const balance = account?.balance ?? 0;
-  const currency = account?.currency ?? 'VND';
-  const updatedAt = account?.updatedAt ? formatWalletDate(account.updatedAt) : null;
   const statusLabel = account?.status === 'frozen' ? 'Đang khóa' : 'Đang hoạt động';
-  const statusTone =
-    account?.status === 'frozen'
-      ? 'bg-red-100 text-red-700 border-red-200'
-      : 'bg-emerald-100 text-emerald-700 border-emerald-200';
   const recentTransactions = transactions.slice(0, 6);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="border-blue-100 shadow-sm">
-        <CardContent className="flex h-full flex-col gap-4 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Số dư ví</p>
-              {isLoading ? (
-                <Skeleton className="mt-2 h-8 w-32" />
-              ) : (
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(balance)}</p>
-              )}
-            </div>
-            <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={onTopUp}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Nạp ví
-            </Button>
-          </div>
+    <div className="grid gap-6 lg:grid-cols-3">
+      {/* Left: Wallet Card (Credit Card Style) */}
+      <div className="lg:col-span-1">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl">
+          {/* Background Pattern */}
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-400/20 blur-3xl" />
 
-          <div className="grid gap-4 text-sm text-gray-600">
-            <div className="flex items-center justify-between">
-              <span>Trạng thái</span>
-              <Badge className={cn('border px-3 py-1 text-xs font-semibold', statusTone)}>
+          {/* Shine Effect */}
+          <motion.div
+            className="absolute inset-0 z-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent"
+            animate={{
+              x: ['-100%', '200%'],
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 3,
+              ease: 'linear',
+              repeatDelay: 2,
+            }}
+          />
+
+          <div className="relative z-10 flex h-full flex-col justify-between gap-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-100">Số dư khả dụng</p>
+                {isLoading ? (
+                  <Skeleton className="mt-2 h-8 w-32 bg-white/20" />
+                ) : (
+                  <h3 className="mt-1 text-3xl font-bold tracking-tight">
+                    {formatCurrency(balance)}
+                  </h3>
+                )}
+              </div>
+              <div className="rounded-lg bg-white/20 p-2 backdrop-blur-md">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-blue-100">
+                <div
+                  className={cn(
+                    'h-2 w-2 rounded-full',
+                    account?.status === 'frozen' ? 'bg-red-400' : 'bg-emerald-400'
+                  )}
+                />
                 {statusLabel}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Cập nhật lúc</span>
-              <span className="font-medium text-gray-900">
-                {updatedAt || (isLoading ? 'Đang tải...' : 'Chưa có dữ liệu')}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Số giao dịch gần nhất</span>
-              <span className="font-medium text-gray-900">{transactions.length}</span>
-            </div>
-          </div>
+              </div>
 
-          {error && (
-            <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">
-              <p>{error}</p>
               <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2 h-8 px-2 text-red-600 hover:bg-red-100"
-                onClick={onReload}
+                onClick={onTopUp}
+                className="w-full border-none bg-white font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
               >
-                Thử lại
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nạp tiền vào ví
               </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="lg:col-span-2">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Giao dịch ví gần đây</h3>
-            <p className="text-sm text-gray-500">Theo dõi lịch sử nạp và sử dụng ví của bạn</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onReload} disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCcw className="mr-2 h-4 w-4" />
-            )}
-            Làm mới
-          </Button>
         </div>
-        <div className="overflow-x-auto">
-          <Table className="min-w-full">
-            <TableHeader>
-              <TableRow className="border-gray-100">
-                <TableHead>Loại</TableHead>
-                <TableHead>Mô tả</TableHead>
-                <TableHead>Thời gian</TableHead>
-                <TableHead className="text-right">Số tiền</TableHead>
-                <TableHead className="text-right">Số dư sau</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading &&
-                Array.from({ length: 4 }).map((_, idx) => (
-                  <TableRow key={`wallet-skel-${idx}`}>
-                    <TableCell colSpan={5}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))}
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+            <p>{error}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-8 px-2 text-red-600 hover:bg-red-100"
+              onClick={onReload}
+            >
+              Thử lại
+            </Button>
+          </div>
+        )}
+      </div>
 
-              {!isLoading && recentTransactions.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5}>
-                    <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-gray-500">
-                      <Receipt className="h-5 w-5 text-gray-400" />
-                      <span>Chưa có giao dịch ví nào</span>
+      {/* Right: Recent Transactions (List) */}
+      <Card className="border-none bg-white/50 shadow-sm backdrop-blur-sm lg:col-span-2">
+        <CardHeader className="flex flex-row items-center justify-between border-b-0 px-6 py-4 pb-2">
+          <CardTitle className="text-base font-semibold text-gray-900">Giao dịch gần đây</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReload}
+            disabled={isLoading}
+            className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+          >
+            <RefreshCcw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-gray-100">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="flex items-center justify-between px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
                     </div>
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {!isLoading &&
-                recentTransactions.map((tx) => {
-                  const meta = getTransactionMeta(tx.type);
-                  const amount = formatCurrency(Math.abs(tx.amount));
-                  const prefix = tx.amount >= 0 ? '+' : '-';
-                  return (
-                    <TableRow key={tx.id}>
-                      <TableCell className="font-medium">
-                        <Badge className={cn('capitalize', meta.badgeClass)}>{meta.label}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-gray-900">
-                          {tx.description || 'Không có mô tả'}
-                        </p>
-                        {tx.referenceId && (
-                          <p className="text-xs text-gray-500">Ref: {tx.referenceId}</p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {formatWalletDate(tx.createdAt)}
-                      </TableCell>
-                      <TableCell
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              ))
+            ) : recentTransactions.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-gray-500">
+                <Receipt className="h-8 w-8 text-gray-300" />
+                <span>Chưa có giao dịch ví nào</span>
+              </div>
+            ) : (
+              recentTransactions.map((tx) => {
+                const meta = getTransactionMeta(tx.type);
+                return (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between px-6 py-3 transition-colors hover:bg-gray-50/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
                         className={cn(
-                          'text-right text-sm font-semibold',
-                          tx.amount >= 0 ? 'text-emerald-600' : 'text-red-600'
+                          'flex h-10 w-10 items-center justify-center rounded-full',
+                          meta.badgeClass.replace('text-', 'bg-opacity-20 text-')
                         )}
                       >
-                        {prefix}
-                        {amount}
-                      </TableCell>
-                      <TableCell className="text-right text-sm text-gray-700">
-                        {formatCurrency(tx.balanceAfter)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </div>
-        <p className="px-6 py-3 text-xs text-gray-500">
-          * Ví hỗ trợ thanh toán các dịch vụ đặt lịch trực tuyến và phí phát sinh
-        </p>
+                        {tx.type === 'topup' && <ArrowUpRight className="h-5 w-5" />}
+                        {tx.type === 'refund' && <RefreshCcw className="h-5 w-5" />}
+                        {tx.type === 'charge' && <CreditCard className="h-5 w-5" />}
+                        {/* Fallback icon */}
+                        {!['topup', 'refund', 'charge'].includes(tx.type) && (
+                          <FileText className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {tx.description || meta.label}
+                        </p>
+                        <p className="text-xs text-gray-500">{formatWalletDate(tx.createdAt)}</p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        'text-sm font-semibold',
+                        tx.amount >= 0 ? 'text-emerald-600' : 'text-gray-900'
+                      )}
+                    >
+                      {tx.amount > 0 ? '+' : ''}
+                      {formatCurrency(tx.amount)}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
@@ -863,98 +897,55 @@ function WalletTopUpDialog({
   );
 }
 
-function SummaryCard({
-  title,
+function StatItem({
+  label,
   value,
-  subtext,
   icon: Icon,
-  tone,
+  color,
+  bg,
   highlight,
 }: {
-  title: string;
+  label: string;
   value: number;
-  subtext: string;
   icon: any;
-  tone: SummaryTone;
+  color: string;
+  bg: string;
   highlight?: boolean;
 }) {
-  const styles = {
-    primary: 'from-blue-500 to-blue-600 text-white shadow-blue-200',
-    warning: 'from-orange-400 to-orange-500 text-white shadow-orange-200',
-    success: 'from-emerald-500 to-emerald-600 text-white shadow-emerald-200',
-    info: 'from-indigo-400 to-indigo-500 text-white shadow-indigo-200',
-  };
-
-  const iconStyles = {
-    primary: 'bg-blue-400/20 text-blue-100',
-    warning: 'bg-orange-400/20 text-orange-100',
-    success: 'bg-emerald-400/20 text-emerald-100',
-    info: 'bg-indigo-400/20 text-indigo-100',
-  };
-
-  // Modern clean look for non-highlighted cards
-  const cleanStyles = {
-    primary: 'bg-white border-blue-100 text-blue-900',
-    warning: 'bg-white border-orange-100 text-orange-900',
-    success: 'bg-white border-emerald-100 text-emerald-900',
-    info: 'bg-white border-indigo-100 text-indigo-900',
-  };
-
-  const cleanIconStyles = {
-    primary: 'bg-blue-50 text-blue-600',
-    warning: 'bg-orange-50 text-orange-600',
-    success: 'bg-emerald-50 text-emerald-600',
-    info: 'bg-indigo-50 text-indigo-600',
-  };
-
-  if (highlight) {
-    return (
-      <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
-        <Card className={cn('border-none shadow-lg', `bg-gradient-to-br ${styles[tone]}`)}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className={cn('rounded-xl p-3 backdrop-blur-sm', iconStyles[tone])}>
-                <Icon className="h-6 w-6" />
-              </div>
-              {tone === 'warning' && value > 0 && (
-                <Badge className="border-none bg-white/20 text-white hover:bg-white/30">
-                  Cần xử lý
-                </Badge>
-              )}
-            </div>
-            <div className="mt-4">
-              <p className="text-sm font-medium text-white/80">{title}</p>
-              <h3 className="mt-1 text-3xl font-bold">{formatCurrency(value)}</h3>
-              <p className="mt-1 text-sm text-white/70">{subtext}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  }
-
   return (
-    <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
-      <Card className={cn('border shadow-sm transition-shadow hover:shadow-md', cleanStyles[tone])}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className={cn('rounded-xl p-3', cleanIconStyles[tone])}>
-              <Icon className="h-6 w-6" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <h3 className="mt-1 text-2xl font-bold text-gray-900">{formatCurrency(value)}</h3>
-            <p className="mt-1 text-sm text-gray-400">{subtext}</p>
-          </div>
-        </CardContent>
-      </Card>
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+      className="flex cursor-default items-center gap-4"
+    >
+      <div
+        className={cn(
+          'flex h-12 w-12 items-center justify-center rounded-full shadow-sm',
+          bg,
+          color
+        )}
+      >
+        <Icon className="h-6 w-6" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <p
+          className={cn(
+            'text-2xl font-bold tracking-tight',
+            highlight ? 'text-amber-600' : 'text-gray-900'
+          )}
+        >
+          {formatCurrency(value)}
+        </p>
+      </div>
     </motion.div>
   );
 }
 
-function InvoiceCard({
+function InvoiceRow({
   invoice,
+  index,
+  currentTime,
   onPayment,
   onWalletPayment,
   canPayWithWallet,
@@ -966,6 +957,8 @@ function InvoiceCard({
   formatDate,
 }: {
   invoice: Invoice;
+  index: number;
+  currentTime: number;
   onPayment: (invoice: Invoice) => void;
   onWalletPayment?: (invoice: Invoice) => void;
   canPayWithWallet?: boolean;
@@ -978,207 +971,138 @@ function InvoiceCard({
 }) {
   const isPaid = invoice.status === 'paid';
   const isPending = isPendingStatus(invoice.status);
+  const invoiceExpired = hasInvoiceExpired(invoice, currentTime);
   const badge = getStatusBadge(invoice.status);
   const outstanding = getOutstandingAmount(invoice);
   const issuedDate = invoice.issueDate ?? invoice.issuedAt ?? invoice.createdAt;
   const invoiceTitle = getInvoiceTitle(invoice);
   const invoiceCodeLabel = getInvoiceLabel(invoice);
   const serviceSummary = getPrimaryServiceName(invoice);
-  const department = invoice.doctorDepartment || invoice.metadata?.departmentName;
-  const invoiceTypeLabel = getInvoiceTypeLabel(invoice);
-  const appointmentId =
-    invoice.appointmentId ||
-    (invoice.metadata?.appointmentId as string) ||
-    (invoice.metadata?.appointment_id as string) ||
-    null;
-  const doctorName = invoice.doctorName || (invoice.metadata?.doctorName as string) || null;
-  const appointmentDateTime = getInvoiceAppointmentDate(invoice);
-  const appointmentDateLabel = appointmentDateTime
-    ? APPOINTMENT_DATE_FORMATTER.format(appointmentDateTime)
-    : null;
-  const appointmentTimeLabel = appointmentDateTime
-    ? APPOINTMENT_TIME_FORMATTER.format(appointmentDateTime)
-    : null;
-  const hasAppointmentMeta =
-    Boolean(invoiceTypeLabel) ||
-    Boolean(appointmentDateLabel) ||
-    Boolean(appointmentTimeLabel) ||
-    Boolean(doctorName) ||
-    Boolean(department) ||
-    Boolean(appointmentId);
   const canUseWallet =
     Boolean(onWalletPayment) &&
     Boolean(canPayWithWallet) &&
     !isPaid &&
     isPending &&
-    outstanding > 0;
+    outstanding > 0 &&
+    !invoiceExpired;
   const isNonPayableStatus = NON_PAYABLE_STATUSES.includes(invoice.status);
-  const canAttemptPayment = !isPaid && !isNonPayableStatus;
+  const canAttemptPayment = !isPaid && !isNonPayableStatus && !invoiceExpired;
+  const countdownInfo = getCountdownInfo(invoice.dueDate, currentTime);
+  const shouldShowCountdown = countdownInfo && isPending && !invoiceExpired;
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md">
-      {/* Status Strip */}
-      <div
-        className={cn(
-          'absolute top-0 bottom-0 left-0 w-1.5',
-          isPaid ? 'bg-emerald-500' : isPending ? 'bg-orange-500' : 'bg-gray-300'
-        )}
-      />
-
-      <div className="flex flex-col gap-4 pl-2 md:flex-row md:items-center md:justify-between">
-        {/* Left Info */}
-        <div className="flex items-start gap-4">
-          <div className="hidden rounded-lg bg-gray-50 p-3 md:block">
-            <Receipt className="h-6 w-6 text-gray-500" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2" title={invoiceCodeLabel}>
-              <span className="text-lg font-bold text-gray-900">{invoiceTitle}</span>
-              <Badge
-                variant="secondary"
-                className={cn(
-                  'capitalize',
-                  isPaid
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : isPending
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-gray-100 text-gray-700'
-                )}
-              >
-                {badge.label}
-              </Badge>
-            </div>
-            <p className="text-xs text-gray-400">{invoiceCodeLabel}</p>
-            <p className="text-sm font-medium text-gray-700">{serviceSummary}</p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatDate(issuedDate)}
-              </span>
-            </div>
-            {hasAppointmentMeta && (
-              <div className="mt-3 flex flex-wrap gap-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:text-sm">
-                {invoiceTypeLabel && (
-                  <span className="flex items-center gap-1 font-semibold text-blue-700">
-                    <Tag className="h-3.5 w-3.5" />
-                    {invoiceTypeLabel}
-                  </span>
-                )}
-                {appointmentDateLabel && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                    {appointmentDateLabel}
-                  </span>
-                )}
-                {appointmentTimeLabel && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-gray-500" />
-                    <span className="font-medium text-gray-700">Giờ khám:</span>
-                    {appointmentTimeLabel}
-                  </span>
-                )}
-                {doctorName && (
-                  <span className="flex items-center gap-1">
-                    <Stethoscope className="h-3.5 w-3.5 text-gray-500" />
-                    <span className="font-semibold text-gray-800">BS. {doctorName}</span>
-                  </span>
-                )}
-                {department && (
-                  <span className="flex items-center gap-1">
-                    <Building2 className="h-3.5 w-3.5 text-gray-500" />
-                    {department}
-                  </span>
-                )}
-                {appointmentId && (
-                  <span className="flex items-center gap-1">
-                    <Hash className="h-3.5 w-3.5 text-gray-500" />
-                    {appointmentId}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+    <motion.tr
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ backgroundColor: 'rgba(239, 246, 255, 0.8)', x: 4 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="group cursor-pointer border-b border-gray-50 last:border-none"
+    >
+      <TableCell className="font-medium">
+        <div className="flex flex-col">
+          <span className="text-gray-900">{invoiceCodeLabel}</span>
+          <span className="text-xs text-gray-400">{invoiceTitle}</span>
         </div>
-
-        {/* Right Info & Actions */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          <div className="text-left md:text-right">
-            <p className="text-sm text-gray-500">Tổng thanh toán</p>
-            <p className={cn('text-xl font-bold', isPending ? 'text-orange-600' : 'text-gray-900')}>
-              {formatCurrency(invoice.totalAmount)}
-            </p>
-            {outstanding > 0 && isPending && (
-              <p className="text-xs font-medium text-red-500">
-                Còn nợ: {formatCurrency(outstanding)}
-              </p>
+      </TableCell>
+      <TableCell>
+        <span className="line-clamp-1 text-gray-700" title={serviceSummary}>
+          {serviceSummary}
+        </span>
+      </TableCell>
+      <TableCell className="text-sm text-gray-500">{formatDate(issuedDate)}</TableCell>
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          <Badge
+            variant="secondary"
+            className={cn(
+              'w-fit font-normal capitalize',
+              isPaid
+                ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                : isPending
+                  ? 'border-amber-100 bg-amber-50 text-amber-700'
+                  : invoice.status === 'expired'
+                    ? 'border-red-100 bg-red-50 text-red-600'
+                    : 'border-gray-200 bg-gray-100 text-gray-700'
             )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {canUseWallet && (
-              <Button
-                variant="outline"
-                onClick={() => onWalletPayment?.(invoice)}
-                disabled={isWalletProcessing}
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-              >
-                {isWalletProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Ví của tôi
-                  </>
-                )}
-              </Button>
-            )}
-
-            {canAttemptPayment && (
-              <Button
-                onClick={() => onPayment(invoice)}
-                disabled={isProcessing}
-                className="bg-blue-600 text-white shadow-sm shadow-blue-200 hover:bg-blue-700"
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Thanh toán
-                  </>
-                )}
-              </Button>
-            )}
-
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDownload(invoice)}
-                disabled={isDownloading}
-                className="text-gray-500 hover:bg-blue-50 hover:text-blue-600"
-                title="Tải hóa đơn"
-              >
-                {isDownloading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onViewDetails(invoice)}
-                className="text-gray-500 hover:bg-blue-50 hover:text-blue-600"
-                title="Xem chi tiết"
-              >
-                <FileText className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          >
+            {badge.label}
+          </Badge>
+          {shouldShowCountdown && <CountdownLabel info={countdownInfo} />}
         </div>
-      </div>
-    </div>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex flex-col items-end">
+          <span className={cn('font-semibold', isPending ? 'text-amber-600' : 'text-gray-900')}>
+            {formatCurrency(invoice.totalAmount)}
+          </span>
+          {outstanding > 0 && isPending && (
+            <span className="text-xs text-red-500">Nợ: {formatCurrency(outstanding)}</span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          {canUseWallet && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onWalletPayment?.(invoice)}
+              disabled={isWalletProcessing}
+              className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+              title="Thanh toán bằng ví"
+            >
+              {isWalletProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wallet className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+
+          {canAttemptPayment && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onPayment(invoice)}
+              disabled={isProcessing}
+              className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              title="Thanh toán ngay"
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onDownload(invoice)}
+            disabled={isDownloading}
+            className="h-8 w-8 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            title="Tải hóa đơn"
+          >
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onViewDetails(invoice)}
+            className="h-8 w-8 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            title="Xem chi tiết"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </motion.tr>
   );
 }
 
@@ -1186,91 +1110,112 @@ function InvoiceDetailsDialog({
   invoice,
   onClose,
   formatDate,
+  currentTime,
 }: {
   invoice: Invoice | null;
   onClose: () => void;
   formatDate: (value?: string) => string;
+  currentTime: number;
 }) {
-  const patientShare = invoice
-    ? Math.max(0, (invoice.totalAmount ?? 0) - (invoice.insuranceCoverage ?? 0))
-    : 0;
-  const refundAmount = invoice ? getRefundAmount(invoice) : 0;
-
   if (!invoice) return null;
+
+  const isPaid = invoice.status === 'paid';
+  const badge = getStatusBadge(invoice.status);
+  const countdownInfo = hasInvoiceExpired(invoice, currentTime)
+    ? null
+    : getCountdownInfo(invoice.dueDate, currentTime);
+
+  // Calculate subtotal if missing
+  const calculatedSubtotal =
+    invoice.subtotal ||
+    (invoice.items?.reduce((sum, item) => sum + (item.totalPrice || 0), 0) ?? 0);
+
+  // Derive payment method if missing
+  const displayPaymentMethod =
+    invoice.paymentMethod ||
+    invoice.payments?.find((p) => p.status === 'completed' || p.method !== 'refund')?.method ||
+    (isPaid ? 'Không xác định' : 'Chưa thanh toán');
 
   return (
     <Dialog open={!!invoice} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
-        <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-4">
-          <div>
-            <DialogTitle className="text-xl">Hóa đơn {getInvoiceLabel(invoice)}</DialogTitle>
-            <DialogDescription className="mt-1">
-              Được tạo ngày {formatDate(invoice.issueDate ?? invoice.issuedAt)}
+      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0 sm:rounded-2xl">
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-gray-100 bg-white px-6 py-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                Hóa đơn {getInvoiceLabel(invoice)}
+              </DialogTitle>
+              <Badge
+                variant="secondary"
+                className={cn(
+                  'rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
+                  isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                )}
+              >
+                {badge.label}
+              </Badge>
+            </div>
+            <DialogDescription className="text-sm text-gray-500">
+              Phát hành ngày {formatDate(invoice.issueDate ?? invoice.issuedAt)}
             </DialogDescription>
           </div>
-          <Badge
-            variant="outline"
-            className={cn(
-              'px-3 py-1 text-sm font-medium',
-              invoice.status === 'paid'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-orange-200 bg-orange-50 text-orange-700'
-            )}
-          >
-            {getStatusBadge(invoice.status).label}
-          </Badge>
+          {/* Close button is handled by DialogPrimitive, but we can add custom actions here if needed */}
         </div>
 
-        <div className="max-h-[70vh] space-y-8 overflow-y-auto p-6">
+        <div className="max-h-[75vh] overflow-y-auto bg-white px-6 py-6">
           {/* Info Grid */}
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold tracking-wider text-gray-500 uppercase">
+              <h4 className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
                 Thông tin chung
               </h4>
-              <div className="space-y-3">
-                <InfoRow label="Mã hóa đơn" value={invoice.invoiceCode || invoice.invoiceNumber} />
-                <InfoRow label="Lịch hẹn" value={invoice.appointmentId} />
-                <InfoRow label="Bác sĩ" value={invoice.doctorName} />
-                <InfoRow label="Khoa" value={invoice.doctorDepartment} />
+              <div className="space-y-4">
+                <InfoItem label="Khách hàng" value={invoice.patientName || 'Khách vãng lai'} />
+                <InfoItem label="Bác sĩ chỉ định" value={invoice.doctorName} />
+                <InfoItem label="Khoa / Phòng" value={invoice.doctorDepartment} />
               </div>
             </div>
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold tracking-wider text-gray-500 uppercase">
-                Thanh toán
+              <h4 className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                Chi tiết thanh toán
               </h4>
-              <div className="space-y-3">
-                <InfoRow label="Hạn thanh toán" value={formatDate(invoice.dueDate)} />
-                <InfoRow label="Ngày cập nhật" value={formatDate(invoice.updatedAt)} />
-                <InfoRow label="Phương thức" value={invoice.paymentMethod || 'Chưa có'} />
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-0.5 text-xs text-gray-500">Hạn thanh toán</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(invoice.dueDate)}</p>
+                  {countdownInfo && <CountdownLabel info={countdownInfo} className="mt-0.5" />}
+                </div>
+                <InfoItem label="Phương thức" value={displayPaymentMethod} className="capitalize" />
+                <InfoItem label="Mã tham chiếu" value={invoice.appointmentId} />
               </div>
             </div>
           </div>
 
-          <Separator />
+          <Separator className="my-8 opacity-50" />
 
-          {/* Services */}
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-gray-900">Chi tiết dịch vụ</h4>
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 font-medium text-gray-500">
-                  <tr>
-                    <th className="px-4 py-3">Dịch vụ</th>
-                    <th className="px-4 py-3 text-right">Đơn giá</th>
-                    <th className="px-4 py-3 text-right">SL</th>
-                    <th className="px-4 py-3 text-right">Thành tiền</th>
+          {/* Services Table */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-900">Chi tiết dịch vụ</h4>
+            <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50/30">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500">
+                    <th className="px-4 py-3 font-medium">Mô tả dịch vụ</th>
+                    <th className="px-4 py-3 text-right font-medium">Đơn giá</th>
+                    <th className="px-4 py-3 text-right font-medium">SL</th>
+                    <th className="px-4 py-3 text-right font-medium">Thành tiền</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-50">
                   {invoice.items?.length ? (
                     invoice.items.map((item) => (
-                      <tr key={item.id}>
+                      <tr key={item.id} className="group transition-colors hover:bg-white">
                         <td className="px-4 py-3 font-medium text-gray-900">{item.description}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">
+                        <td className="px-4 py-3 text-right text-gray-500">
                           {formatCurrency(item.unitPrice)}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-600">{item.quantity}</td>
+                        <td className="px-4 py-3 text-right text-gray-500">{item.quantity}</td>
                         <td className="px-4 py-3 text-right font-medium text-gray-900">
                           {formatCurrency(item.totalPrice)}
                         </td>
@@ -1278,8 +1223,8 @@ function InvoiceDetailsDialog({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
-                        Không có chi tiết dịch vụ
+                      <td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">
+                        Không có dịch vụ nào
                       </td>
                     </tr>
                   )}
@@ -1288,30 +1233,33 @@ function InvoiceDetailsDialog({
             </div>
           </div>
 
-          {/* Totals */}
-          <div className="flex justify-end">
-            <div className="w-full space-y-3 rounded-lg bg-gray-50 p-4 md:w-1/2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tổng tiền hàng</span>
-                <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
+          {/* Totals Section */}
+          <div className="mt-8 flex flex-col items-end gap-3">
+            <div className="w-full max-w-xs space-y-3">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Tổng tiền hàng</span>
+                <span>{formatCurrency(calculatedSubtotal)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Thuế (VAT)</span>
-                <span className="font-medium">{formatCurrency(invoice.tax)}</span>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Thuế (VAT)</span>
+                <span>{formatCurrency(invoice.tax)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Bảo hiểm chi trả</span>
-                <span className="font-medium text-emerald-600">
-                  -{formatCurrency(invoice.insuranceCoverage)}
+              <div className="flex justify-between text-sm text-emerald-600">
+                <span>Bảo hiểm chi trả</span>
+                <span>-{formatCurrency(invoice.insuranceCoverage)}</span>
+              </div>
+
+              <div className="my-2 h-px bg-gray-100" />
+
+              <div className="flex items-baseline justify-between">
+                <span className="text-base font-medium text-gray-900">Tổng thanh toán</span>
+                <span className="text-2xl font-bold tracking-tight text-gray-900">
+                  {formatCurrency(invoice.totalAmount)}
                 </span>
               </div>
-              <Separator />
-              <div className="flex justify-between text-base font-bold text-gray-900">
-                <span>Tổng thanh toán</span>
-                <span>{formatCurrency(invoice.totalAmount)}</span>
-              </div>
+
               {invoice.outstandingAmount !== undefined && invoice.outstandingAmount > 0 && (
-                <div className="flex justify-between text-sm font-medium text-red-600">
+                <div className="flex justify-between rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
                   <span>Còn lại phải trả</span>
                   <span>{formatCurrency(invoice.outstandingAmount)}</span>
                 </div>
@@ -1319,49 +1267,41 @@ function InvoiceDetailsDialog({
             </div>
           </div>
 
-          {/* Payment History */}
+          {/* Transaction History (Timeline style) */}
           {invoice.payments && invoice.payments.length > 0 && (
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-900">Lịch sử giao dịch</h4>
-              <div className="space-y-3">
+            <div className="mt-8 border-t border-gray-100 pt-6">
+              <h4 className="mb-4 text-sm font-medium text-gray-900">Lịch sử thanh toán</h4>
+              <div className="space-y-4">
                 {invoice.payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-white p-3 shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          'rounded-full p-2',
-                          payment.method === 'refund'
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'bg-emerald-100 text-emerald-600'
-                        )}
-                      >
-                        {payment.method === 'refund' ? (
-                          <ArrowUpRight className="h-4 w-4" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {payment.method === 'refund' ? 'Hoàn tiền' : 'Thanh toán thành công'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatDate(payment.processedAt || payment.paidAt)} • {payment.method}
-                        </p>
-                      </div>
-                    </div>
-                    <span
+                  <div key={payment.id} className="flex items-start gap-3">
+                    <div
                       className={cn(
-                        'font-semibold',
-                        payment.method === 'refund' ? 'text-blue-600' : 'text-emerald-600'
+                        'ring-opacity-20 mt-0.5 flex h-2 w-2 flex-none rounded-full ring-4',
+                        payment.method === 'refund'
+                          ? 'bg-blue-500 ring-blue-500'
+                          : 'bg-emerald-500 ring-emerald-500'
                       )}
-                    >
-                      {payment.method === 'refund' ? '-' : '+'}
-                      {formatCurrency(Math.abs(payment.amount))}
-                    </span>
+                    />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-900">
+                          {payment.method === 'refund' ? 'Hoàn tiền' : 'Thanh toán thành công'}
+                        </span>
+                        <span
+                          className={cn(
+                            'font-medium',
+                            payment.method === 'refund' ? 'text-blue-600' : 'text-emerald-600'
+                          )}
+                        >
+                          {payment.method === 'refund' ? '-' : '+'}
+                          {formatCurrency(Math.abs(payment.amount))}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(payment.processedAt || payment.paidAt)} qua{' '}
+                        <span className="capitalize">{payment.method}</span>
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1373,12 +1313,20 @@ function InvoiceDetailsDialog({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
+function InfoItem({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value?: string | number | null;
+  className?: string;
+}) {
   if (!value) return null;
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-sm font-medium text-gray-900">{value}</span>
+    <div className={className}>
+      <p className="mb-0.5 text-xs text-gray-500">{label}</p>
+      <p className="text-sm font-medium text-gray-900">{value}</p>
     </div>
   );
 }
@@ -1423,6 +1371,60 @@ function getTransactionMeta(type: WalletTransaction['type']) {
 
 function getInvoiceLabel(invoice: Invoice) {
   return invoice.invoiceNumber || invoice.invoiceCode || invoice.id;
+}
+
+type CountdownInfo = {
+  text: string;
+  isExpired: boolean;
+  tone: 'warning' | 'danger';
+};
+
+function getCountdownInfo(dueDate?: string | Date, currentTime?: number): CountdownInfo | null {
+  if (!dueDate || !currentTime) {
+    return null;
+  }
+  const target = new Date(dueDate).getTime();
+  if (Number.isNaN(target)) {
+    return null;
+  }
+  const diff = target - currentTime;
+  const absSeconds = Math.max(0, Math.floor(Math.abs(diff) / 1000));
+  const hours = Math.floor(absSeconds / 3600);
+  const minutes = Math.floor((absSeconds % 3600) / 60);
+  const seconds = absSeconds % 60;
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  const formatted = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+  if (diff <= 0) {
+    return {
+      text: `Đã quá hạn ${formatted}`,
+      isExpired: true,
+      tone: 'danger',
+    };
+  }
+
+  const tone = diff < 5 * 60 * 1000 ? 'danger' : 'warning';
+  return {
+    text: `Còn ${formatted}`,
+    isExpired: false,
+    tone,
+  };
+}
+
+function CountdownLabel({ info, className }: { info?: CountdownInfo | null; className?: string }) {
+  if (!info) return null;
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 text-xs font-medium',
+        info.tone === 'danger' ? 'text-red-600' : 'text-amber-600',
+        className
+      )}
+    >
+      <Clock className="h-3.5 w-3.5" />
+      <span>{info.text}</span>
+    </div>
+  );
 }
 
 const INVOICE_TYPE_LABELS: Record<string, string> = {
@@ -1495,6 +1497,8 @@ function getStatusBadge(status: Invoice['status']) {
       return { label: 'Thanh toán 1 phần', tone: 'primary' as const };
     case 'overdue':
       return { label: 'Quá hạn', tone: 'danger' as const };
+    case 'expired':
+      return { label: 'Đã hết hạn', tone: 'danger' as const };
     case 'refunded':
       return { label: 'Đã hoàn tiền', tone: 'primary' as const };
     case 'cancelled':
@@ -1578,6 +1582,24 @@ function formatAppointmentDateTimeDisplay(date: Date | null): string | null {
   const dateLabel = APPOINTMENT_DATE_FORMATTER.format(date);
   const timeLabel = APPOINTMENT_TIME_FORMATTER.format(date);
   return `${dateLabel} • ${timeLabel}`;
+}
+
+function hasInvoiceExpired(invoice: Invoice, referenceTime = Date.now()): boolean {
+  if (!invoice) return false;
+  if (invoice.status === 'expired') {
+    return true;
+  }
+
+  if (!invoice.dueDate) {
+    return false;
+  }
+
+  const due = new Date(invoice.dueDate).getTime();
+  if (Number.isNaN(due)) {
+    return false;
+  }
+
+  return due <= referenceTime;
 }
 
 function getOutstandingAmount(invoice: Invoice): number {

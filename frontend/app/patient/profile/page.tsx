@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User, Phone, Shield, Settings, LogOut, KeyRound, Camera } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { BasicInfoTab } from '@/components/profile/BasicInfoTab';
 import { EmergencyContactTab } from '@/components/profile/EmergencyContactTab';
@@ -42,10 +43,10 @@ export default function PatientProfilePage() {
       const p = await patientService.getPatientProfile(patientId!);
       const contacts = await patientService
         .getEmergencyContacts(patientId!)
-        .catch(() => ({ contacts: [] }));
+        .catch(() => ({ patientId: patientId!, contacts: [], totalCount: 0 }));
       const insurance = await patientService
         .getInsurance(patientId!)
-        .catch(() => ({ insuranceInfo: null }));
+        .catch(() => ({ patientId: patientId!, insuranceInfo: null, hasInsurance: false }));
       const pi = (p as any).personalInfo || (p as any).personInfo || {};
       const ci = (p as any).contactInfo || (p as any).contact || {};
       const bmi = (p as any).basicMedicalInfo || {};
@@ -144,7 +145,7 @@ export default function PatientProfilePage() {
           if (existing.contactId) {
             try {
               await patientService.deleteEmergencyContact(patientId, existing.contactId);
-            } catch {}
+            } catch { }
           }
         }
       }
@@ -236,96 +237,82 @@ export default function PatientProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-5xl space-y-8 p-4 md:p-8">
+      <div className="mx-auto max-w-5xl space-y-8">
         {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-3xl font-bold text-gray-900">Hồ sơ cá nhân</h1>
-          <p className="mt-2 text-gray-600">Quản lý thông tin cá nhân và cài đặt tài khoản</p>
-        </motion.div>
+
 
         {/* Profile Card */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.99 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="relative overflow-hidden rounded-3xl border border-white/20 bg-white shadow-xl backdrop-blur-xl"
+          transition={{ duration: 0.4 }}
+          className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-blue-500/10" />
-          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-teal-500/5 blur-3xl" />
+          <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-md ring-4 ring-blue-50">
+                  {profile?.firstName?.charAt(0)}
+                  {profile?.lastName?.charAt(0)}
+                </div>
+                <button className="absolute -bottom-1 -right-1 rounded-full border border-gray-200 bg-white p-1.5 text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-blue-600">
+                  <Camera className="h-3.5 w-3.5" />
+                </button>
+              </div>
 
-          <div className="relative p-8">
-            <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-              <div className="flex items-center gap-6">
-                <motion.div whileHover={{ scale: 1.05 }} className="relative">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-blue-600 text-4xl font-bold text-white shadow-lg">
-                    {profile?.firstName?.charAt(0)}
-                    {profile?.lastName?.charAt(0)}
-                  </div>
-                  <button className="absolute right-0 bottom-0 rounded-full bg-white p-2 shadow-md transition-transform hover:scale-110">
-                    <Camera className="h-4 w-4 text-gray-600" />
-                  </button>
-                </motion.div>
-
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">
-                    {profile?.fullName || user?.fullName || '—'}
-                  </h2>
-                  <div className="mt-2 flex flex-col gap-1 text-gray-600">
-                    <p className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">Email:</span>
-                      {user?.email || profile?.email || '—'}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">Mã bệnh nhân:</span>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-sm font-medium text-gray-700">
-                        {patientId || '—'}
-                      </span>
-                    </p>
-                  </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {profile?.fullName || user?.fullName || '—'}
+                </h2>
+                <div className="mt-1 flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:gap-4">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    {user?.email || profile?.email || '—'}
+                  </span>
+                  <span className="hidden h-1 w-1 rounded-full bg-gray-300 sm:block" />
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium text-gray-700">ID:</span>
+                    <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-600">
+                      {patientId || '—'}
+                    </code>
+                  </span>
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <ChangePasswordDialog
-                  userId={user?.userId}
-                  trigger={
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={!user?.userId}
-                      className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <KeyRound className="h-4 w-4" />
-                      Đổi mật khẩu
-                    </motion.button>
-                  }
-                />
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={async () => {
-                    await authService.logout();
-                    router.push('/auth/login');
-                  }}
-                  className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-100 hover:text-red-700"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Đăng xuất
-                </motion.button>
-              </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <ChangePasswordDialog
+                userId={user?.userId}
+                trigger={
+                  <Button
+                    variant="outline"
+                    disabled={!user?.userId}
+                    className="h-9 gap-2 rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    Đổi mật khẩu
+                  </Button>
+                }
+              />
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  await authService.logout();
+                  router.push('/auth/login');
+                }}
+                className="h-9 gap-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <LogOut className="h-4 w-4" />
+                Đăng xuất
+              </Button>
             </div>
           </div>
         </motion.div>
 
         {/* Tabs Section */}
         <div className="space-y-6">
-          <div className="scrollbar-hide overflow-x-auto pb-2">
-            <div className="inline-flex items-center rounded-2xl border border-white/20 bg-white/80 p-1.5 shadow-sm ring-1 ring-black/5 backdrop-blur-xl">
+          <div className="border-b border-gray-200">
+            <div className="flex gap-6 overflow-x-auto pb-px">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -333,32 +320,30 @@ export default function PatientProfilePage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-300 ${
-                      isActive
-                        ? 'text-blue-600'
-                        : 'text-gray-500 hover:bg-gray-50/50 hover:text-gray-900'
-                    }`}
+                    className={`group relative flex items-center gap-2 whitespace-nowrap pb-3 text-sm font-medium transition-colors ${isActive
+                      ? 'text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
+                    <Icon
+                      className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
+                        }`}
+                    />
+                    {tab.label}
                     {isActive && (
                       <motion.div
-                        layoutId="activeTab"
-                        className="absolute inset-0 rounded-xl bg-blue-50/80 shadow-sm ring-1 ring-blue-100"
-                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                        layoutId="activeTabIndicator"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                        transition={{ duration: 0.3 }}
                       />
                     )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Icon
-                        className={`h-4 w-4 transition-colors duration-300 ${isActive ? 'text-blue-600' : 'text-gray-400'}`}
-                      />
-                      {tab.label}
-                    </span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="min-h-[400px] rounded-3xl border border-white/40 bg-white/60 p-6 shadow-xl ring-1 shadow-blue-900/5 ring-white/60 backdrop-blur-xl md:p-8">
+          <div className="min-h-[400px]">
             <AnimatePresence mode="wait">
               {authRequired || (!user && !loading) ? (
                 <motion.div
@@ -374,22 +359,22 @@ export default function PatientProfilePage() {
                   <p className="mt-2 mb-6 max-w-sm text-gray-500">
                     Vui lòng đăng nhập để xem và quản lý thông tin hồ sơ cá nhân của bạn.
                   </p>
-                  <button
+                  <Button
                     onClick={() => router.push('/auth/login')}
-                    className="rounded-full bg-blue-600 px-8 py-3 text-sm font-medium text-white shadow-lg shadow-blue-600/20 transition-transform hover:scale-105 hover:bg-blue-700"
+                    className="rounded-full bg-blue-600 px-8 hover:bg-blue-700"
                   >
                     Đăng nhập ngay
-                  </button>
+                  </Button>
                 </motion.div>
               ) : loading ? (
                 <ProfileSkeleton />
               ) : (
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {activeTab === 'basic' && profile && (
                     <BasicInfoTab profile={profile} onUpdate={handleUpdateProfile} />
@@ -405,12 +390,12 @@ export default function PatientProfilePage() {
                   )}
                   {activeTab === 'insurance' && (
                     <InsuranceTab
-                      insurance={profile?.insurance || null}
+                      insurance={profile?.insurance || undefined}
                       onUpdate={handleUpdateInsurance}
                     />
                   )}
                   {activeTab === 'settings' && (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-16 text-center">
                       <div className="mb-4 rounded-full bg-gray-50 p-4">
                         <Settings className="h-8 w-8 text-gray-400" />
                       </div>

@@ -24,6 +24,10 @@ class PayInvoiceWithWalletUseCase extends base_healthcare_use_case_1.BaseHealthc
                 !this.isSameIdentifier(request.patientId, invoicePatientId)) {
                 throw new Error("Bạn không có quyền thanh toán hóa đơn không thuộc sở hữu của mình");
             }
+            const expiryResult = await this.preventPaymentIfExpired(invoice, request);
+            if (expiryResult) {
+                return expiryResult;
+            }
             if (invoice.status.isCancelled()) {
                 throw new Error("Không thể thanh toán hóa đơn đã bị hủy");
             }
@@ -45,11 +49,7 @@ class PayInvoiceWithWalletUseCase extends base_healthcare_use_case_1.BaseHealthc
             const payment = Payment_1.Payment.create(Money_1.Money.create(outstandingAmount, invoice.totalAmount.currency), "wallet", walletTransaction.id);
             invoice.processPayment(payment);
             await this.invoiceRepository.save(invoice);
-            const events = invoice.getUncommittedEvents();
-            for (const event of events) {
-                await this.eventBus.publish(event);
-            }
-            invoice.markEventsAsCommitted();
+            await this.publishInvoiceEvents(invoice);
             this.logger.info("Invoice paid with wallet", {
                 invoiceId: invoice.id,
                 paymentId: payment.id,
@@ -87,6 +87,37 @@ class PayInvoiceWithWalletUseCase extends base_healthcare_use_case_1.BaseHealthc
     }
     isSameIdentifier(a, b) {
         return a.trim().toLowerCase() === b.trim().toLowerCase();
+    }
+    async preventPaymentIfExpired(invoice, request) {
+        if (!invoice) {
+            return null;
+        }
+        const alreadyExpired = invoice.status.isExpired();
+        const pastDue = Boolean(invoice.dueDate) && invoice.dueDate.getTime() <= Date.now();
+        if (!alreadyExpired && !pastDue) {
+            return null;
+        }
+        if (!alreadyExpired && pastDue) {
+            await this.expireInvoice(invoice, request);
+        }
+        return {
+            success: false,
+            message: "Hóa đơn đã hết hạn thanh toán",
+            invoiceId: invoice.id,
+            errors: ["Invoice expired"],
+        };
+    }
+    async expireInvoice(invoice, request) {
+        invoice.markAsExpired("Payment attempted after due date", request.initiatedBy || request.patientId || "system");
+        await this.invoiceRepository.save(invoice);
+        await this.publishInvoiceEvents(invoice);
+    }
+    async publishInvoiceEvents(invoice) {
+        const events = invoice.getUncommittedEvents();
+        for (const event of events) {
+            await this.eventBus.publish(event);
+        }
+        invoice.markEventsAsCommitted();
     }
 }
 exports.PayInvoiceWithWalletUseCase = PayInvoiceWithWalletUseCase;

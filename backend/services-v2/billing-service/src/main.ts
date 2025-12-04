@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import cron, { ScheduledTask } from "node-cron";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -43,6 +44,7 @@ import { CreateVnpayPaymentLinkUseCase } from "./application/use-cases/CreateVnp
 import { CreateWalletTopUpLinkUseCase } from "./application/use-cases/CreateWalletTopUpLinkUseCase";
 import { HandlePayOSWebhookUseCase } from "./application/use-cases/HandlePayOSWebhookUseCase";
 import { PayInvoiceWithWalletUseCase } from "./application/use-cases/PayInvoiceWithWalletUseCase";
+import { ExpirePendingInvoicesUseCase } from "./application/use-cases/ExpirePendingInvoicesUseCase";
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 import { VnpayIntegrationService } from "./infrastructure/services/VnpayIntegrationService";
 import { BillingService } from "./application/services/BillingService";
@@ -116,6 +118,8 @@ class BillingServiceApp {
   private appointmentEventConsumer!: AppointmentEventConsumer;
   private clinicalEventConsumer!: ClinicalEventConsumer;
   private refundGatewayWorker!: RefundGatewayWorker;
+  private expirePendingInvoicesUseCase!: ExpirePendingInvoicesUseCase;
+  private invoiceExpiryTask?: ScheduledTask;
 
   // Use Cases - Phase 1 (Prepaid Model)
   private createInvoiceUseCase!: CreateInvoiceUseCase;
@@ -305,6 +309,11 @@ class BillingServiceApp {
       this.eventBus,
       this.walletService,
       loggerInstance,
+    );
+
+    this.expirePendingInvoicesUseCase = new ExpirePendingInvoicesUseCase(
+      this.invoiceRepository,
+      this.eventBus,
     );
 
     this.handlePayOSWebhookUseCase = new HandlePayOSWebhookUseCase(
@@ -542,6 +551,36 @@ class BillingServiceApp {
     loggerInstance.info("Routes setup complete");
   }
 
+  private scheduleInvoiceExpiryCron(): void {
+    if (this.invoiceExpiryTask) {
+      this.invoiceExpiryTask.stop();
+    }
+
+    this.invoiceExpiryTask = cron.schedule("*/5 * * * *", async () => {
+      try {
+        loggerInstance.info("[InvoiceExpiryCron] Starting overdue scan...");
+        const result = await this.expirePendingInvoicesUseCase.execute();
+        loggerInstance.info(
+          `[InvoiceExpiryCron] Completed. Expired: ${result.expiredCount}`,
+        );
+        if (result.errors.length > 0) {
+          loggerInstance.warn("[InvoiceExpiryCron] Errors detected", {
+            errors: result.errors,
+          });
+        }
+      } catch (error) {
+        loggerInstance.error(
+          "[InvoiceExpiryCron] Fatal error during invoice expiry check",
+          { error: error instanceof Error ? error.message : "Unknown error" },
+        );
+      }
+    });
+
+    loggerInstance.info(
+      "[InvoiceExpiryCron] Scheduled invoice expiry cron (every 5 minutes)",
+    );
+  }
+
   async start(): Promise<void> {
     try {
       loggerInstance.info(
@@ -566,6 +605,7 @@ class BillingServiceApp {
       loggerInstance.info("Refund gateway worker started");
 
       loggerInstance.info("Event consumers and workers connected");
+      this.scheduleInvoiceExpiryCron();
 
       this.app.listen(config.port, () => {
         loggerInstance.info(`${config.serviceName} is running`, {
@@ -600,6 +640,11 @@ class BillingServiceApp {
       if (this.eventBus) {
         await this.eventBus.disconnect();
         loggerInstance.info("EventBus disconnected");
+      }
+
+      if (this.invoiceExpiryTask) {
+        this.invoiceExpiryTask.stop();
+        loggerInstance.info("Invoice expiry cron stopped");
       }
 
       if (this.optimizedSupabase) {

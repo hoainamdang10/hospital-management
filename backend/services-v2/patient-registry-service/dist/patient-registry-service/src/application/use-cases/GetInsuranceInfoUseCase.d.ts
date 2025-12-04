@@ -24,9 +24,14 @@ export interface InsuranceInfoDTO {
     isVietnameseInsurance: boolean;
     bhytNumber?: string;
 }
+export interface GetInsuranceInfoResponseData {
+    patientId: string;
+    insuranceInfo: InsuranceInfoDTO | null;
+    hasInsurance: boolean;
+}
 export interface GetInsuranceInfoResult {
     success: boolean;
-    data?: InsuranceInfoDTO;
+    data?: GetInsuranceInfoResponseData;
     message: string;
     errors?: string[];
 }

@@ -21,6 +21,7 @@ export interface InvoiceProps {
     paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
+    dueDate: Date;
 }
 interface InvoiceCreateOptions {
     taxRate?: number;
@@ -43,6 +44,10 @@ export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
      * @param gatewayRefundId Refund ID from payment gateway
      */
     completeRefund(refundPaymentId: string, gatewayRefundId?: string): void;
+    /**
+     * Mark invoice as expired (payment timeout)
+     */
+    markAsExpired(reason: string, expiredBy?: string): void;
     processPayment(payment: Payment): void;
     private static generateInvoiceNumber;
     get id(): string;
@@ -70,6 +75,7 @@ export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     get createdAt(): Date;
     get updatedAt(): Date;
     get paidAt(): Date | undefined;
+    get dueDate(): Date;
 }
 export {};
 //# sourceMappingURL=Invoice.d.ts.map

@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileText,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { toast } from 'sonner';
@@ -31,12 +32,14 @@ import { useAuth } from '@/hooks/useAuth';
  * - invoiceId (optional) - Invoice ID để track payment status
  *
  * Features:
- * - Countdown timer (30 minutes)
+ * - Countdown timer (10 minutes)
  * - Payment link button (redirect to PayOS)
  * - Payment status polling (every 10 seconds)
  * - Auto-redirect when payment successful
  * - Graceful degradation if payment link not available
  */
+const PAYMENT_TIMEOUT_SECONDS = 10 * 60; // 10 minutes
+
 function PaymentPendingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,8 +70,8 @@ function PaymentPendingPageContent() {
       setTimeRemaining(Math.max(0, diff));
       setIsExpired(diff <= 0);
     } else {
-      // Default: 30 minutes
-      setTimeRemaining(30 * 60);
+      // Default: 10 minutes
+      setTimeRemaining(PAYMENT_TIMEOUT_SECONDS);
       setIsExpired(false);
     }
   }, [paymentDeadlineParam]);
@@ -295,35 +298,68 @@ function PaymentPendingPageContent() {
 
   return (
     <DashboardLayout>
-      <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="w-full max-w-2xl rounded-lg border bg-white p-8 shadow-sm">
+      <div className="flex min-h-[70vh] items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-2xl rounded-3xl border border-gray-100 bg-white p-8 shadow-xl shadow-blue-900/5"
+        >
           {/* Header */}
           <div className="text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-50 ring-8 ring-green-50/50">
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
-            <h1 className="mt-6 text-2xl font-bold text-gray-900">Đặt lịch thành công!</h1>
-            <p className="mt-2 text-gray-600">Vui lòng thanh toán để xác nhận lịch hẹn</p>
+            <h1 className="mt-6 text-3xl font-bold tracking-tight text-gray-900">
+              Đặt lịch thành công!
+            </h1>
+            <p className="mt-2 text-lg text-gray-600">
+              Vui lòng thanh toán để hoàn tất xác nhận lịch hẹn
+            </p>
           </div>
 
           {/* Countdown Timer */}
-          <div className="mt-8 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6">
-            <div className="flex items-center justify-center space-x-3">
-              <Clock className={`h-6 w-6 ${getTimeRemainingColor()}`} />
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Thời gian còn lại</p>
-                <p className={`text-3xl font-bold ${getTimeRemainingColor()}`}>
-                  {formatTimeRemaining(timeRemaining)}
-                </p>
-              </div>
+          <div className="relative mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50/50 p-8 text-center">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gray-200">
+              <motion.div
+                className="h-full bg-blue-600"
+                initial={{ width: '100%' }}
+                animate={{
+                  width: `${Math.min(
+                    100,
+                    ((timeRemaining || 0) / PAYMENT_TIMEOUT_SECONDS) * 100
+                  )}%`,
+                }}
+                transition={{ duration: 1, ease: 'linear' }}
+              />
             </div>
-            {timeRemaining !== null && timeRemaining < 5 * 60 && timeRemaining > 0 && (
-              <p className="mt-3 text-center text-sm text-orange-600">
-                ⚠️ Còn ít hơn 5 phút! Vui lòng thanh toán ngay.
+
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="mb-2 flex items-center gap-2 text-gray-500">
+                <Clock className={`h-5 w-5 ${getTimeRemainingColor()}`} />
+                <span className="text-sm font-medium tracking-wider uppercase">
+                  Thời gian thanh toán còn lại
+                </span>
+              </div>
+              <p
+                className={`text-5xl font-bold tracking-tight tabular-nums ${getTimeRemainingColor()}`}
+              >
+                {formatTimeRemaining(timeRemaining)}
               </p>
+            </div>
+
+            {timeRemaining !== null && timeRemaining < 5 * 60 && timeRemaining > 0 && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600"
+              >
+                <AlertCircle className="h-4 w-4" />
+                Sắp hết thời gian! Vui lòng thanh toán ngay.
+              </motion.p>
             )}
             {isExpired && (
-              <p className="mt-3 text-center text-sm text-red-600">
+              <p className="mt-4 inline-block rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-600">
                 ⏰ Hết thời gian thanh toán. Lịch hẹn sẽ bị hủy tự động.
               </p>
             )}
@@ -332,40 +368,43 @@ function PaymentPendingPageContent() {
           {/* Payment Link Section */}
           <div className="mt-8">
             {isLoadingPaymentLink ? (
-              <div className="rounded-lg border bg-blue-50 p-6 text-center">
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-8 text-center">
                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
-                <p className="mt-3 text-sm text-gray-700">Đang tạo link thanh toán...</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Vui lòng đợi trong giây lát ({pollingAttempts}/5)
+                <p className="mt-4 font-medium text-gray-900">
+                  Đang tạo link thanh toán an toàn...
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Vui lòng không tắt trình duyệt ({pollingAttempts}/5)
                 </p>
               </div>
             ) : paymentLink ? (
               <div className="space-y-4">
                 <Button
                   onClick={() => (window.location.href = paymentLink)}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  size="lg"
+                  className="h-14 w-full transform rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-lg font-bold shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.02] hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
                   disabled={isExpired}
                 >
-                  <CreditCard className="mr-2 h-5 w-5" />
+                  <CreditCard className="mr-2 h-6 w-6" />
                   Thanh toán ngay
-                  <ExternalLink className="ml-2 h-4 w-4" />
+                  <ExternalLink className="ml-2 h-5 w-5 opacity-70" />
                 </Button>
-                <p className="text-center text-xs text-gray-500">
-                  Bạn sẽ được chuyển đến trang thanh toán PayOS
+                <p className="text-center text-sm text-gray-500">
+                  Bạn sẽ được chuyển đến cổng thanh toán PayOS an toàn
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg border border-orange-200 bg-orange-50 p-6 text-center">
+              <div className="rounded-2xl border border-orange-200 bg-orange-50 p-6 text-center">
                 <AlertCircle className="mx-auto h-8 w-8 text-orange-600" />
-                <p className="mt-3 text-sm text-gray-700">Không thể tạo link thanh toán tự động</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Vui lòng vào trang thanh toán để xem hóa đơn
+                <p className="mt-3 font-medium text-gray-900">
+                  Không thể tạo link thanh toán tự động
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Vui lòng kiểm tra lại trong danh sách hóa đơn
                 </p>
                 <Button
                   onClick={() => router.push('/patient/billing')}
                   variant="outline"
-                  className="mt-4"
+                  className="mt-4 border-orange-200 bg-white text-orange-700 hover:bg-orange-100"
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   Xem danh sách hóa đơn
@@ -376,30 +415,31 @@ function PaymentPendingPageContent() {
 
           {/* Invoice Info */}
           {invoice && (
-            <div className="mt-6 rounded-lg bg-gray-50 p-4">
-              <h3 className="text-sm font-semibold text-gray-700">Thông tin hóa đơn</h3>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Mã hóa đơn:</span>
-                  <span className="font-mono font-semibold text-gray-900">
-                    {invoice.invoiceNumber || invoice.id.slice(0, 8)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tổng tiền:</span>
-                  <span className="font-semibold text-gray-900">
+            <div className="mt-8 border-t border-gray-100 pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold tracking-wider text-gray-900 uppercase">
+                  Chi tiết hóa đơn
+                </h3>
+                <span className="font-mono text-xs text-gray-500">
+                  #{invoice.invoiceNumber || invoice.id.slice(0, 8)}
+                </span>
+              </div>
+              <div className="space-y-3 rounded-xl bg-gray-50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Tổng tiền thanh toán</span>
+                  <span className="text-xl font-bold text-blue-600">
                     {invoice.totalAmount.toLocaleString('vi-VN')} {invoice.currency}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Trạng thái:</span>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Trạng thái</span>
                   <span
-                    className={`font-semibold ${
+                    className={`rounded-md px-2 py-0.5 font-medium ${
                       invoice.status === 'paid'
-                        ? 'text-green-600'
+                        ? 'bg-green-100 text-green-700'
                         : invoice.status === 'pending'
-                          ? 'text-orange-600'
-                          : 'text-gray-600'
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'bg-gray-100 text-gray-700'
                     }`}
                   >
                     {invoice.status === 'paid'
@@ -414,30 +454,30 @@ function PaymentPendingPageContent() {
           )}
 
           {/* Fallback Actions */}
-          <div className="mt-8 space-y-3">
+          <div className="mt-8 grid grid-cols-2 gap-4">
             <Button
               onClick={() => router.push('/patient/appointments')}
               variant="outline"
-              className="w-full"
+              className="h-12 w-full rounded-xl border-gray-200 hover:bg-gray-50 hover:text-gray-900"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại danh sách lịch hẹn
+              Về danh sách lịch
             </Button>
             <Button
               onClick={() => router.push('/patient/billing')}
               variant="ghost"
-              className="w-full"
+              className="h-12 w-full rounded-xl hover:bg-gray-100"
             >
               <FileText className="mr-2 h-4 w-4" />
-              Xem danh sách hóa đơn
+              Lịch sử hóa đơn
             </Button>
           </div>
 
           {/* Help Text */}
-          <p className="mt-6 text-center text-xs text-gray-500">
-            Bạn sẽ nhận được thông báo qua email khi thanh toán thành công
+          <p className="mt-8 text-center text-xs text-gray-400">
+            Mọi thắc mắc vui lòng liên hệ hotline 1900-xxxx để được hỗ trợ
           </p>
-        </div>
+        </motion.div>
       </div>
     </DashboardLayout>
   );

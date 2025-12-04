@@ -9,6 +9,7 @@
  */
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { IAppointmentReadModelRepository } from "../../../domain/repositories/IAppointmentReadModelRepository";
+import { IEventBus } from "../../../../../shared/application/services/event-bus.interface";
 export interface PaymentCompletedEventData {
     invoiceId: string;
     paymentId: string;
@@ -25,11 +26,19 @@ export interface PaymentCompletedEventData {
 export declare class PaymentCompletedHandler {
     private readonly appointmentRepository;
     private readonly appointmentReadModelRepository;
-    constructor(appointmentRepository: IAppointmentRepository, appointmentReadModelRepository: IAppointmentReadModelRepository);
+    private eventBus?;
+    constructor(appointmentRepository: IAppointmentRepository, appointmentReadModelRepository: IAppointmentReadModelRepository, eventBus?: IEventBus | undefined);
+    setEventBus(eventBus: IEventBus): void;
     /**
      * Handle payment completed event
      * Auto-confirms appointment after successful payment
      */
     handle(data: PaymentCompletedEventData): Promise<void>;
+    private isAlreadyPaidOrConfirmed;
+    private resolvePaymentTimestamp;
+    private isDeadlineError;
+    private handleExpiredPayment;
+    private syncReadModelPaymentStatus;
+    private publishPaymentExpiredEvent;
 }
 //# sourceMappingURL=PaymentCompletedHandler.d.ts.map

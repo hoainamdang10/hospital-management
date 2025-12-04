@@ -67,7 +67,7 @@ class CancelAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCas
             // 6. Domain events emitted → AppointmentCancelledSchedulerHandler → Outbox → Worker
             //    No direct HTTP call needed - pure event-driven architecture
             // 7. Calculate cancellation policy for immediate frontend feedback
-            const startTime = new Date(`${appointment.timeSlot.appointmentDate}T${appointment.timeSlot.appointmentTime}`);
+            const startTime = appointment.timeSlot.getStartTime();
             const hoursNotice = Math.max(0, (startTime.getTime() - Date.now()) / (1000 * 60 * 60));
             const policy = AppointmentCancelledEvent_1.AppointmentCancelledEvent.calculateCancellationPolicy(hoursNotice);
             const consultationFee = appointment.getConsultationFee();

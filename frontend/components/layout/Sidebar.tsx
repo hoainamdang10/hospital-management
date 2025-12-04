@@ -13,7 +13,7 @@ import {
   DollarSign,
   Activity,
   Stethoscope,
-  Bell,
+
   CreditCard,
   X,
   ChevronLeft,
@@ -278,11 +278,6 @@ function getMenuItemsByRole(role: string): MenuItem[] {
           icon: ClipboardList,
         },
         {
-          label: 'Hồ sơ bệnh án',
-          href: ROUTES.PATIENT_MEDICAL_HISTORY,
-          icon: FileText,
-        },
-        {
           label: 'Hồ sơ cá nhân',
           href: ROUTES.PATIENT_PROFILE,
           icon: Users,
@@ -291,11 +286,6 @@ function getMenuItemsByRole(role: string): MenuItem[] {
           label: 'Thanh toán',
           href: ROUTES.PATIENT_BILLING,
           icon: CreditCard,
-        },
-        {
-          label: 'Tùy chọn',
-          href: '/patient/preferences',
-          icon: Bell,
         },
       ];
 

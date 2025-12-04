@@ -30,6 +30,7 @@ import {
 } from "../../domain/repositories/IAppointmentRepository";
 import { IDomainEventPublisher } from "@shared/domain/events/IDomainEventPublisher";
 import { DomainEvent } from "@shared/domain/base/domain-event";
+import { convertClinicLocalToUtc } from "@shared/utils/timezone";
 
 interface DatabaseAppointmentRecord {
   id: string;
@@ -948,15 +949,31 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   ): Promise<Appointment[]> {
     const startUtc = startTime.toISOString();
     const endUtc = endTime.toISOString();
+    const windowDurationMs = endTime.getTime() - startTime.getTime();
+    const startDateLocal = this.formatDateInProviderTimezone(startTime);
+    const endDateLocal = this.formatDateInProviderTimezone(endTime);
+    const isSingleDayWindow =
+      startDateLocal === endDateLocal &&
+      windowDurationMs >= 20 * 60 * 60 * 1000;
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from(this.tableName)
       .select("*")
       .eq("doctor_id", providerId)
-      .not("status", "in", "(CANCELLED,RESCHEDULED,NO_SHOW)")
-      .gte("start_at_utc", startUtc)
-      .lte("end_at_utc", endUtc)
-      .order("start_at_utc", { ascending: true });
+      .not("status", "in", "(CANCELLED,RESCHEDULED,NO_SHOW)");
+
+    if (isSingleDayWindow) {
+      query = query
+        .eq("appointment_date", startDateLocal)
+        .order("appointment_time", { ascending: true });
+    } else {
+      query = query
+        .gte("start_at_utc", startUtc)
+        .lte("end_at_utc", endUtc)
+        .order("start_at_utc", { ascending: true });
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(
@@ -965,6 +982,14 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
 
     return (data || []).map((record) => this.toDomain(record));
+  }
+  private formatDateInProviderTimezone(date: Date): string {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
   }
 
   async findFollowUpAppointments(
@@ -1469,7 +1494,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     // Calculate UTC timestamps from timeSlot
     const startAtUtc =
       props.timeSlot.startAtUtc ||
-      this.toUtcFromLocal(
+      convertClinicLocalToUtc(
         props.timeSlot.appointmentDate,
         props.timeSlot.appointmentTime,
       );
@@ -1522,23 +1547,6 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       created_at: props.createdAt.toISOString(),
       updated_at: props.updatedAt.toISOString(),
     };
-  }
-
-  /**
-   * Convert local (service timezone) date/time to UTC Date.
-   * Assumes input time is expressed in local clinic timezone (default Asia/Ho_Chi_Minh, UTC+7).
-   */
-  private toUtcFromLocal(dateStr: string, timeStr: string): Date {
-    const offsetMinutes = Number(
-      process.env.APPOINTMENT_TIMEZONE_OFFSET_MINUTES || "420",
-    ); // default +07:00
-    // Build ISO with explicit offset to avoid Node default timezone surprises
-    const sign = offsetMinutes >= 0 ? "+" : "-";
-    const abs = Math.abs(offsetMinutes);
-    const hh = String(Math.floor(abs / 60)).padStart(2, "0");
-    const mm = String(abs % 60).padStart(2, "0");
-    const isoWithOffset = `${dateStr}T${timeStr}${sign}${hh}:${mm}`;
-    return new Date(isoWithOffset);
   }
 
   /**

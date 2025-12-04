@@ -9,6 +9,7 @@ export interface GetInvoiceRequest {
 export interface GetInvoiceResponse {
   invoiceId: string;
   patientId: string;
+  patientName?: string;
   invoiceNumber?: string;
   appointmentId?: string;
   doctorName?: string;
@@ -36,6 +37,7 @@ export interface GetInvoiceResponse {
   }>;
   createdAt: Date;
   updatedAt: Date;
+  dueDate: Date;
   // REMOVED (Phase 1): insuranceCoverage, insurance
 }
 
@@ -63,9 +65,31 @@ export class GetInvoiceUseCase extends BaseHealthcareUseCase<
       throw new Error("Invoice not found");
     }
 
+    const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
+    const paymentStats = payments.reduce(
+      (acc: { paid: number; refunded: number }, payment) => {
+        const amount = payment?.amount?.amount ?? 0;
+        if (payment.method === "refund") {
+          acc.refunded += Math.abs(amount);
+        } else if (payment.status === "completed") {
+          acc.paid += amount;
+        }
+        return acc;
+      },
+      { paid: 0, refunded: 0 },
+    );
+
+    const outstandingAmount = Math.max(
+      0,
+      invoice.totalAmount.amount - paymentStats.paid,
+    );
+    const status =
+      paymentStats.refunded > 0 ? "refunded" : invoice.status.value;
+
     return {
       invoiceId: invoice.id,
       patientId: invoice.patientId,
+      patientName: invoice.metadata?.patientName,
       invoiceNumber: invoice.invoiceNumber,
       appointmentId: invoice.metadata?.appointmentId,
       doctorName: invoice.metadata?.doctorName,
@@ -82,10 +106,10 @@ export class GetInvoiceUseCase extends BaseHealthcareUseCase<
       subtotal: invoice.subtotal.amount,
       tax: invoice.tax.amount,
       totalAmount: invoice.totalAmount.amount,
-      outstandingAmount: invoice.outstandingAmount.amount,
-      status: invoice.status.value,
+      outstandingAmount,
+      status,
       // REMOVED (Phase 1): insuranceCoverage, insurance
-      payments: invoice.payments.map((p) => ({
+      payments: payments.map((p) => ({
         id: p.id,
         amount: p.amount.amount,
         method: p.method,
@@ -94,6 +118,7 @@ export class GetInvoiceUseCase extends BaseHealthcareUseCase<
       })),
       createdAt: invoice.createdAt,
       updatedAt: invoice.updatedAt,
+      dueDate: invoice.dueDate,
     };
   }
 }

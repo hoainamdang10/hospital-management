@@ -64,6 +64,8 @@ export interface AppointmentListItemDTO {
     patient_id: string;
     patient_full_name?: string;
     patient_phone?: string;
+    patient_gender?: string;
+    patient_date_of_birth?: string;
     doctor_id: string;
     doctor_full_name?: string;
     doctor_specialization?: string;

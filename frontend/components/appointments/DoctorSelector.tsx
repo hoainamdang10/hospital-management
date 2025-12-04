@@ -76,46 +76,52 @@ export function DoctorSelector({
               : undefined;
 
           return (
-            <button
+            <div
               key={doctor.staffId}
               onClick={() => onSelect(doctor)}
-              className={`w-full rounded-xl border-2 p-5 text-left transition-all hover:shadow-md ${
-                isSelected
-                  ? 'border-primary bg-primary-50 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className={`group relative w-full rounded-2xl border-2 p-5 text-left transition-all duration-200 cursor-pointer ${isSelected
+                  ? 'border-blue-600 bg-blue-50/30 shadow-md ring-1 ring-blue-600'
+                  : 'border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-0.5 bg-white'
+                }`}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-5">
                 {/* Avatar */}
-                <div
-                  className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold ${
-                    isSelected ? 'bg-primary text-white' : 'bg-primary-100 text-primary-600'
-                  }`}
-                >
-                  {doctor.personalInfo?.fullName?.split(' ').pop()?.charAt(0) || 'BS'}
+                <div className="relative">
+                  <div
+                    className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-full text-2xl font-bold border-4 border-white shadow-sm ${isSelected ? 'bg-blue-600 text-white' : 'bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600'
+                      }`}
+                  >
+                    {doctor.personalInfo?.fullName?.split(' ').pop()?.charAt(0) || 'BS'}
+                  </div>
+                  {doctor.isActive && doctor.status === 'active' && (
+                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white bg-emerald-500" title="Đang hoạt động" />
+                  )}
                 </div>
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className={`text-lg font-bold mb-1 ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
                         {doctor.professionalInfo?.title
                           ? `${doctor.professionalInfo.title} `
                           : 'BS. '}
                         {doctor.personalInfo?.fullName || 'Chưa cập nhật'}
                       </h3>
-                      <div className="mt-1 space-y-0.5 text-sm text-gray-600">
+
+                      <div className="space-y-1">
                         {doctor.professionalInfo?.department && (
-                          <p>
-                            {translateValue(
-                              doctor.professionalInfo.department,
-                              DEPARTMENT_TRANSLATIONS
-                            )}
-                          </p>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs">
+                              {translateValue(
+                                doctor.professionalInfo.department,
+                                DEPARTMENT_TRANSLATIONS
+                              )}
+                            </span>
+                          </div>
                         )}
                         {specializationNames.length > 0 && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm text-gray-500">
                             {specializationNames.join(', ')}
                             {doctor.specializations && doctor.specializations.length > 2 ? '…' : ''}
                           </p>
@@ -123,42 +129,41 @@ export function DoctorSelector({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="text-primary-600 flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">4.8</span>
+                    <div className="flex items-center gap-2 text-sm shrink-0">
+                      <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        <span className="font-bold text-yellow-700">4.8</span>
                       </div>
-                      {doctor.isActive && doctor.status === 'active' && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          Đang nhận lịch
-                        </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-4">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                      {typeof experience === 'number' && (
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon className="h-4 w-4 text-gray-400" />
+                          <span>{experience} năm KN</span>
+                        </div>
+                      )}
+                      {fee && (
+                        <div className="font-semibold text-gray-900 bg-gray-50 px-2 py-1 rounded-md">
+                          {fee} ₫
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                    {typeof experience === 'number' && (
-                      <div className="flex items-center gap-1.5">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>{experience} năm kinh nghiệm</span>
-                      </div>
-                    )}
-                    {fee && <p className="mt-0.5 text-sm text-gray-600">Phí khám: {fee} ₫</p>}
-                    {doctor.licenseNumber && (
-                      <div className="text-xs">Số hành nghề: {doctor.licenseNumber}</div>
-                    )}
+                    <button
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isSelected
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
+                        }`}
+                    >
+                      {isSelected ? 'Đã chọn' : 'Chọn bác sĩ'}
+                    </button>
                   </div>
-
-                  {isSelected && (
-                    <div className="bg-primary mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white">
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                      Đã chọn
-                    </div>
-                  )}
                 </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

@@ -26,6 +26,12 @@ class CreateVnpayPaymentLinkUseCase extends base_healthcare_use_case_1.BaseHealt
         if (invoice.status.value === "paid") {
             throw new Error("Invoice is already paid");
         }
+        if (invoice.status.isExpired() || invoice.status.isOverdue()) {
+            throw new Error("Hóa đơn đã hết hạn thanh toán");
+        }
+        if (invoice.dueDate && invoice.dueDate.getTime() <= Date.now()) {
+            throw new Error("Hóa đơn đã hết hạn thanh toán");
+        }
         const orderCode = VnpayIntegrationService_1.VnpayIntegrationService.generateOrderCode();
         const paymentLink = await this.payosService.createPaymentLink({
             orderCode,

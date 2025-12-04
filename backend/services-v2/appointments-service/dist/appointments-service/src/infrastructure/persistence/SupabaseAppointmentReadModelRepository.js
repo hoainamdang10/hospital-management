@@ -191,6 +191,27 @@ class SupabaseAppointmentReadModelRepository {
         }
     }
     /**
+     * Update cancellation metadata
+     */
+    async updateCancellationDetails(appointmentId, cancelledAt, cancellationReason) {
+        const updates = {
+            synced_at: new Date().toISOString(),
+        };
+        if (cancelledAt) {
+            updates.cancelled_at = cancelledAt.toISOString();
+        }
+        if (typeof cancellationReason === "string") {
+            updates.cancellation_reason = cancellationReason;
+        }
+        const { error } = await this.client
+            .from(this.tableName)
+            .update(updates)
+            .eq("appointment_id", appointmentId);
+        if (error) {
+            throw new Error(`Failed to update cancellation metadata: ${error.message}`);
+        }
+    }
+    /**
      * Update appointment schedule (date/time/duration) after reschedule
      */
     async updateSchedule(appointmentId, appointmentDate, appointmentTime, durationMinutes, status) {

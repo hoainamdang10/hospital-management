@@ -133,18 +133,11 @@ export default function DoctorSchedulePage() {
   const [savingSchedule, setSavingSchedule] = useState(false);
 
   const weekDays = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
-  const timeSlots = [
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-  ];
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: 17 }, (_, i) => i + 7).map(
+      (h) => `${h.toString().padStart(2, '0')}:00`
+    );
+  }, []);
 
   // Calculate current week dates
   const getCurrentWeekDates = () => {
@@ -605,10 +598,10 @@ export default function DoctorSchedulePage() {
           transition={{ delay: 0.2 }}
           className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
         >
-          <div className="overflow-x-auto">
+          <div className="max-h-[800px] overflow-y-auto overflow-x-auto scrollbar-thin">
             <div className="min-w-[1000px]">
               {/* Header Row */}
-              <div className="grid grid-cols-8 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
+              <div className="sticky top-0 z-20 grid grid-cols-8 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50 shadow-sm">
                 <div className="border-r-2 border-gray-200 p-4 text-center">
                   <Clock className="mx-auto h-6 w-6 text-gray-600" />
                   <p className="mt-1 text-sm font-bold text-gray-700">Giờ</p>
@@ -673,6 +666,10 @@ export default function DoctorSchedulePage() {
                               <div className="flex items-start gap-2">
                                 <User className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                 <div className="flex-1 overflow-hidden">
+                                  <div className="mb-1 flex items-center gap-1 text-[10px] font-bold opacity-90">
+                                    <Clock className="h-3 w-3" />
+                                    {apt.appointmentTime.substring(0, 5)}
+                                  </div>
                                   <p className="truncate text-xs font-bold">{apt.patientName}</p>
                                   <p className="truncate text-xs opacity-80">{apt.reason}</p>
                                 </div>

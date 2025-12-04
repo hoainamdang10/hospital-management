@@ -67,6 +67,9 @@ export interface UseCaseContext {
     correlationId?: string;
     ipAddress?: string;
     userAgent?: string;
+    email?: string;
+    role?: string;
+    patientId?: string;
     timestamp: Date;
     permissions?: string[];
 }

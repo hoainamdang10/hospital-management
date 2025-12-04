@@ -12,15 +12,19 @@ class GetUserNotificationsUseCase {
     async execute(query) {
         const limit = query.limit && query.limit > 0 ? query.limit : 20;
         const offset = query.offset && query.offset >= 0 ? query.offset : 0;
+        const singleNotificationMode = Boolean(query.notificationId);
         if (!query.userId) {
             throw new Error("userId is required");
         }
         try {
             const criteria = {
                 recipientId: query.userId,
-                limit: limit + 1,
-                offset,
+                limit: singleNotificationMode ? 1 : limit + 1,
+                offset: singleNotificationMode ? 0 : offset,
             };
+            if (query.notificationId) {
+                criteria.notificationId = query.notificationId;
+            }
             if (query.status === "read") {
                 criteria.isRead = true;
             }
@@ -37,8 +41,12 @@ class GetUserNotificationsUseCase {
                 criteria.createdBefore = query.endDate;
             }
             const notifications = await this.notificationRepository.findByCriteria(criteria);
-            const hasMore = notifications.length > limit;
-            const results = notifications.slice(0, limit);
+            const hasMore = singleNotificationMode
+                ? false
+                : notifications.length > limit;
+            const results = singleNotificationMode
+                ? notifications
+                : notifications.slice(0, limit);
             const total = await this.notificationRepository.countByCriteria({
                 recipientId: query.userId,
                 isRead: query.status === "read"
@@ -67,6 +75,7 @@ class GetUserNotificationsUseCase {
     mapNotification(notification) {
         return {
             notificationId: notification.getId().value,
+            recipientId: notification.getRecipient().getRecipientId(),
             templateType: notification.templateType,
             subject: notification.getContent().getSubject() ?? "",
             body: notification.getContent().getBody(),

@@ -67,23 +67,55 @@ export declare class ConsultationFeeUpdatedEvent extends DomainEvent<{
     get effectiveDate(): Date;
 }
 /**
- * PaymentRefunded Event
- * Published when a payment is refunded
+ * PaymentRefundRequested Event
+ * Published when a refund is requested and needs gateway processing
  */
-export declare class PaymentRefundedEvent extends DomainEvent<{
+export declare class PaymentRefundRequestedEvent extends DomainEvent<{
     refundId: string;
-    paymentId: string;
+    originalPaymentId: string;
     invoiceId: string;
     staffId: string;
     patientId: string;
+    appointmentId?: string;
     refundAmount: number;
+    currency: string;
     reason: string;
     refundedBy: string;
+    originalPaymentMethod: string;
+    originalTransactionId?: string;
+    vnpayTxnRef?: string;
+    vnpayTransactionNo?: string;
+    vnpayPayDate?: string;
+}> {
+    constructor(refundId: string, originalPaymentId: string, invoiceId: string, staffId: string, patientId: string, refundAmount: number, currency: string, reason: string, refundedBy: string, originalPaymentMethod: string, originalTransactionId?: string, appointmentId?: string, vnpayTxnRef?: string, vnpayTransactionNo?: string, vnpayPayDate?: string, timestamp?: Date);
+    get refundId(): string;
+    get refundAmount(): number;
+    get currency(): string;
+}
+/**
+ * PaymentRefunded Event
+ * Published when a payment refund is completed (gateway confirmed)
+ */
+export declare class PaymentRefundedEvent extends DomainEvent<{
+    refundId: string;
+    originalPaymentId: string;
+    invoiceId: string;
+    staffId: string;
+    patientId: string;
+    appointmentId?: string;
+    refundAmount: number;
+    currency: string;
+    reason: string;
+    refundedBy: string;
+    gatewayRefundId?: string;
     refundedAt: Date;
 }> {
-    constructor(refundId: string, paymentId: string, invoiceId: string, staffId: string, patientId: string, refundAmount: number, reason: string, refundedBy: string, timestamp?: Date);
+    constructor(refundId: string, originalPaymentId: string, invoiceId: string, staffId: string, patientId: string, refundAmount: number, currency: string, reason: string, refundedBy: string, timestamp?: Date, appointmentId?: string, gatewayRefundId?: string);
     get refundId(): string;
     get staffId(): string;
     get refundAmount(): number;
+    get currency(): string;
+    get appointmentId(): string | undefined;
+    get gatewayRefundId(): string | undefined;
 }
 //# sourceMappingURL=billing.events.d.ts.map

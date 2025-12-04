@@ -10,6 +10,9 @@
 
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { IAppointmentReadModelRepository } from "../../../domain/repositories/IAppointmentReadModelRepository";
+import { Appointment } from "../../../domain/aggregates/Appointment.aggregate";
+import { AppointmentPaymentExpiredEvent } from "@shared/domain/events/domain-events";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
 import { createLogger } from "../../logging/Logger";
 
 const logger = createLogger("PaymentCompletedHandler");
@@ -32,7 +35,12 @@ export class PaymentCompletedHandler {
   constructor(
     private readonly appointmentRepository: IAppointmentRepository,
     private readonly appointmentReadModelRepository: IAppointmentReadModelRepository,
+    private eventBus?: IEventBus,
   ) {}
+
+  public setEventBus(eventBus: IEventBus): void {
+    this.eventBus = eventBus;
+  }
 
   /**
    * Handle payment completed event
@@ -75,38 +83,153 @@ export class PaymentCompletedHandler {
         return;
       }
 
-      // Check if appointment is in SCHEDULED or PENDING_PAYMENT status (Prepaid Model)
-      if (
-        appointment.status === "scheduled" ||
-        appointment.status === "pending_payment"
-      ) {
-        // Auto-confirm appointment after successful payment
-        appointment.confirm("system"); // System auto-confirmation
+      const paymentTimestamp = this.resolvePaymentTimestamp(data.processedAt);
+      const deadline = appointment.paymentDeadline;
 
-        // Mark appointment as paid (Flow 3 - Payment Tracking)
-        appointment.markAsPaid();
-
-        await this.appointmentRepository.save(appointment);
-        // Sync read model payment status (keep status aligned with write model)
-        await this.appointmentReadModelRepository.updatePaymentStatus(
+      if (this.isAlreadyPaidOrConfirmed(appointment)) {
+        logger.info(
+          `Appointment already processed for payment - skipping duplicate event. AppointmentId: ${data.appointmentId}, CurrentStatus: ${appointment.status}, PaymentStatus: ${appointment.paymentStatus}`,
+        );
+        await this.syncReadModelPaymentStatus(
           data.appointmentId,
-          "paid",
+          appointment.paymentStatus || "paid",
         );
-
-        logger.info(
-          `Appointment auto-confirmed and marked as paid. AppointmentId: ${data.appointmentId}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}, Status: ${appointment.status} → confirmed, PaymentStatus: pending → paid`,
-        );
-      } else {
-        // Appointment already confirmed or in different status
-        logger.info(
-          `Appointment not in valid status for auto-confirmation - skipping. AppointmentId: ${data.appointmentId}, CurrentStatus: ${appointment.status}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}`,
-        );
+        return;
       }
+
+      if (deadline && paymentTimestamp > deadline) {
+        await this.handleExpiredPayment(
+          appointment,
+          data,
+          deadline,
+          paymentTimestamp,
+        );
+        return;
+      }
+
+      try {
+        appointment.confirm("system");
+      } catch (error) {
+        if (error instanceof Error && this.isDeadlineError(error)) {
+          await this.handleExpiredPayment(
+            appointment,
+            data,
+            deadline,
+            paymentTimestamp,
+          );
+          return;
+        }
+        throw error;
+      }
+
+      appointment.markAsPaid();
+
+      await this.appointmentRepository.save(appointment);
+      await this.syncReadModelPaymentStatus(data.appointmentId, "paid");
+
+      logger.info(
+        `Appointment auto-confirmed and marked as paid. AppointmentId: ${data.appointmentId}, PaymentId: ${data.paymentId}, InvoiceId: ${data.invoiceId}, Status: ${appointment.status} → confirmed, PaymentStatus: pending → paid`,
+      );
     } catch (error) {
       logger.error(
         `Error handling payment completed event. AppointmentId: ${data.appointmentId}, InvoiceId: ${data.invoiceId}, PaymentId: ${data.paymentId}, Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
       throw error; // Re-throw to trigger retry mechanism
+    }
+  }
+
+  private isAlreadyPaidOrConfirmed(appointment: Appointment): boolean {
+    const alreadyPaid = appointment.paymentStatus === "paid";
+    const alreadyConfirmed =
+      appointment.status === "confirmed" || appointment.status === "completed";
+    return alreadyPaid || alreadyConfirmed;
+  }
+
+  private resolvePaymentTimestamp(value?: Date | string): Date {
+    if (!value) {
+      return new Date();
+    }
+    if (value instanceof Date) {
+      return value;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  private isDeadlineError(error: Error): boolean {
+    return error.message.includes("payment deadline has passed");
+  }
+
+  private async handleExpiredPayment(
+    appointment: Appointment,
+    data: PaymentCompletedEventData,
+    deadline: Date | undefined,
+    processedAt: Date,
+  ): Promise<void> {
+    logger.warn(
+      `Payment arrived after deadline. AppointmentId: ${data.appointmentId}, InvoiceId: ${data.invoiceId}, PaymentId: ${data.paymentId}, Deadline: ${deadline?.toISOString()}, ProcessedAt: ${processedAt.toISOString()}`,
+    );
+
+    await this.syncReadModelPaymentStatus(data.appointmentId!, "expired");
+    await this.publishPaymentExpiredEvent(
+      appointment,
+      data,
+      deadline,
+      processedAt,
+    );
+  }
+
+  private async syncReadModelPaymentStatus(
+    appointmentId: string,
+    status: string,
+  ): Promise<void> {
+    try {
+      await this.appointmentReadModelRepository.updatePaymentStatus(
+        appointmentId,
+        status,
+      );
+    } catch (error) {
+      logger.error(
+        `Failed to sync payment status for appointment ${appointmentId}`,
+        error as Error,
+      );
+    }
+  }
+
+  private async publishPaymentExpiredEvent(
+    appointment: Appointment,
+    data: PaymentCompletedEventData,
+    deadline: Date | undefined,
+    processedAt: Date,
+  ): Promise<void> {
+    if (!this.eventBus) {
+      logger.warn(
+        "Event bus not configured, cannot publish payment expired event",
+      );
+      return;
+    }
+
+    try {
+      const event = new AppointmentPaymentExpiredEvent(
+        data.appointmentId!,
+        appointment.patientId,
+        appointment.doctorId,
+        data.invoiceId,
+        data.paymentId,
+        data.amount,
+        data.currency,
+        processedAt,
+        deadline,
+      );
+      await this.eventBus.publish(event);
+      logger.info(
+        `Published appointment.payment.expired event for appointment ${data.appointmentId}`,
+      );
+    } catch (error) {
+      logger.error(
+        "Failed to publish AppointmentPaymentExpiredEvent",
+        error as Error,
+      );
     }
   }
 }

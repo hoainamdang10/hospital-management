@@ -63,7 +63,7 @@ export function DepartmentSelector({
           <h2 className="text-2xl font-bold text-gray-900">Chọn chuyên khoa</h2>
           <p className="text-gray-600">Vui lòng chọn chuyên khoa phù hợp với tình trạng sức khỏe của bạn</p>
         </div>
-        
+
         <div className="relative w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
@@ -75,55 +75,44 @@ export function DepartmentSelector({
           />
         </div>
       </div>
-      
+
       {filteredDepartments.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">Không tìm thấy khoa phù hợp với &quot;{searchTerm}&quot;</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDepartments.map((dept) => {
             const Icon = getDepartmentIcon(dept.code);
             const isSelected = selectedDepartment?.id === dept.id;
-            
+
             return (
               <button
                 key={dept.id}
                 onClick={() => onSelect(dept)}
-                className={`group relative w-full p-6 rounded-lg border-2 transition-all text-left ${
-                  isSelected
-                    ? 'border-blue-600 bg-blue-50 shadow-md'
-                    : 'border-gray-200 hover:border-blue-300 hover:shadow-sm bg-white'
-                }`}
+                className={`group relative flex flex-col items-center text-center p-6 rounded-2xl border-2 transition-all duration-200 ${isSelected
+                    ? 'border-blue-600 bg-blue-50/50 shadow-md scale-[1.02]'
+                    : 'border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-1 bg-white'
+                  }`}
               >
-                <div className="flex items-start space-x-4">
-                  <div className={`shrink-0 p-3 rounded-lg ${
-                    isSelected 
-                      ? 'bg-blue-100 text-blue-600' 
-                      : 'bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-blue-600'
-                  } transition-colors`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 mb-1 text-lg">
-                      {dept.nameVi}
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-2">
-                      {dept.nameEn}
-                    </p>
-                    {dept.description && (
-                      <p className="text-sm text-gray-500">
-                        {dept.description}
-                      </p>
-                    )}
-                  </div>
+                <div className={`mb-4 p-4 rounded-full transition-colors ${isSelected
+                    ? 'bg-blue-100 text-blue-600'
+                    : 'bg-gray-50 text-gray-500 group-hover:bg-blue-50 group-hover:text-blue-600'
+                  }`}>
+                  <Icon className="h-8 w-8" />
                 </div>
-                
+
+                <h3 className={`font-bold text-lg mb-1 ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+                  {dept.nameVi}
+                </h3>
+                <p className="text-sm text-gray-500 mb-2 font-medium">
+                  {dept.nameEn}
+                </p>
+
                 {isSelected && (
-                  <div className="absolute top-6 right-6">
-                    <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                      <Check className="h-4 w-4 text-white" />
+                  <div className="absolute top-4 right-4">
+                    <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                      <Check className="h-3.5 w-3.5 text-white" />
                     </div>
                   </div>
                 )}

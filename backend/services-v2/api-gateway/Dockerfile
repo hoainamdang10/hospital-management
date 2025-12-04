@@ -107,9 +107,9 @@ ENV NODE_ENV=production \
     SERVICE_NAME=api-gateway \
     SERVICE_VERSION=2.0.0
 
-# Health check
+# Health check (use readiness endpoint so gateway can start even if downstream services are booting)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3101/health', (res) => { \
+  CMD node -e "require('http').get('http://localhost:3101/health/ready', (res) => { \
   if (res.statusCode === 200) process.exit(0); else process.exit(1); \
   }).on('error', () => process.exit(1))"
 

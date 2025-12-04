@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
 import { GetNotificationsByRecipientUseCase } from "../../application/use-cases/GetNotificationsByRecipientUseCase";
 import { GetUserNotificationsUseCase } from "../../application/use-cases/GetUserNotificationsUseCase";
-import { MarkNotificationAsReadUseCase } from "../../application/use-cases/MarkNotificationAsReadUseCase";
+import {
+  MarkNotificationAsReadUseCase,
+  NotificationAccessDeniedError,
+  NotificationNotFoundError,
+} from "../../application/use-cases/MarkNotificationAsReadUseCase";
 import { GetUnreadNotificationsCountUseCase } from "../../application/use-cases/GetUnreadNotificationsCountUseCase";
 
 export class NotificationController {
@@ -72,6 +76,7 @@ export class NotificationController {
         priority,
         startDate,
         endDate,
+        notificationId,
       } = req.query;
 
       const result = await this.getUserNotificationsUseCase.execute({
@@ -82,6 +87,8 @@ export class NotificationController {
         priority: priority as any,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
+        notificationId:
+          typeof notificationId === "string" ? notificationId : undefined,
       });
 
       res.json({
@@ -151,6 +158,20 @@ export class NotificationController {
       });
     } catch (error) {
       console.error("Error marking notification as read:", error);
+      if (error instanceof NotificationNotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: "Notification not found",
+        });
+        return;
+      }
+      if (error instanceof NotificationAccessDeniedError) {
+        res.status(403).json({
+          success: false,
+          message: "You are not allowed to update this notification",
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: "Failed to update notification status",

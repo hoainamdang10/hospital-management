@@ -34,6 +34,10 @@ export declare class SupabaseAppointmentReadModelRepository implements IAppointm
      */
     updatePaymentStatus(appointmentId: string, paymentStatus: string): Promise<void>;
     /**
+     * Update cancellation metadata
+     */
+    updateCancellationDetails(appointmentId: string, cancelledAt?: Date, cancellationReason?: string): Promise<void>;
+    /**
      * Update appointment schedule (date/time/duration) after reschedule
      */
     updateSchedule(appointmentId: string, appointmentDate: Date, appointmentTime: string, durationMinutes: number, status?: string): Promise<void>;

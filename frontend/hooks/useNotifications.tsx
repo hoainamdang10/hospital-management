@@ -10,10 +10,12 @@ import {
   type ReactNode,
 } from 'react';
 import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
 
 import {
   getUserNotifications,
   markNotificationAsRead,
+  getUnreadNotificationsCount,
   type NotificationStatusFilter,
   type UserNotification,
 } from '@/lib/api/notifications.service';
@@ -36,6 +38,7 @@ interface UseNotificationsState {
 type NotificationContextValue = UseNotificationsState;
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
+const POLLING_INTERVAL_MS = 60_000; // fallback poll khi chưa có realtime
 
 const buildUnreadCacheKey = (recipientId: string) => `hmv2:notifications:unread:${recipientId}`;
 
@@ -59,15 +62,23 @@ function useProvideNotifications(): NotificationContextValue {
   const { patient, patientId, internalId } = usePatient();
 
   const recipientIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (internalId) ids.add(internalId);
-    if (patient?.id) ids.add(patient.id);
-    if (patientId) ids.add(patientId);
-    if (user?.patientId) ids.add(user.patientId);
-    if (user?.userId) ids.add(user.userId);
-    if (user?.id) ids.add(user.id);
-    return Array.from(ids);
-  }, [internalId, patient?.id, patientId, user?.patientId, user?.userId, user?.id]);
+    const role = user?.role?.toUpperCase();
+    const prioritized: string[] = [];
+
+    if (role === 'PATIENT') {
+      if (user?.patientId) prioritized.push(user.patientId);
+      if (patient?.id) prioritized.push(patient.id);
+      if (patientId) prioritized.push(patientId);
+      if (internalId) prioritized.push(internalId);
+    } else {
+      if (user?.userId) prioritized.push(user.userId);
+      if (user?.id) prioritized.push(user.id);
+      if (internalId) prioritized.push(internalId);
+    }
+
+    const unique = Array.from(new Set(prioritized.filter(Boolean)));
+    return unique.length > 0 ? [unique[0]] : [];
+  }, [internalId, patient?.id, patientId, user?.patientId, user?.userId, user?.id, user?.role]);
 
   const primaryRecipientId = recipientIds[0] || null;
 
@@ -76,6 +87,10 @@ function useProvideNotifications(): NotificationContextValue {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<NotificationStatusFilter>('all');
+  const [isPollingEnabled, setIsPollingEnabled] = useState(true);
+
+  const supportsRealtime =
+    typeof window !== 'undefined' && isSupabaseConfigured() && Boolean(supabase);
 
   const persistUnreadCount = useCallback(
     (value: number) => {
@@ -108,8 +123,27 @@ function useProvideNotifications(): NotificationContextValue {
     }
   }, [primaryRecipientId]);
 
+  const fetchUnreadCount = useCallback(async () => {
+    if (!primaryRecipientId) {
+      setUnreadCount(0);
+      persistUnreadCount(0);
+      return;
+    }
+    try {
+      const response = await getUnreadNotificationsCount(primaryRecipientId);
+      const total =
+        response.success && typeof response.data.unreadCount === 'number'
+          ? response.data.unreadCount
+          : 0;
+      setUnreadCount(total);
+      persistUnreadCount(total);
+    } catch (error) {
+      console.error('[useNotifications] Failed to fetch unread summary:', error);
+    }
+  }, [primaryRecipientId, persistUnreadCount]);
+
   const fetchNotifications = useCallback(async () => {
-    if (!recipientIds.length) {
+    if (!primaryRecipientId) {
       setNotifications([]);
       setUnreadCount(0);
       setIsLoading(false);
@@ -122,34 +156,32 @@ function useProvideNotifications(): NotificationContextValue {
 
       const mergedMap = new Map<string, UserNotification & { recipientKey?: string }>();
 
-      await Promise.all(
-        recipientIds.map(async (id) => {
-          try {
-            const response = await getUserNotifications(id, {
-              limit: 20,
-              status: filter,
-            });
+      try {
+        const response = await getUserNotifications(primaryRecipientId, {
+          limit: 20,
+          status: filter,
+        });
 
-            if (response.success) {
-              response.data.notifications.forEach((notification) => {
-                const existing = mergedMap.get(notification.notificationId);
-                if (
-                  !existing ||
-                  new Date(notification.createdAt).getTime() >
-                    new Date(existing.createdAt).getTime()
-                ) {
-                  mergedMap.set(notification.notificationId, {
-                    ...notification,
-                    recipientKey: id,
-                  });
-                }
+        if (response.success) {
+          response.data.notifications.forEach((notification) => {
+            const existing = mergedMap.get(notification.notificationId);
+            if (
+              !existing ||
+              new Date(notification.createdAt).getTime() > new Date(existing.createdAt).getTime()
+            ) {
+              mergedMap.set(notification.notificationId, {
+                ...notification,
+                recipientKey: notification.recipientId || primaryRecipientId,
               });
             }
-          } catch (err) {
-            console.error(`[useNotifications] Failed to fetch notifications for ${id}:`, err);
-          }
-        })
-      );
+          });
+        }
+      } catch (err) {
+        console.error(
+          `[useNotifications] Failed to fetch notifications for ${primaryRecipientId}:`,
+          err
+        );
+      }
 
       const mergedNotifications = Array.from(mergedMap.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -161,67 +193,86 @@ function useProvideNotifications(): NotificationContextValue {
       setNotifications(mergedNotifications);
       setUnreadCount(combinedUnread);
       persistUnreadCount(combinedUnread);
+      fetchUnreadCount();
     } catch (err) {
       console.error('[useNotifications] Failed to fetch notifications:', err);
       setError('Không thể tải thông báo');
     } finally {
       setIsLoading(false);
     }
-  }, [recipientIds, filter, persistUnreadCount]);
+  }, [primaryRecipientId, filter, persistUnreadCount, fetchUnreadCount]);
 
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
 
   useEffect(() => {
-    if (
-      !recipientIds.length ||
-      !isSupabaseConfigured() ||
-      typeof window === 'undefined' ||
-      !supabase
-    ) {
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!primaryRecipientId || !isPollingEnabled || typeof window === 'undefined') {
+      return undefined;
+    }
+    const intervalId = window.setInterval(() => {
+      fetchUnreadCount();
+    }, POLLING_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [primaryRecipientId, fetchUnreadCount, isPollingEnabled]);
+
+  useEffect(() => {
+    if (!primaryRecipientId || !supportsRealtime || !supabase) {
+      setIsPollingEnabled(true);
       return undefined;
     }
 
-    const channels = recipientIds.map((id) =>
-      supabase
-        .channel(`notifications:${id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'notifications_schema',
-            table: 'notifications',
-            filter: `recipient_id=eq.${id}`,
-          },
-          (payload) => {
-            const subject = payload.new?.subject || 'Thông báo mới';
-            const body = getPlainText(payload.new?.body);
-            toast.info(subject, {
-              description: body ? body.substring(0, 120) : undefined,
-            });
-            fetchNotifications();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'notifications_schema',
-            table: 'notifications',
-            filter: `recipient_id=eq.${id}`,
-          },
-          () => {
-            fetchNotifications();
-          }
-        )
-        .subscribe()
-    );
+    const channel = supabase
+      .channel(`notifications:${primaryRecipientId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'notifications_schema',
+          table: 'notifications',
+          filter: `recipient_id=eq.${primaryRecipientId}`,
+        },
+        (payload) => {
+          const subject = payload.new?.subject || 'Thông báo mới';
+          const body = getPlainText(payload.new?.body);
+          toast.info(subject, {
+            description: body ? body.substring(0, 120) : undefined,
+          });
+          fetchNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'notifications_schema',
+          table: 'notifications',
+          filter: `recipient_id=eq.${primaryRecipientId}`,
+        },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsPollingEnabled(false);
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setIsPollingEnabled(true);
+        }
+      });
 
     return () => {
-      channels.forEach((channel) => supabase?.removeChannel(channel));
+      supabase?.removeChannel(channel);
+      if (supportsRealtime) {
+        setIsPollingEnabled(true);
+      }
     };
-  }, [recipientIds, fetchNotifications]);
+  }, [primaryRecipientId, fetchNotifications, supportsRealtime]);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
@@ -236,7 +287,11 @@ function useProvideNotifications(): NotificationContextValue {
 
       try {
         const recipientForNotification = (target as any).recipientKey || primaryRecipientId;
-        await markNotificationAsRead(notificationId, recipientForNotification, true);
+        await markNotificationAsRead(
+          notificationId,
+          target.recipientId || recipientForNotification,
+          true
+        );
         setNotifications((prev) => {
           const updated = prev.map((notification) =>
             notification.notificationId === notificationId
@@ -257,6 +312,27 @@ function useProvideNotifications(): NotificationContextValue {
           return next;
         });
       } catch (err) {
+        if (isAxiosError(err) && err.response) {
+          const status = err.response.status;
+          if (status === 404 || status === 403) {
+            setNotifications((prev) =>
+              prev.filter((notification) => notification.notificationId !== notificationId)
+            );
+            if (!target.readAt) {
+              setUnreadCount((prev) => {
+                const next = Math.max(0, prev - 1);
+                persistUnreadCount(next);
+                return next;
+              });
+            }
+            toast.info(
+              status === 403
+                ? 'Thông báo này thuộc hồ sơ khác nên đã bị ẩn khỏi danh sách của bạn.'
+                : 'Thông báo này không còn tồn tại.'
+            );
+            return;
+          }
+        }
         console.error('[useNotifications] Failed to mark as read:', err);
         toast.error('Không thể đánh dấu thông báo đã đọc');
       }
@@ -270,33 +346,58 @@ function useProvideNotifications(): NotificationContextValue {
     if (unread.length === 0) return;
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         unread.map((notification) =>
           markNotificationAsRead(
             notification.notificationId,
-            (notification as any).recipientKey || primaryRecipientId,
+            notification.recipientId || (notification as any).recipientKey || primaryRecipientId,
             true
           )
         )
       );
+
+      const succeededIds = new Set(
+        results
+          .map((result, index) =>
+            result.status === 'fulfilled' ? unread[index].notificationId : null
+          )
+          .filter((value): value is string => Boolean(value))
+      );
+
+      if (succeededIds.size === 0) {
+        throw new Error('No notifications were updated');
+      }
+
       setNotifications((prev) => {
-        const updated = prev.map((notification) =>
-          notification.readAt
-            ? notification
-            : {
-                ...notification,
-                readAt: new Date().toISOString(),
-              }
-        );
-        return filter === 'unread' ? [] : updated;
+        const updated = prev
+          .map((notification) =>
+            succeededIds.has(notification.notificationId)
+              ? { ...notification, readAt: new Date().toISOString() }
+              : notification
+          )
+          .filter((notification) =>
+            filter === 'unread' ? !succeededIds.has(notification.notificationId) : true
+          );
+        return updated;
       });
-      setUnreadCount(0);
-      persistUnreadCount(0);
+
+      setUnreadCount((prev) => {
+        const next = Math.max(0, prev - succeededIds.size);
+        persistUnreadCount(next);
+        return next;
+      });
+
+      // Force sync with server to ensure badge + list reflect the latest state (avoid stale cache)
+      await fetchUnreadCount();
+
+      if (succeededIds.size < unread.length) {
+        toast.info(`Đã đánh dấu ${succeededIds.size}/${unread.length} thông báo`);
+      }
     } catch (err) {
       console.error('[useNotifications] Failed to mark all as read:', err);
       toast.error('Không thể đánh dấu tất cả thông báo');
     }
-  }, [notifications, primaryRecipientId, persistUnreadCount, filter]);
+  }, [notifications, primaryRecipientId, persistUnreadCount, filter, fetchUnreadCount]);
 
   return {
     notifications,

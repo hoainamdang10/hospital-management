@@ -7,6 +7,7 @@ export interface GetInvoiceRequest {
 export interface GetInvoiceResponse {
     invoiceId: string;
     patientId: string;
+    patientName?: string;
     invoiceNumber?: string;
     appointmentId?: string;
     doctorName?: string;
@@ -34,6 +35,7 @@ export interface GetInvoiceResponse {
     }>;
     createdAt: Date;
     updatedAt: Date;
+    dueDate: Date;
 }
 export declare class GetInvoiceUseCase extends BaseHealthcareUseCase<GetInvoiceRequest, GetInvoiceResponse> {
     private readonly invoiceRepository;

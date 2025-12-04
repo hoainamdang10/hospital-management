@@ -32,37 +32,37 @@ const MOCK_ACTIVITIES: Activity[] = [
   {
     id: '1',
     type: 'discharge',
-    title: 'Ban da xuat vien tu Phong 205',
-    description: 'sau khi dieu tri thanh cong',
-    time: '08:30 AM',
+    title: 'Bạn đã xuất viện từ Phòng 205',
+    description: 'Sau khi điều trị thành công',
+    time: '08:30',
   },
   {
     id: '2',
     type: 'appointment',
-    title: 'Lich hen kham voi BS. Nguyen Van A',
-    description: 'Da duoc xac nhan cho ngay mai',
-    time: '09:15 AM',
+    title: 'Lịch hẹn khám với BS. Nguyễn Văn A',
+    description: 'Đã được xác nhận cho ngày mai',
+    time: '09:15',
   },
   {
     id: '3',
     type: 'test_result',
-    title: 'Ket qua xet nghiem mau da san sang',
-    description: 'vui long xem trong ho so benh an',
-    time: '10:00 AM',
+    title: 'Kết quả xét nghiệm máu đã sẵn sàng',
+    description: 'Vui lòng xem trong hồ sơ bệnh án',
+    time: '10:00',
   },
   {
     id: '4',
     type: 'medication',
-    title: 'Don thuoc moi da duoc ke',
-    description: 'boi BS. Tran Thi B',
-    time: '11:30 AM',
+    title: 'Đơn thuốc mới đã được kê',
+    description: 'Bởi BS. Trần Thị B',
+    time: '11:30',
   },
   {
     id: '5',
     type: 'payment',
-    title: 'Hoa don thanh toan da duoc tao',
-    description: 'Tong so tien: 1.500.000 VND',
-    time: '01:15 PM',
+    title: 'Hóa đơn thanh toán đã được tạo',
+    description: 'Tổng số tiền: 1.500.000 đ',
+    time: '13:15',
   },
 ];
 
@@ -117,7 +117,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
     return (
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Hoat dong gan day</h2>
+          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
         </div>
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
@@ -187,7 +187,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
           <div className="rounded-xl bg-purple-100 p-2">
             <ActivityIcon className="h-6 w-6 text-purple-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Hoat dong gan day</h2>
+          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
         </div>
         <button
           className="rounded-lg p-2 transition-colors hover:bg-gray-100"
@@ -197,7 +197,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
         </button>
       </div>
 
-      <div className="space-y-0">
+      <div className="space-y-4">
         {activitiesToShow.map((activity, index) => {
           const Icon = getActivityIcon(activity.type);
           const isLast = index === activitiesToShow.length - 1;
@@ -235,7 +235,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
           href="/dashboard/notifications"
           className="text-sm font-semibold text-blue-600 hover:underline"
         >
-          Xem tat ca thong bao
+          Xem tất cả thông báo
         </Link>
       </div>
     </div>

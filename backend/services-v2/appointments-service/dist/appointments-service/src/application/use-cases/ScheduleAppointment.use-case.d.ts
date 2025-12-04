@@ -7,13 +7,13 @@
  * @version 3.0.0
  * @compliance Clean Architecture, DDD, CQRS, HIPAA, Vietnamese Healthcare Standards
  */
-import { BaseHealthcareUseCase } from '../../../../shared/application/use-cases/base/use-case.interface';
-import { AppointmentType, AppointmentPriority } from '../../domain/aggregates/Appointment.aggregate';
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { IConflictResolutionService, TimeSlotSuggestion } from '../services/IConflictResolutionService';
-import { IAuthorizationService } from '../services/IAuthorizationService';
-import { IReminderService } from '../services/IReminderService';
-import { BillingServiceClient } from '../../infrastructure/clients/BillingServiceClient';
+import { BaseHealthcareUseCase } from "../../../../shared/application/use-cases/base/use-case.interface";
+import { AppointmentType, AppointmentPriority } from "../../domain/aggregates/Appointment.aggregate";
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import { IConflictResolutionService, TimeSlotSuggestion } from "../services/IConflictResolutionService";
+import { IAuthorizationService } from "../services/IAuthorizationService";
+import { IReminderService } from "../services/IReminderService";
+import { BillingServiceClient } from "../../infrastructure/clients/BillingServiceClient";
 export interface ScheduleAppointmentRequest {
     tenantId?: string;
     patientId: string;

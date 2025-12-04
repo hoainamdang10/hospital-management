@@ -39,6 +39,7 @@ export interface AppointmentScheduledEventData {
   patientId: string;
   patientRecordId?: string | null;
   patientCode?: string | null;
+  patientName?: string;
   staffId: string | null;
   departmentId: string | null;
   doctorName?: string;
@@ -79,6 +80,15 @@ export interface AppointmentNoShowEventData {
   noShowFeeApplied: boolean;
   noShowFeeAmount: number;
   noShowCount: number;
+}
+
+export interface AppointmentPaymentExpiredEventData {
+  appointmentId: string;
+  patientId: string;
+  invoiceId?: string;
+  paymentId?: string;
+  amount?: number;
+  reason?: string;
 }
 
 export interface AppointmentCancelledRefundEventData {
@@ -289,6 +299,17 @@ export class AppointmentEventConsumer {
             ),
           );
           break;
+        case "appointment.payment.expired":
+        case "appointments.payment.expired":
+        case "AppointmentPaymentExpired":
+        case "AppointmentPaymentExpiredEvent":
+          await this.handleAppointmentPaymentExpired(
+            this.buildAppointmentPaymentExpiredPayload(
+              normalizedPayload,
+              rawEvent,
+            ),
+          );
+          break;
 
         default:
           this.loggerInstance.warn("Unhandled routing key", { routingKey });
@@ -355,6 +376,11 @@ export class AppointmentEventConsumer {
         common.patientId || common.patientRecordId || common.patientCode || "",
       patientRecordId: common.patientRecordId,
       patientCode: common.patientCode,
+      patientName:
+        payload?.patientName ||
+        payload?.patient_name ||
+        payload?.patient?.fullName ||
+        payload?.patient?.name,
       staffId: common.staffId,
       departmentId: common.departmentId,
       scheduledAt: common.scheduledAt,
@@ -422,6 +448,22 @@ export class AppointmentEventConsumer {
       noShowFeeApplied: this.toBoolean(payload?.noShowFeeApplied),
       noShowFeeAmount: this.toNumber(payload?.noShowFeeAmount),
       noShowCount: this.toNumber(payload?.noShowCount),
+    };
+  }
+
+  private buildAppointmentPaymentExpiredPayload(
+    payload: any,
+    rawEvent: any,
+  ): AppointmentPaymentExpiredEventData {
+    const common = this.extractCommonAppointmentFields(payload, rawEvent);
+    return {
+      appointmentId: common.appointmentId,
+      patientId:
+        common.patientId || common.patientRecordId || common.patientCode || "",
+      invoiceId: payload?.invoiceId || payload?.invoice_id,
+      paymentId: payload?.paymentId || payload?.payment_id,
+      amount: this.toNumber(payload?.amount),
+      reason: payload?.reason || "Payment deadline exceeded",
     };
   }
 
@@ -749,6 +791,7 @@ export class AppointmentEventConsumer {
       const enrichedData = await this.enrichDoctorInfo({
         ...data,
         staffId: staffUuid || data.staffId,
+        patientName: patient.fullName,
       });
 
       this.loggerInstance.info(
@@ -779,6 +822,7 @@ export class AppointmentEventConsumer {
         appointmentDateLocal: enrichedData.appointmentDateLocal,
         appointmentTimeLocal: enrichedData.appointmentTimeLocal,
         insuranceInfo: patient.insuranceInfo,
+        patientName: patient.fullName,
       });
 
       this.loggerInstance.info(
@@ -961,6 +1005,59 @@ export class AppointmentEventConsumer {
         appointmentId: data.appointmentId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
+      throw error;
+    }
+  }
+
+  private async handleAppointmentPaymentExpired(
+    data: AppointmentPaymentExpiredEventData,
+  ): Promise<void> {
+    if (!this.refundPaymentUseCase) {
+      this.loggerInstance.warn(
+        "Refund use case not configured, cannot auto-refund expired payment",
+      );
+      return;
+    }
+
+    if (!data.appointmentId || !data.patientId) {
+      this.loggerInstance.warn(
+        "Invalid appointment.payment.expired payload",
+        data,
+      );
+      return;
+    }
+
+    try {
+      const result = await this.refundPaymentUseCase.execute({
+        appointmentId: data.appointmentId,
+        patientId: data.patientId,
+        refundPercentage: 100,
+        reason: data.reason || "Payment deadline exceeded",
+        refundedBy: "system",
+      });
+
+      if (!result?.success) {
+        this.loggerInstance.warn(
+          "Refund use case returned unsuccessful result for expired payment",
+          {
+            appointmentId: data.appointmentId,
+            errors: result?.errors,
+          },
+        );
+      } else {
+        this.loggerInstance.info("Auto refund requested for expired payment", {
+          appointmentId: data.appointmentId,
+          refundId: result.refundId,
+        });
+      }
+    } catch (error) {
+      this.loggerInstance.error(
+        "Failed to process appointment.payment.expired event",
+        {
+          appointmentId: data.appointmentId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
       throw error;
     }
   }

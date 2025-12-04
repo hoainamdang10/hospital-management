@@ -428,6 +428,9 @@ export class DIContainer {
     // Configure application-level publishers
     this.appEventPublisher = new EventBusPublisher(eventBus);
     this.reschedulingService.setEventPublisher(this.appEventPublisher);
+    if (this.paymentCompletedHandler) {
+      this.paymentCompletedHandler.setEventBus(eventBus);
+    }
 
     console.log("[DI] ✅ Event publisher initialized and wired to repository");
   }
@@ -810,6 +813,7 @@ export class DIContainer {
           "billing.pre-authorization.*",
           "billing.rate.updated",
           "billing.insurance.verified",
+          "billing.invoice.expired",
         ],
       },
       this.appointmentRepository,

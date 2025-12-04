@@ -14,9 +14,23 @@ class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase
         if (!invoice) {
             throw new Error("Invoice not found");
         }
+        const payments = Array.isArray(invoice.payments) ? invoice.payments : [];
+        const paymentStats = payments.reduce((acc, payment) => {
+            const amount = payment?.amount?.amount ?? 0;
+            if (payment.method === "refund") {
+                acc.refunded += Math.abs(amount);
+            }
+            else if (payment.status === "completed") {
+                acc.paid += amount;
+            }
+            return acc;
+        }, { paid: 0, refunded: 0 });
+        const outstandingAmount = Math.max(0, invoice.totalAmount.amount - paymentStats.paid);
+        const status = paymentStats.refunded > 0 ? "refunded" : invoice.status.value;
         return {
             invoiceId: invoice.id,
             patientId: invoice.patientId,
+            patientName: invoice.metadata?.patientName,
             invoiceNumber: invoice.invoiceNumber,
             appointmentId: invoice.metadata?.appointmentId,
             doctorName: invoice.metadata?.doctorName,
@@ -33,10 +47,10 @@ class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase
             subtotal: invoice.subtotal.amount,
             tax: invoice.tax.amount,
             totalAmount: invoice.totalAmount.amount,
-            outstandingAmount: invoice.outstandingAmount.amount,
-            status: invoice.status.value,
+            outstandingAmount,
+            status,
             // REMOVED (Phase 1): insuranceCoverage, insurance
-            payments: invoice.payments.map((p) => ({
+            payments: payments.map((p) => ({
                 id: p.id,
                 amount: p.amount.amount,
                 method: p.method,
@@ -45,6 +59,7 @@ class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase
             })),
             createdAt: invoice.createdAt,
             updatedAt: invoice.updatedAt,
+            dueDate: invoice.dueDate,
         };
     }
 }

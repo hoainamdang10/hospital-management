@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Shield, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Shield, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InsuranceInfo } from '@/lib/types/profile';
 import { format, parseISO, isAfter, isValid } from 'date-fns';
@@ -18,11 +18,6 @@ const coverageOptions = [
   { value: 'private', label: 'Bảo hiểm tư nhân' },
   { value: 'self_pay', label: 'Tự chi trả' },
 ];
-
-const coverageLabels = coverageOptions.reduce<Record<string, string>>((acc, option) => {
-  acc[option.value] = option.label;
-  return acc;
-}, {});
 
 const defaultInsurance: InsuranceInfo = {
   provider: '',
@@ -47,6 +42,8 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<InsuranceInfo>(insurance || defaultInsurance);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
   const requiresBhytNumber = useMemo(
     () => ['BHYT', 'BHTN'].includes(formData.coverageType),
     [formData.coverageType]
@@ -59,6 +56,14 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
   const isActive =
     insurance?.isActive ??
     (insurance?.validTo ? isAfter(parseISO(insurance.validTo), new Date()) : false);
+
+  const coverageLabels: Record<string, string> = {
+    BHYT: 'BHYT - Bảo hiểm y tế bắt buộc',
+    BHTN: 'BHTN - Bảo hiểm thất nghiệp',
+    private: 'Bảo hiểm tư nhân',
+    self_pay: 'Tự chi trả',
+  };
+
   const coverageDisplay =
     coverageLabels[insurance?.coverageType || ''] || insurance?.coverageType || '-';
 
@@ -66,8 +71,32 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
     e.preventDefault();
     setSaving(true);
     try {
+      const newErrors: { [key: string]: string } = {};
+      if (!formData.provider) {
+        newErrors.provider = 'Nhà cung cấp không được để trống';
+      }
+      if (!formData.policyNumber) {
+        newErrors.policyNumber = 'Số thẻ bảo hiểm không được để trống';
+      }
+      if (requiresBhytNumber && !formData.bhytNumber) {
+        newErrors.bhytNumber = 'Mã BHYT không được để trống';
+      }
+      if (!formData.validFrom) {
+        newErrors.validFrom = 'Ngày bắt đầu không được để trống';
+      }
+      if (!formData.validTo) {
+        newErrors.validTo = 'Ngày hết hạn không được để trống';
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setSaving(false);
+        return;
+      }
+
       await onUpdate(formData);
       setIsEditing(false);
+      setErrors({}); // Clear errors on successful save
     } catch (error) {
       console.error('Error updating insurance:', error);
     } finally {
@@ -75,112 +104,153 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
     }
   }
 
+  function handleChange(field: keyof InsuranceInfo, value: any) {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' })); // Clear error for the changed field
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Bảo hiểm y tế</h3>
-          <p className="text-sm text-gray-500 mt-1">Thông tin bảo hiểm y tế của bạn</p>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Bảo hiểm y tế</h3>
+            <p className="text-sm text-gray-500">Thông tin bảo hiểm và quyền lợi</p>
+          </div>
+          {!isEditing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="gap-2"
+            >
+              Chỉnh sửa
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFormData(insurance || defaultInsurance);
+                  setIsEditing(false);
+                  setErrors({});
+                }}
+                disabled={saving}
+              >
+                Hủy
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSubmit}
+                disabled={saving || Object.values(errors).some(Boolean)}
+              >
+                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          )}
         </div>
-        {!isEditing && (
-          <Button onClick={() => setIsEditing(true)} variant="outline">
-            {insurance ? 'Chỉnh sửa' : 'Thêm bảo hiểm'}
-          </Button>
-        )}
-      </div>
 
-      {insurance && !isEditing && (
-        <div
-          className={`rounded-xl border-2 p-4 ${
-            isActive ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            {isActive ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-red-600" />
-            )}
+        {!isEditing && insurance && (
+          <div
+            className={`mb-6 flex items-center gap-3 rounded-xl border p-4 ${isActive ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+              }`}
+          >
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-full ${isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                }`}
+            >
+              <Shield className="h-5 w-5" />
+            </div>
             <div>
-              <p className={`font-semibold ${isActive ? 'text-green-900' : 'text-red-900'}`}>
-                {isActive ? 'Bảo hiểm đang hoạt động' : 'Bảo hiểm đã hết hạn'}
+              <p
+                className={`font-semibold ${isActive ? 'text-green-700' : 'text-red-700'
+                  }`}
+              >
+                {isActive ? 'Đang có hiệu lực' : 'Hết hiệu lực / Chưa kích hoạt'}
               </p>
-              <p className={`text-sm ${isActive ? 'text-green-700' : 'text-red-700'}`}>
+              <p className={`text-sm ${isActive ? 'text-green-600' : 'text-red-600'}`}>
                 {isActive
-                  ? `Có hiệu lực đến ${formatDate(insurance.validTo)}`
-                  : `Đã hết hạn từ ${formatDate(insurance.validTo)}`}
+                  ? 'Bạn được hưởng đầy đủ quyền lợi bảo hiểm.'
+                  : 'Vui lòng kiểm tra lại thời hạn hoặc gia hạn bảo hiểm.'}
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl border p-6 space-y-4">
-          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            Thông tin bảo hiểm
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nhà cung cấp</label>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Nhà cung cấp
+              </label>
               {isEditing ? (
-                <input
-                  type="text"
-                  value={formData.provider}
-                  onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="VD: Bảo hiểm xã hội Việt Nam"
-                  required
-                />
+                <div>
+                  <input
+                    type="text"
+                    value={formData.provider}
+                    onChange={(e) => handleChange('provider', e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Ví dụ: Bảo hiểm xã hội Việt Nam"
+                  />
+                  {errors.provider && <p className="text-xs text-red-500">{errors.provider}</p>}
+                </div>
               ) : (
-                <p className="text-gray-900 py-2">{insurance?.provider || '-'}</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {insurance?.provider || '—'}
+                </p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
                 Số thẻ bảo hiểm
+              </label>
+              {isEditing ? (
+                <div>
+                  <input
+                    type="text"
+                    value={formData.policyNumber}
+                    onChange={(e) => handleChange('policyNumber', e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="DN479..."
+                  />
+                  {errors.policyNumber && (
+                    <p className="text-xs text-red-500">{errors.policyNumber}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="font-mono text-base font-semibold text-gray-900">
+                  {insurance?.policyNumber || '—'}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Mã nhóm (tùy chọn)
               </label>
               {isEditing ? (
                 <input
                   type="text"
-                  value={formData.policyNumber}
-                  onChange={(e) => setFormData({ ...formData, policyNumber: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="VD: DN1234567890123"
-                  required
-                />
-              ) : (
-                <p className="text-gray-900 py-2 font-mono">{insurance?.policyNumber || '-'}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mã nhóm (tùy chọn)</label>
-              {isEditing ? (
-                <input
-                  type="text"
                   value={formData.groupNumber || ''}
-                  onChange={(e) => setFormData({ ...formData, groupNumber: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  onChange={(e) => handleChange('groupNumber', e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               ) : (
-                <p className="text-gray-900 py-2">{insurance?.groupNumber || '-'}</p>
+                <p className="text-base font-semibold text-gray-900">{insurance?.groupNumber || '—'}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Loại bảo hiểm</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Loại bảo hiểm
+              </label>
               {isEditing ? (
                 <select
                   value={formData.coverageType}
-                  onChange={(e) =>
-                    setFormData({ ...formData, coverageType: e.target.value as InsuranceInfo['coverageType'] })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
+                  onChange={(e) => handleChange('coverageType', e.target.value as InsuranceInfo['coverageType'])}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   {coverageOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -189,98 +259,126 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
                   ))}
                 </select>
               ) : (
-                <p className="text-gray-900 py-2">{coverageDisplay}</p>
+                <p className="text-base font-semibold text-gray-900">{coverageDisplay}</p>
               )}
             </div>
 
             {requiresBhytNumber && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mã BHYT</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Mã BHYT
+                </label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.bhytNumber || ''}
-                    onChange={(e) => setFormData({ ...formData, bhytNumber: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.bhytNumber || ''}
+                      onChange={(e) => handleChange('bhytNumber', e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    {errors.bhytNumber && (
+                      <p className="text-xs text-red-500">{errors.bhytNumber}</p>
+                    )}
+                  </div>
                 ) : (
-                  <p className="text-gray-900 py-2">{insurance?.bhytNumber || '-'}</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {insurance?.bhytNumber || '—'}
+                  </p>
                 )}
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày bắt đầu</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Ngày bắt đầu
+              </label>
               {isEditing ? (
-                <input
-                  type="date"
-                  value={formData.validFrom}
-                  onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
-                />
+                <div>
+                  <input
+                    type="date"
+                    value={formData.validFrom}
+                    onChange={(e) => handleChange('validFrom', e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  {errors.validFrom && (
+                    <p className="text-xs text-red-500">{errors.validFrom}</p>
+                  )}
+                </div>
               ) : (
-                <p className="text-gray-900 py-2 flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  {formatDate(insurance?.validFrom)}
-                </p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {formatDate(insurance?.validFrom)}
+                  </p>
+                </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày hết hạn</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Ngày hết hạn
+              </label>
               {isEditing ? (
-                <input
-                  type="date"
-                  value={formData.validTo}
-                  onChange={(e) => setFormData({ ...formData, validTo: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
-                />
+                <div>
+                  <input
+                    type="date"
+                    value={formData.validTo}
+                    onChange={(e) => handleChange('validTo', e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  {errors.validTo && <p className="text-xs text-red-500">{errors.validTo}</p>}
+                </div>
               ) : (
-                <p className="text-gray-900 py-2 flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  {formatDate(insurance?.validTo)}
-                </p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {formatDate(insurance?.validTo)}
+                  </p>
+                </div>
               )}
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú (tùy chọn)</label>
+            <div className="md:col-span-2 space-y-1">
+              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Ghi chú (tùy chọn)
+              </label>
               {isEditing ? (
                 <textarea
                   value={formData.notes || ''}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  onChange={(e) => handleChange('notes', e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   rows={3}
                   placeholder="Thông tin bổ sung về bảo hiểm"
                 />
               ) : (
-                <p className="text-gray-900 py-2">{insurance?.notes || '-'}</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {insurance?.notes || '—'}
+                </p>
               )}
             </div>
           </div>
-        </div>
 
-        {isEditing && (
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setFormData(insurance || defaultInsurance);
-                setIsEditing(false);
-              }}
-              disabled={saving}
-            >
-              Hủy
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </Button>
-          </div>
-        )}
-      </form>
+          {isEditing && (
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setFormData(insurance || defaultInsurance);
+                  setIsEditing(false);
+                  setErrors({});
+                }}
+                disabled={saving}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={saving || Object.values(errors).some(Boolean)}>
+                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

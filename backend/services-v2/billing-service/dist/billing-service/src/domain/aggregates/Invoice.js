@@ -10,6 +10,7 @@ const InvoiceCreatedEvent_1 = require("../events/InvoiceCreatedEvent");
 const PaymentProcessedEvent_1 = require("../events/PaymentProcessedEvent");
 const PaymentRefundRequestedEvent_1 = require("../events/PaymentRefundRequestedEvent");
 const PaymentRefundedEvent_1 = require("../events/PaymentRefundedEvent");
+const domain_events_1 = require("../../../../shared/domain/events/domain-events");
 class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     constructor(props, id) {
         super(props, id);
@@ -30,6 +31,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         const outstandingAmount = totalAmount;
         // Generate invoice number automatically
         const invoiceNumber = Invoice.generateInvoiceNumber();
+        const invoiceDueDate = new Date(now.getTime() + 10 * 60 * 1000);
         const invoice = new Invoice({
             id: invoiceId,
             patientId,
@@ -44,9 +46,10 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             paidAt: undefined, // Not paid yet
             createdAt: now,
             updatedAt: now,
+            dueDate: invoiceDueDate,
             metadata: {},
         });
-        invoice.addDomainEvent(new InvoiceCreatedEvent_1.InvoiceCreatedEvent(invoiceId.value, patientId, totalAmount.amount, totalAmount.currency, "draft"));
+        invoice.addDomainEvent(new InvoiceCreatedEvent_1.InvoiceCreatedEvent(invoiceId.value, invoiceNumber, patientId, totalAmount.amount, totalAmount.currency, invoice.status.value, now, invoiceDueDate));
         return invoice;
     }
     // REMOVED (Phase 1 Prepaid Model): finalize(), cancel(), processInsuranceClaim()
@@ -179,6 +182,25 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         this.props.appointmentId, // appointmentId
         gatewayRefundId));
     }
+    /**
+     * Mark invoice as expired (payment timeout)
+     */
+    markAsExpired(reason, expiredBy = "system") {
+        if (this.props.status.value === "expired") {
+            return;
+        }
+        if (this.props.status.isPaid() || this.props.status.isRefunded()) {
+            throw new Error("Cannot expire a settled invoice");
+        }
+        this.props.status = InvoiceStatus_1.InvoiceStatus.expired();
+        this.props.updatedAt = new Date();
+        this.props.metadata = {
+            ...(this.props.metadata || {}),
+            expiredReason: reason,
+            expiredBy,
+        };
+        this.addDomainEvent(new domain_events_1.InvoiceExpiredEvent(this.props.id.value, this.props.invoiceNumber || this.props.id.value, this.props.patientId, this.props.appointmentId, this.props.totalAmount.amount, this.props.dueDate, this.props.updatedAt, reason));
+    }
     processPayment(payment) {
         if (this.props.status.isCancelled()) {
             throw new Error("Cannot process payment for cancelled invoice");
@@ -197,7 +219,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         }
         this.props.updatedAt = new Date();
         // Emit PaymentProcessedEvent with appointmentId for prepaid flow
-        this.addDomainEvent(new PaymentProcessedEvent_1.PaymentProcessedEvent(this.props.id.value, payment.id, payment.amount.amount, payment.amount.currency, payment.method, this.props.appointmentId));
+        this.addDomainEvent(new PaymentProcessedEvent_1.PaymentProcessedEvent(this.props.id.value, payment.id, this.props.patientId, payment.amount.amount, payment.amount.currency, payment.method, this.props.appointmentId));
     }
     static generateInvoiceNumber() {
         const now = new Date();
@@ -262,6 +284,7 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             paidAt: this.props.paidAt,
             createdAt: this.props.createdAt,
             updatedAt: this.props.updatedAt,
+            dueDate: this.props.dueDate,
             // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
         };
     }
@@ -314,6 +337,9 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     }
     get paidAt() {
         return this.props.paidAt;
+    }
+    get dueDate() {
+        return this.props.dueDate;
     }
 }
 exports.Invoice = Invoice;

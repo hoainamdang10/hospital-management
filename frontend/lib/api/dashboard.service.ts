@@ -34,79 +34,111 @@ export async function getPatientDashboardStats(
   options?: { billingIdentifier?: string }
 ): Promise<DashboardStats> {
   try {
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const sevenDaysAhead = new Date(today);
+    sevenDaysAhead.setDate(today.getDate() + 7);
+    sevenDaysAhead.setHours(23, 59, 59, 999);
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    const upcomingRange = {
+      startDate: formatDate(today),
+      endDate: formatDate(sevenDaysAhead),
+    };
+    const past30Range = {
+      startDate: formatDate(thirtyDaysAgo),
+      endDate: formatDate(today),
+    };
+    const PAGE_SIZE = 200;
+
+    const fetchAppointments = (
+      targetPatientId: string,
+      status: string,
+      range?: { startDate?: string; endDate?: string }
+    ) =>
+      appointmentsService
+        .getPatientAppointments(targetPatientId, {
+          status: status.toLowerCase(),
+          page: 1,
+          pageSize: PAGE_SIZE,
+          ...(range || {}),
+        })
+        .catch(() => ({ success: true, appointments: [] }));
+
     const [
       confirmedApts,
       scheduledApts,
       completedApts,
       cancelledApts,
+      confirmedAptsUUID,
+      scheduledAptsUUID,
+      completedAptsUUID,
+      cancelledAptsUUID,
       billingSummary,
       profile,
       insurance,
       contacts,
     ] = await Promise.all([
-      appointmentsService
-        .getPatientAppointments(patientId, {
-          status: 'CONFIRMED',
-          page: 1,
-          pageSize: 100,
-        })
-        .catch(() => ({ success: true, appointments: [] })),
-      appointmentsService
-        .getPatientAppointments(patientId, {
-          status: 'SCHEDULED',
-          page: 1,
-          pageSize: 100,
-        })
-        .catch(() => ({ success: true, appointments: [] })),
-      appointmentsService
-        .getPatientAppointments(patientId, {
-          status: 'COMPLETED',
-          page: 1,
-          pageSize: 100,
-        })
-        .catch(() => ({ success: true, appointments: [] })),
-      appointmentsService
-        .getPatientAppointments(patientId, {
-          status: 'CANCELLED',
-          page: 1,
-          pageSize: 100,
-        })
-        .catch(() => ({ success: true, appointments: [] })),
-      // FIX: Use patientId (PAT-XXXXXX-XXX) instead of UUID for billing
-      // Backend billing service stores patient_id as string format in invoices table
-      billingService.getPatientBillingSummary(patientId).catch(async (error) => {
-        console.warn('[DashboardService] Billing API failed with patientId, trying with UUID...', error.message);
-        // Fallback: Try with UUID if string patient_id fails
-        if (options?.billingIdentifier && options.billingIdentifier !== patientId) {
-          try {
-            return await billingService.getPatientBillingSummary(options.billingIdentifier);
-          } catch (fallbackError) {
-            console.error('[DashboardService] Billing API failed with both IDs:', fallbackError);
+      fetchAppointments(patientId, 'CONFIRMED', upcomingRange),
+      fetchAppointments(patientId, 'SCHEDULED', upcomingRange),
+      fetchAppointments(patientId, 'COMPLETED', past30Range),
+      fetchAppointments(patientId, 'CANCELLED', past30Range),
+
+      // Fetch appointments using UUID (fallback/dual-check)
+      options?.billingIdentifier && options.billingIdentifier !== patientId
+        ? fetchAppointments(options.billingIdentifier, 'CONFIRMED', upcomingRange)
+        : Promise.resolve({ success: true, appointments: [] }),
+      options?.billingIdentifier && options.billingIdentifier !== patientId
+        ? fetchAppointments(options.billingIdentifier, 'SCHEDULED', upcomingRange)
+        : Promise.resolve({ success: true, appointments: [] }),
+      options?.billingIdentifier && options.billingIdentifier !== patientId
+        ? fetchAppointments(options.billingIdentifier, 'COMPLETED', past30Range)
+        : Promise.resolve({ success: true, appointments: [] }),
+      options?.billingIdentifier && options.billingIdentifier !== patientId
+        ? fetchAppointments(options.billingIdentifier, 'CANCELLED', past30Range)
+        : Promise.resolve({ success: true, appointments: [] }),
+
+      // Billing: Prioritize UUID (billingIdentifier) as DB shows wallet is linked to UUID
+      billingService
+        .getPatientBillingSummary(options?.billingIdentifier || patientId)
+        .catch(async (error) => {
+          console.warn(
+            '[DashboardService] Billing API failed with primary ID, trying fallback...',
+            error.message
+          );
+          // Fallback: Try the other ID
+          const fallbackId = options?.billingIdentifier === patientId ? null : patientId;
+          if (fallbackId) {
+            try {
+              return await billingService.getPatientBillingSummary(fallbackId);
+            } catch (fallbackError) {
+              console.error('[DashboardService] Billing API failed with both IDs:', fallbackError);
+            }
           }
-        }
-        // Return empty summary if both fail
-        return {
-          totalAmount: 0,
-          paidAmount: 0,
-          outstandingAmount: 0,
-          invoiceCount: 0,
-          paidInvoiceCount: 0,
-          pendingInvoiceCount: 0,
-        };
-      }),
+          return {
+            totalAmount: 0,
+            paidAmount: 0,
+            outstandingAmount: 0,
+            invoiceCount: 0,
+            paidInvoiceCount: 0,
+            pendingInvoiceCount: 0,
+          };
+        }),
       patientService.getPatientProfile(patientId).catch(() => null),
-      patientService.getInsurance(patientId).catch(() => ({ insuranceInfo: null })),
-      patientService.getEmergencyContacts(patientId).catch(() => ({ contacts: [] })),
+      patientService.getInsurance(patientId).catch(() => ({
+        patientId,
+        insuranceInfo: null,
+        hasInsurance: false,
+      })),
+      patientService.getEmergencyContacts(patientId).catch(() => ({
+        patientId,
+        contacts: [],
+        totalCount: 0,
+      })),
     ]);
-
-    // Get current time for accurate filtering
-    const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0); // Start of today
-
-    const sevenDaysAhead = new Date(today);
-    sevenDaysAhead.setDate(today.getDate() + 7);
-    sevenDaysAhead.setHours(23, 59, 59, 999); // End of the 7th day
 
     // Helper function to parse appointment date/time properly
     const parseAppointmentDateTime = (apt: any): Date | null => {
@@ -129,7 +161,11 @@ export async function getPatientDashboardStats(
 
         // Check if date is valid
         if (isNaN(dt.getTime())) {
-          console.warn('[DashboardService] Invalid date for appointment:', apt.appointmentId, dateTimeStr);
+          console.warn(
+            '[DashboardService] Invalid date for appointment:',
+            apt.appointmentId,
+            dateTimeStr
+          );
           return null;
         }
 
@@ -140,15 +176,38 @@ export async function getPatientDashboardStats(
       }
     };
 
+    // Helper to merge and deduplicate appointments
+    const mergeAppointments = (list1: any[], list2: any[]) => {
+      const map = new Map();
+      list1.forEach((a) => map.set(a.id || a.appointmentId, a));
+      list2.forEach((a) => map.set(a.id || a.appointmentId, a));
+      return Array.from(map.values());
+    };
+
+    const allConfirmed = mergeAppointments(
+      (confirmedApts as any).appointments || [],
+      (confirmedAptsUUID as any).appointments || []
+    );
+    const allScheduled = mergeAppointments(
+      (scheduledApts as any).appointments || [],
+      (scheduledAptsUUID as any).appointments || []
+    );
+    const allCompleted = mergeAppointments(
+      (completedApts as any).appointments || [],
+      (completedAptsUUID as any).appointments || []
+    );
+    const allCancelled = mergeAppointments(
+      (cancelledApts as any).appointments || [],
+      (cancelledAptsUUID as any).appointments || []
+    );
+
     // Count upcoming appointments (including today through next 7 days)
     // Explicitly filter by status to ensure accuracy even if backend ignores status param
+    const normalizeStatus = (status?: string) => (status || '').toString().trim().toUpperCase();
+
     const upcomingConfirmed7DaysCount = [
-      ...((confirmedApts as any).appointments || []).filter(
-        (a: any) => a.status === 'CONFIRMED'
-      ),
-      ...((scheduledApts as any).appointments || []).filter(
-        (a: any) => a.status === 'SCHEDULED'
-      ),
+      ...allConfirmed.filter((a: any) => normalizeStatus(a.status) === 'CONFIRMED'),
+      ...allScheduled.filter((a: any) => normalizeStatus(a.status) === 'SCHEDULED'),
     ].filter((apt: any) => {
       const dt = parseAppointmentDateTime(apt);
       if (!dt) return false;
@@ -158,19 +217,17 @@ export async function getPatientDashboardStats(
       return dt >= today && dt <= sevenDaysAhead;
     }).length;
 
-    console.log('[DashboardService] Upcoming appointments count:', upcomingConfirmed7DaysCount, {
-      today: today.toISOString(),
-      sevenDaysAhead: sevenDaysAhead.toISOString(),
-      confirmedCount: ((confirmedApts as any).appointments || []).length,
-      scheduledCount: ((scheduledApts as any).appointments || []).length,
+    console.log('[DashboardService] Upcoming appointments debug', {
+      range: { start: upcomingRange.startDate, end: upcomingRange.endDate },
+      sourceConfirmed: allConfirmed.length,
+      sourceScheduled: allScheduled.length,
+      result: upcomingConfirmed7DaysCount,
     });
 
     // Count RECENTLY completed/cancelled (last 30 days)
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
 
-    const completedCount = ((completedApts as any).appointments || [])
-      .filter((a: any) => a.status === 'COMPLETED')
+    const completedCount = allCompleted
+      .filter((a: any) => normalizeStatus(a.status) === 'COMPLETED')
       .filter((apt: any) => {
         const dateStr = apt.appointmentDate || apt.date;
         const timeStr = apt.appointmentTime || apt.time || '00:00:00';
@@ -178,8 +235,8 @@ export async function getPatientDashboardStats(
         return dt >= thirtyDaysAgo && dt <= now;
       }).length;
 
-    const cancelledCount = ((cancelledApts as any).appointments || [])
-      .filter((a: any) => a.status === 'CANCELLED')
+    const cancelledCount = allCancelled
+      .filter((a: any) => normalizeStatus(a.status) === 'CANCELLED')
       .filter((apt: any) => {
         const dateStr = apt.appointmentDate || apt.date;
         const timeStr = apt.appointmentTime || apt.time || '00:00:00';
@@ -189,7 +246,21 @@ export async function getPatientDashboardStats(
 
     const recentCompletedOrCancelledCount = completedCount + cancelledCount;
 
-    const pendingPaymentsCount = (billingSummary as any).pendingInvoiceCount || 0;
+    console.log('[DashboardService] Completed/cancelled debug', {
+      range: { start: past30Range.startDate, end: past30Range.endDate },
+      completedSource: allCompleted.length,
+      cancelledSource: allCancelled.length,
+      completedCount,
+      cancelledCount,
+      recentCompletedOrCancelledCount,
+    });
+
+    const pendingPaymentsCount =
+      ((billingSummary as any).pendingInvoiceCount ??
+        (billingSummary as any).pendingInvoices ??
+        (billingSummary as any).invoicesByStatus?.pending ??
+        0) ||
+      0;
 
     const profileCompletion = computeProfileCompletion(
       profile,
@@ -221,23 +292,59 @@ export async function getPatientDashboardStats(
 export function computeProfileCompletion(profile: any, insurance: any, contacts: any[]): number {
   if (!profile) return 0;
 
-  const fields = [
-    profile.firstName,
-    profile.lastName,
-    profile.dateOfBirth,
-    profile.gender,
-    profile.phoneNumber,
-    profile.email,
-    profile.address,
-  ];
+  const personalInfo = profile.personalInfo || profile.personal_info || {};
+  const contactInfo = profile.contactInfo || profile.contact_info || {};
 
-  const baseFilled = fields.filter((f) => f && f.toString().trim() !== '').length;
-  const baseTotal = fields.length;
+  const deriveNameParts = () => {
+    const fullName =
+      personalInfo.fullName ||
+      personalInfo.full_name ||
+      `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+    if (!fullName) return { first: '', last: '' };
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 1) {
+      return { first: parts[0], last: parts[0] };
+    }
+    return {
+      first: parts[parts.length - 1],
+      last: parts.slice(0, parts.length - 1).join(' '),
+    };
+  };
+
+  const nameParts = deriveNameParts();
+
+  const baseFieldValues = {
+    firstName: profile.firstName || personalInfo.firstName || nameParts.first,
+    lastName: profile.lastName || personalInfo.lastName || nameParts.last,
+    dateOfBirth:
+      profile.dateOfBirth ||
+      personalInfo.dateOfBirth ||
+      personalInfo.birthDate ||
+      personalInfo.date_of_birth,
+    gender: profile.gender || personalInfo.gender,
+    phoneNumber:
+      profile.phoneNumber ||
+      contactInfo.primaryPhone ||
+      contactInfo.phoneNumber ||
+      contactInfo.phone,
+    email: profile.email || contactInfo.email,
+    address:
+      profile.address ||
+      contactInfo.address?.street ||
+      contactInfo.address?.fullAddress ||
+      contactInfo.address ||
+      profile.location,
+  };
+
+  const baseFilled = Object.values(baseFieldValues).filter(
+    (value) => value !== undefined && value !== null && value.toString().trim() !== ''
+  ).length;
+
+  const baseTotal = Object.keys(baseFieldValues).length;
 
   const hasInsurance = !!insurance;
   const hasEmergencyContact = Array.isArray(contacts) && contacts.length > 0;
 
-  // Weight: base info 70%, insurance 15%, emergency contact 15%
   const baseScore = Math.round((baseFilled / baseTotal) * 70);
   const insuranceScore = hasInsurance ? 15 : 0;
   const contactScore = hasEmergencyContact ? 15 : 0;

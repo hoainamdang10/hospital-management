@@ -19,7 +19,7 @@ const domain_event_1 = require("../../../../shared/domain/base/domain-event");
  * This allows better serialization and decoupling from aggregate structure
  */
 class AppointmentScheduledEvent extends domain_event_1.DomainEvent {
-    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, durationMinutes, type, priority, status, consultationFee, createdBy, correlationId, causationId, userId) {
+    constructor(appointmentId, patientId, doctorId, appointmentDate, appointmentTime, durationMinutes, type, priority, status, consultationFee, createdBy, reason, notes, correlationId, causationId, userId) {
         const eventData = {
             appointmentId,
             patientId,
@@ -32,7 +32,9 @@ class AppointmentScheduledEvent extends domain_event_1.DomainEvent {
             status,
             consultationFee,
             createdBy,
-            scheduledAt: new Date()
+            scheduledAt: new Date(),
+            reason,
+            notes
         };
         super('AppointmentScheduled', appointmentId, 'Appointment', eventData, 1, correlationId, causationId, userId);
         this.appointmentId = appointmentId;
@@ -46,6 +48,8 @@ class AppointmentScheduledEvent extends domain_event_1.DomainEvent {
         this.status = status;
         this.consultationFee = consultationFee;
         this.createdBy = createdBy;
+        this.reason = reason;
+        this.notes = notes;
     }
     /**
      * Get event data payload (required by DomainEvent base class)
@@ -63,7 +67,9 @@ class AppointmentScheduledEvent extends domain_event_1.DomainEvent {
             status: this.status,
             consultationFee: this.consultationFee,
             createdBy: this.createdBy,
-            scheduledAt: this.occurredAt
+            scheduledAt: this.occurredAt,
+            reason: this.reason,
+            notes: this.notes
         };
     }
     /**

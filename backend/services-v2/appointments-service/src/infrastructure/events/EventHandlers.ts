@@ -310,8 +310,50 @@ export class AppointmentCancelledEventHandler
   constructor(private readModelHandler: AppointmentReadModelEventHandler) {}
 
   async handle(event: DomainEvent): Promise<void> {
+    const raw = event as any;
+    const payload =
+      typeof raw.getEventData === "function"
+        ? raw.getEventData()
+        : raw.eventData || raw.payload || raw.data || {};
+
+    const appointmentId =
+      raw.appointmentId || payload.appointmentId || raw.aggregateId;
+
+    if (!appointmentId) {
+      console.error(
+        "[AppointmentCancelledEventHandler] Missing appointmentId in event payload",
+        {
+          eventType: raw.eventType,
+          eventId: raw.eventId,
+        },
+      );
+      return;
+    }
+
+    const cancellationReason =
+      payload.cancellationReason || payload.reason || raw.cancellationReason;
+    const cancelledAt =
+      payload.cancelledAt || raw.cancelledAt || raw.occurredAt;
+
+    const billingAction = payload.integrationEvents?.billingUpdate?.action;
+    let paymentStatusUpdate: string | undefined;
+
+    if (billingAction === "refund") {
+      paymentStatusUpdate = "REFUNDED";
+    } else if (billingAction === "penalty") {
+      paymentStatusUpdate = "PAID";
+    } else if (
+      typeof cancellationReason === "string" &&
+      cancellationReason.toLowerCase().includes("payment")
+    ) {
+      paymentStatusUpdate = "FAILED";
+    }
+
     await this.readModelHandler.handleAppointmentCancelled({
-      appointmentId: (event as any).appointmentId,
+      appointmentId,
+      cancellationReason,
+      cancelledAt,
+      paymentStatusUpdate,
     });
   }
 }

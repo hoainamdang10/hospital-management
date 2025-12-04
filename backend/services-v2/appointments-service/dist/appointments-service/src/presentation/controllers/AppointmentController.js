@@ -132,7 +132,9 @@ class AppointmentController {
                 appointmentDate,
                 appointmentTime,
                 durationMinutes: 30,
-                type: Appointment_aggregate_1.AppointmentType.CONSULTATION, // Map from appointmentType
+                type: Object.values(Appointment_aggregate_1.AppointmentType).includes(appointmentType?.toLowerCase())
+                    ? appointmentType.toLowerCase()
+                    : Appointment_aggregate_1.AppointmentType.CONSULTATION,
                 priority: Appointment_aggregate_1.AppointmentPriority.NORMAL,
                 reason: reason || "Khám bệnh",
                 notes: reason || "Khám bệnh",

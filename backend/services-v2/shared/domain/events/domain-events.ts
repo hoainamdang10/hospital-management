@@ -980,6 +980,75 @@ export class AppointmentCompletedEvent extends DomainEvent {
   }
 }
 
+/**
+ * Published when a prepaid appointment receives payment after deadline
+ * Subscribers: Billing Service (refund), Notifications (inform patient)
+ */
+export class AppointmentPaymentExpiredEvent extends DomainEvent {
+  constructor(
+    public readonly appointmentId: string,
+    public readonly patientId: string,
+    public readonly doctorId: string,
+    public readonly invoiceId?: string,
+    public readonly paymentId?: string,
+    public readonly amount?: number,
+    public readonly currency?: string,
+    public readonly expiredAt: Date = new Date(),
+    public readonly paymentDeadline?: Date,
+    public readonly reason: string = "Payment deadline exceeded",
+  ) {
+    super(
+      "AppointmentPaymentExpired",
+      appointmentId,
+      "Appointment",
+      {
+        appointmentId,
+        patientId,
+        doctorId,
+        invoiceId,
+        paymentId,
+        amount,
+        currency,
+        expiredAt,
+        paymentDeadline,
+        reason,
+      },
+      1,
+      undefined,
+      undefined,
+      "system",
+      {
+        priority: "high",
+        retryable: true,
+        tags: ["billing", "payment", "expired"],
+      },
+    );
+  }
+
+  override getEventData(): any {
+    return {
+      appointmentId: this.appointmentId,
+      patientId: this.patientId,
+      doctorId: this.doctorId,
+      invoiceId: this.invoiceId,
+      paymentId: this.paymentId,
+      amount: this.amount,
+      currency: this.currency,
+      expiredAt: this.expiredAt,
+      paymentDeadline: this.paymentDeadline,
+      reason: this.reason,
+    };
+  }
+
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId || null;
+  }
+}
+
 // ============================================================================
 // CLINICAL EMR SERVICE EVENTS
 // ============================================================================
@@ -1280,6 +1349,69 @@ export class InvoiceOverdueEvent extends DomainEvent {
 }
 
 /**
+ * Published when invoice is expired due to missed payment deadline
+ * Subscribers: Appointments Service, Notifications Service
+ */
+export class InvoiceExpiredEvent extends DomainEvent {
+  constructor(
+    public readonly invoiceId: string,
+    public readonly invoiceNumber: string | undefined,
+    public readonly patientId: string,
+    public readonly appointmentId: string | undefined,
+    public readonly totalAmount: number,
+    public readonly dueDate: Date | undefined,
+    public readonly expiredAt: Date,
+    public readonly reason?: string,
+  ) {
+    super(
+      "InvoiceExpired",
+      invoiceId,
+      "Invoice",
+      {
+        invoiceId,
+        invoiceNumber,
+        patientId,
+        appointmentId,
+        totalAmount,
+        dueDate,
+        expiredAt,
+        reason,
+      },
+      1,
+      undefined,
+      undefined,
+      "system",
+      {
+        priority: "high",
+        retryable: true,
+        tags: ["billing", "expired"],
+      },
+    );
+  }
+
+  override getEventData(): any {
+    return {
+      invoiceId: this.invoiceId,
+      invoiceNumber: this.invoiceNumber,
+      patientId: this.patientId,
+      appointmentId: this.appointmentId,
+      totalAmount: this.totalAmount,
+      dueDate: this.dueDate,
+      expiredAt: this.expiredAt,
+      reason: this.reason,
+    };
+  }
+
+  override containsPHI(): boolean {
+    return true;
+  }
+
+  override getPatientId(): string | null {
+    return this.patientId;
+  }
+}
+
+/**
  * Published when insurance claim is submitted
  * Subscribers: Notification Service, Patient Service
  */
@@ -1482,6 +1614,7 @@ export const EVENT_TYPE_REGISTRY: Record<
   AppointmentConfirmed: AppointmentConfirmedEvent,
   AppointmentCancelled: AppointmentCancelledEvent,
   AppointmentCompleted: AppointmentCompletedEvent,
+  AppointmentPaymentExpired: AppointmentPaymentExpiredEvent,
 
   // Clinical EMR Service Events
   MedicalRecordCreated: MedicalRecordCreatedEvent,
@@ -1492,6 +1625,7 @@ export const EVENT_TYPE_REGISTRY: Record<
   InvoiceGenerated: InvoiceGeneratedEvent,
   PaymentReceived: PaymentReceivedEvent,
   InvoiceOverdue: InvoiceOverdueEvent,
+  InvoiceExpired: InvoiceExpiredEvent,
   InsuranceClaimSubmitted: InsuranceClaimSubmittedEvent,
   InsuranceClaimProcessed: InsuranceClaimProcessedEvent,
 

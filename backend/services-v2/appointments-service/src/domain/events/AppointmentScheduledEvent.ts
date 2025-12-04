@@ -23,6 +23,8 @@ export interface AppointmentScheduledEventData {
   consultationFee: number;
   createdBy: string;
   scheduledAt: Date;
+  reason?: string;
+  notes?: string;
 }
 
 /**
@@ -46,6 +48,8 @@ export class AppointmentScheduledEvent extends DomainEvent {
     public readonly status: string,
     public readonly consultationFee: number,
     public readonly createdBy: string,
+    public readonly reason?: string,
+    public readonly notes?: string,
     correlationId?: string,
     causationId?: string,
     userId?: string
@@ -62,7 +66,9 @@ export class AppointmentScheduledEvent extends DomainEvent {
       status,
       consultationFee,
       createdBy,
-      scheduledAt: new Date()
+      scheduledAt: new Date(),
+      reason,
+      notes
     };
 
     super(
@@ -93,7 +99,9 @@ export class AppointmentScheduledEvent extends DomainEvent {
       status: this.status,
       consultationFee: this.consultationFee,
       createdBy: this.createdBy,
-      scheduledAt: this.occurredAt
+      scheduledAt: this.occurredAt,
+      reason: this.reason,
+      notes: this.notes
     };
   }
 

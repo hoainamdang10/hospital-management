@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationController = void 0;
+const MarkNotificationAsReadUseCase_1 = require("../../application/use-cases/MarkNotificationAsReadUseCase");
 class NotificationController {
     constructor(getNotificationsByRecipientUseCase, getUserNotificationsUseCase, markNotificationAsReadUseCase, getUnreadNotificationsCountUseCase) {
         this.getNotificationsByRecipientUseCase = getNotificationsByRecipientUseCase;
@@ -52,7 +53,7 @@ class NotificationController {
         this.getUserNotifications = async (req, res) => {
             try {
                 const { userId } = req.params;
-                const { limit = "20", offset = "0", status = "all", priority, startDate, endDate, } = req.query;
+                const { limit = "20", offset = "0", status = "all", priority, startDate, endDate, notificationId, } = req.query;
                 const result = await this.getUserNotificationsUseCase.execute({
                     userId,
                     limit: parseInt(limit, 10),
@@ -61,6 +62,7 @@ class NotificationController {
                     priority: priority,
                     startDate: startDate ? new Date(startDate) : undefined,
                     endDate: endDate ? new Date(endDate) : undefined,
+                    notificationId: typeof notificationId === "string" ? notificationId : undefined,
                 });
                 res.json({
                     success: true,
@@ -120,6 +122,20 @@ class NotificationController {
             }
             catch (error) {
                 console.error("Error marking notification as read:", error);
+                if (error instanceof MarkNotificationAsReadUseCase_1.NotificationNotFoundError) {
+                    res.status(404).json({
+                        success: false,
+                        message: "Notification not found",
+                    });
+                    return;
+                }
+                if (error instanceof MarkNotificationAsReadUseCase_1.NotificationAccessDeniedError) {
+                    res.status(403).json({
+                        success: false,
+                        message: "You are not allowed to update this notification",
+                    });
+                    return;
+                }
                 res.status(500).json({
                     success: false,
                     message: "Failed to update notification status",

@@ -218,7 +218,7 @@ class Appointment extends aggregate_root_1.HealthcareAggregateRoot {
         // Domain event
         appointment.addDomainEvent(new AppointmentScheduledEvent_1.AppointmentScheduledEvent(appointmentId.value, patientId, doctorId, timeSlot.appointmentDate, timeSlot.appointmentTime, durationMinutes, type, priority, 
         // ✅ FIX: Event status should match aggregate status
-        'pending_payment', consultationFee, createdBy));
+        'pending_payment', consultationFee, createdBy, details.reason, details.notes));
         return appointment;
     }
     /**

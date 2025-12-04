@@ -235,7 +235,13 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           filter: `conversation_id=eq.${convoId}`,
         },
         (payload: { new: ChatMessage }) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages((prev) => {
+            // Prevent duplicate: check if message already exists
+            if (prev.some(m => m.id === payload.new.id)) {
+              return prev;
+            }
+            return [...prev, payload.new];
+          });
         }
       )
       .subscribe();
@@ -254,7 +260,13 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
       const response = await chatService.sendMessage(conversationId, chatInput.trim(), chatContext);
       setChatInput('');
       if (response?.message) {
-        setMessages((prev) => [...prev, response.message]);
+        setMessages((prev) => {
+          // Prevent duplicate: check if message already exists
+          if (prev.some(m => m.id === response.message.id)) {
+            return prev;
+          }
+          return [...prev, response.message];
+        });
       } else if (!isSupabaseConfigured()) {
         await loadMessages(conversationId, chatContext);
       }

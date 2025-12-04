@@ -10,6 +10,7 @@
 import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
 import { PatientId } from '../../domain/value-objects/PatientId';
 import { ILogger } from '@shared/application/services/logger.interface';
+import type { EmergencyContact } from '../../domain/entities/EmergencyContact';
 
 export interface GetEmergencyContactsCommand {
   patientId: string;
@@ -48,7 +49,7 @@ export class GetEmergencyContactsUseCase {
   constructor(
     private patientRepository: IPatientRepository,
     private logger: ILogger
-  ) {}
+  ) { }
 
   async execute(command: GetEmergencyContactsCommand): Promise<GetEmergencyContactsResult> {
     this.logger.info('Getting emergency contacts', {
@@ -74,9 +75,26 @@ export class GetEmergencyContactsUseCase {
         };
       }
 
-      // 2. Find patient
-      const patientId = PatientId.create(command.patientId);
-      const patient = await this.patientRepository.findById(patientId);
+      // 2. Find patient - Handle both UUID and PAT-YYYYMM-XXX formats
+      let patient: any = null;
+      const inputId = command.patientId.trim();
+
+      // Check if input is UUID format
+      const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+
+      if (uuidRegex.test(inputId)) {
+        // Try to find by userId (UUID)
+        patient = await this.patientRepository.findByUserId(inputId);
+      } else {
+        // Assume it's PAT-YYYYMM-XXX format
+        try {
+          const patientId = PatientId.create(inputId);
+          patient = await this.patientRepository.findById(patientId);
+        } catch (error) {
+          // If not valid PAT format, try to find by userId as fallback
+          patient = await this.patientRepository.findByUserId(inputId);
+        }
+      }
 
       if (!patient) {
         return {
@@ -90,7 +108,7 @@ export class GetEmergencyContactsUseCase {
       const contacts = patient.getEmergencyContacts();
 
       // 4. Map to DTOs
-      const contactDTOs: EmergencyContactDTO[] = contacts.map(contact => ({
+      const contactDTOs: EmergencyContactDTO[] = contacts.map((contact: EmergencyContact) => ({
         id: contact.getId(),
         name: contact.name,
         relationship: contact.relationship,

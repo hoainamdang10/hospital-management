@@ -254,8 +254,37 @@ class AppointmentCancelledEventHandler {
         this.readModelHandler = readModelHandler;
     }
     async handle(event) {
+        const raw = event;
+        const payload = typeof raw.getEventData === "function"
+            ? raw.getEventData()
+            : raw.eventData || raw.payload || raw.data || {};
+        const appointmentId = raw.appointmentId || payload.appointmentId || raw.aggregateId;
+        if (!appointmentId) {
+            console.error("[AppointmentCancelledEventHandler] Missing appointmentId in event payload", {
+                eventType: raw.eventType,
+                eventId: raw.eventId,
+            });
+            return;
+        }
+        const cancellationReason = payload.cancellationReason || payload.reason || raw.cancellationReason;
+        const cancelledAt = payload.cancelledAt || raw.cancelledAt || raw.occurredAt;
+        const billingAction = payload.integrationEvents?.billingUpdate?.action;
+        let paymentStatusUpdate;
+        if (billingAction === "refund") {
+            paymentStatusUpdate = "REFUNDED";
+        }
+        else if (billingAction === "penalty") {
+            paymentStatusUpdate = "PAID";
+        }
+        else if (typeof cancellationReason === "string" &&
+            cancellationReason.toLowerCase().includes("payment")) {
+            paymentStatusUpdate = "FAILED";
+        }
         await this.readModelHandler.handleAppointmentCancelled({
-            appointmentId: event.appointmentId,
+            appointmentId,
+            cancellationReason,
+            cancelledAt,
+            paymentStatusUpdate,
         });
     }
 }

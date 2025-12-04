@@ -49,7 +49,7 @@ export class AppointmentController {
     private readonly createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase,
     private readonly transferAppointmentUseCase: TransferAppointmentUseCase,
     private readonly createRecurringSeriesUseCase: CreateRecurringAppointmentSeriesUseCase,
-  ) {}
+  ) { }
 
   /**
    * POST /api/appointments
@@ -161,7 +161,9 @@ export class AppointmentController {
         appointmentDate,
         appointmentTime,
         durationMinutes: 30,
-        type: AppointmentType.CONSULTATION, // Map from appointmentType
+        type: Object.values(AppointmentType).includes(appointmentType?.toLowerCase() as AppointmentType)
+          ? (appointmentType.toLowerCase() as AppointmentType)
+          : AppointmentType.CONSULTATION,
         priority: AppointmentPriority.NORMAL,
         reason: reason || "Khám bệnh",
         notes: reason || "Khám bệnh",

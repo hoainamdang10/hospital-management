@@ -150,6 +150,11 @@ class BillingEventConsumer {
                 case "billing.payment.completed":
                     await this.paymentCompletedHandler.handle(eventData);
                     break;
+                case "billing.invoice.expired":
+                case "InvoiceExpired":
+                case "invoice.expired":
+                    await this.handleInvoiceExpired(this.buildInvoiceExpiredPayload(eventData));
+                    break;
                 case "PreAuthorizationRequested":
                     await this.handlePreAuthorizationRequested(eventData);
                     break;
@@ -325,6 +330,41 @@ class BillingEventConsumer {
         }
         catch (error) {
             console.error("Failed to handle insurance coverage verification:", error);
+            throw error;
+        }
+    }
+    buildInvoiceExpiredPayload(event) {
+        const expiredAt = event?.expiredAt || event?.expired_at;
+        return {
+            invoiceId: event?.invoiceId || event?.invoice_id,
+            appointmentId: event?.appointmentId || event?.appointment_id || event?.aggregateId,
+            patientId: event?.patientId || event?.patient_id,
+            reason: event?.reason || "Invoice expired",
+            expiredAt: expiredAt ? new Date(expiredAt) : new Date(),
+        };
+    }
+    async handleInvoiceExpired(data) {
+        if (!data.appointmentId) {
+            console.warn("Received billing.invoice.expired event without appointmentId", data);
+            return;
+        }
+        try {
+            const appointment = await this.appointmentRepository.findByIdString(data.appointmentId);
+            if (!appointment) {
+                console.warn(`InvoiceExpired event ignored - appointment ${data.appointmentId} not found`);
+                return;
+            }
+            if (appointment.status === "cancelled" ||
+                appointment.status === "completed") {
+                console.info(`InvoiceExpired event ignored - appointment ${data.appointmentId} already ${appointment.status}`);
+                return;
+            }
+            appointment.cancel(data.reason || "Invoice expired - payment timeout", "system");
+            await this.appointmentRepository.save(appointment);
+            console.info(`Appointment ${data.appointmentId} cancelled due to billing invoice expiration`);
+        }
+        catch (error) {
+            console.error(`Failed to process billing.invoice.expired for appointment ${data.appointmentId}`, error);
             throw error;
         }
     }
