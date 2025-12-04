@@ -19,22 +19,31 @@ export default function DoctorDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadStats = async () => {
-      if (!user?.userId) return;
+    if (!user) return;
+    const effectiveUserId = user.userId || user.id;
+    if (!effectiveUserId) return;
 
-      setLoading(true);
-      try {
-        const data = await getDoctorDashboardStats(user.userId);
-        setStats(data);
-      } catch (error) {
+    let canceled = false;
+    setLoading(true);
+    getDoctorDashboardStats(effectiveUserId)
+      .then((data) => {
+        if (!canceled) {
+          setStats(data);
+        }
+      })
+      .catch((error) => {
         console.error('Failed to load dashboard stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      })
+      .finally(() => {
+        if (!canceled) {
+          setLoading(false);
+        }
+      });
 
-    loadStats();
-  }, [user?.userId]);
+    return () => {
+      canceled = true;
+    };
+  }, [user]);
 
   const getCurrentDate = () => {
     return new Date().toLocaleDateString('vi-VN', {
@@ -69,9 +78,13 @@ export default function DoctorDashboardPage() {
                 color="blue"
                 subtitle={
                   <span className="flex items-center gap-2 text-xs">
-                    <span className="font-medium text-green-600">{stats?.paidCount || 0} Đã thanh toán</span>
+                    <span className="font-medium text-green-600">
+                      {stats?.paidCount || 0} Đã thanh toán
+                    </span>
                     <span className="text-gray-300">|</span>
-                    <span className="font-medium text-red-500">{stats?.unpaidCount || 0} Chưa thanh toán</span>
+                    <span className="font-medium text-red-500">
+                      {stats?.unpaidCount || 0} Chưa thanh toán
+                    </span>
                   </span>
                 }
               />

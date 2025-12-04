@@ -57,6 +57,27 @@ export default function PatientProfilePage() {
       const derivedLast = fullName
         ? fullName.trim().split(' ').slice(0, -1).join(' ')
         : (p as any).lastName || pi.lastName || '';
+      const addressSource =
+        ci.address ||
+        (p as any).address ||
+        ci.addressLine ||
+        pi.address ||
+        (p as any).primaryAddress ||
+        '';
+      const parsedAddress = normalizeAddress(addressSource);
+      const addressLine =
+        parsedAddress.street ||
+        parsedAddress.address ||
+        parsedAddress.addressLine ||
+        parsedAddress.line1 ||
+        (typeof addressSource === 'string' ? addressSource : '');
+
+      const resolvedCity =
+        parsedAddress.city || parsedAddress.province || ci.city || (p as any).city || '';
+      const resolvedDistrict = parsedAddress.district || ci.district || '';
+      const resolvedWard = parsedAddress.ward || ci.ward || '';
+      const resolvedPostal = parsedAddress.postalCode || parsedAddress.zip || ci.postalCode || '';
+
       setProfile({
         id: (p as any).patientId || (p as any).id,
         firstName: (p as any).firstName || pi.firstName || derivedFirst || '',
@@ -67,11 +88,11 @@ export default function PatientProfilePage() {
         bloodType: (p as any).bloodType || bmi.bloodType || pi.bloodType || '',
         email: (p as any).email || ci.email || user?.email || '',
         phone: (p as any).phoneNumber || ci.primaryPhone || '',
-        address: (ci.address && ci.address.street) || (p as any).address || ci.addressLine || '',
-        city: (ci.address && ci.address.city) || (p as any).city || '',
-        district: (ci.address && ci.address.district) || '',
-        ward: (ci.address && ci.address.ward) || '',
-        postalCode: (ci.address && (ci.address as any).postalCode) || '',
+        address: addressLine,
+        city: resolvedCity,
+        district: resolvedDistrict,
+        ward: resolvedWard,
+        postalCode: resolvedPostal,
         preferredContactMethod: ((p as any).preferredContactMethod ||
           ci.preferredContactMethod ||
           (ci.contactPreferences && ci.contactPreferences.preferredMethod) ||
@@ -145,7 +166,7 @@ export default function PatientProfilePage() {
           if (existing.contactId) {
             try {
               await patientService.deleteEmergencyContact(patientId, existing.contactId);
-            } catch { }
+            } catch {}
           }
         }
       }
@@ -240,7 +261,6 @@ export default function PatientProfilePage() {
       <div className="mx-auto max-w-5xl space-y-8">
         {/* Header Section */}
 
-
         {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.99 }}
@@ -255,7 +275,7 @@ export default function PatientProfilePage() {
                   {profile?.firstName?.charAt(0)}
                   {profile?.lastName?.charAt(0)}
                 </div>
-                <button className="absolute -bottom-1 -right-1 rounded-full border border-gray-200 bg-white p-1.5 text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-blue-600">
+                <button className="absolute -right-1 -bottom-1 rounded-full border border-gray-200 bg-white p-1.5 text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-blue-600">
                   <Camera className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -320,20 +340,20 @@ export default function PatientProfilePage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`group relative flex items-center gap-2 whitespace-nowrap pb-3 text-sm font-medium transition-colors ${isActive
-                      ? 'text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                    className={`group relative flex items-center gap-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                      isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                    }`}
                   >
                     <Icon
-                      className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
-                        }`}
+                      className={`h-4 w-4 ${
+                        isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
+                      }`}
                     />
                     {tab.label}
                     {isActive && (
                       <motion.div
                         layoutId="activeTabIndicator"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                        className="absolute right-0 bottom-0 left-0 h-0.5 bg-blue-600"
                         transition={{ duration: 0.3 }}
                       />
                     )}

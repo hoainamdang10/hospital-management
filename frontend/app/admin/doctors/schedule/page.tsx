@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout';
 import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, User, Filter, CalendarDays, List, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { appointmentsClient } from '@/lib/api/clients';
@@ -105,11 +106,18 @@ export default function DoctorSchedulePage() {
   const filteredAppointments = getFilteredAppointments();
 
   const getDayAppointments = () => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    // Use local date parts to avoid timezone issues with toISOString()
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     return filteredAppointments.filter(apt => apt.date === dateStr);
   };
 
   const timeSlots: TimeSlot[] = [
+    { time: '6:00 AM', appointments: getDayAppointments().filter(a => a.startTime === '06:00') },
+    { time: '7:00 AM', appointments: getDayAppointments().filter(a => a.startTime === '07:00') },
+    { time: '8:00 AM', appointments: getDayAppointments().filter(a => a.startTime === '08:00') },
     { time: '9:00 AM', appointments: getDayAppointments().filter(a => a.startTime === '09:00') },
     { time: '10:00 AM', appointments: getDayAppointments().filter(a => a.startTime === '10:00') },
     { time: '11:00 AM', appointments: getDayAppointments().filter(a => a.startTime === '11:00') },
@@ -119,6 +127,12 @@ export default function DoctorSchedulePage() {
     { time: '3:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '15:00') },
     { time: '4:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '16:00') },
     { time: '5:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '17:00') },
+    { time: '6:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '18:00') },
+    { time: '7:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '19:00') },
+    { time: '8:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '20:00') },
+    { time: '9:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '21:00') },
+    { time: '10:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '22:00') },
+    { time: '11:00 PM', appointments: getDayAppointments().filter(a => a.startTime === '23:00') },
   ];
 
   // Calendar generation - Keep existing
@@ -193,8 +207,8 @@ export default function DoctorSchedulePage() {
         {/* Page Header */}
         <div className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-[1600px] px-6 py-6">
-            <h1 className="text-2xl font-bold text-slate-900">Doctor Schedule</h1>
-            <p className="mt-1 text-sm text-slate-600">Manage and view all doctor appointments and availability</p>
+            <h1 className="text-2xl font-bold text-slate-900">Quản lý Lịch Bác sĩ</h1>
+            <p className="mt-1 text-sm text-slate-600">Xem và quản lý tất cả lịch hẹn khám bệnh của bác sĩ</p>
           </div>
         </div>
 
@@ -343,7 +357,7 @@ export default function DoctorSchedulePage() {
                   {viewMode === 'day' && <DayView timeSlots={timeSlots} />}
                   {viewMode === 'week' && <WeekView selectedDate={selectedDate} appointments={filteredAppointments} />}
                   {viewMode === 'month' && <MonthView selectedDate={selectedDate} appointments={filteredAppointments} />}
-                  {viewMode === 'list' && <ListView selectedDate={selectedDate} appointments={getDayAppointments()} />}
+                  {viewMode === 'list' && <ListView appointments={getDayAppointments()} />}
                 </div>
               </div>
             </div>
@@ -357,15 +371,65 @@ export default function DoctorSchedulePage() {
 // ==================== VIEW COMPONENTS ====================
 
 function DayView({ timeSlots }: { timeSlots: TimeSlot[] }) {
-  const getStatusBadge = (status: string) => {
+  const router = useRouter();
+
+  // Get smart status based on time comparison
+  const getSmartStatus = (status: string, appointmentDate: string, appointmentTime: string): { label: string; className: string } => {
+    const normalizedStatus = status.toUpperCase();
+    const now = new Date();
+
+    // Parse appointment datetime properly (avoid timezone issues)
+    // appointmentDate format: "2025-12-05"
+    // appointmentTime format: "15:00"
+    const dateParts = appointmentDate.split('-').map(Number);
+    const [hours, minutes] = (appointmentTime || '00:00').split(':').map(Number);
+
+    // Create date in local timezone
+    const appointmentDateTime = new Date(
+      dateParts[0] || now.getFullYear(),  // year
+      (dateParts[1] || 1) - 1,             // month (0-indexed)
+      dateParts[2] || 1,                   // day
+      hours || 0,                          // hours
+      minutes || 0,                        // minutes
+      0, 0                                 // seconds, ms
+    );
+
+    const isPast = appointmentDateTime.getTime() < now.getTime();
+    const isFuture = appointmentDateTime.getTime() > now.getTime();
+
+    // Status map
     const statusMap: { [key: string]: { label: string; className: string } } = {
-      confirmed: { label: 'Đã xác nhận', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-      scheduled: { label: 'Đã đặt', className: 'bg-blue-50 text-blue-700 border-blue-200' },
-      pending: { label: 'Chờ xác nhận', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-      cancelled: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' },
+      'CONFIRMED': { label: 'Chờ đến', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      'COMPLETED': { label: 'Đã xong', className: 'bg-green-50 text-green-700 border-green-200' },
+      'SCHEDULED': { label: 'Đã đặt', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+      'PENDING': { label: 'Chờ xác nhận', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+      'CANCELLED': { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' },
+      'CHECKED_IN': { label: 'Đã đến', className: 'bg-teal-50 text-teal-700 border-teal-200' },
+      'IN_PROGRESS': { label: 'Đang khám', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+      'NO_SHOW': { label: 'Không đến', className: 'bg-gray-50 text-gray-700 border-gray-200' },
     };
-    const { label, className } = statusMap[status] || statusMap.pending;
-    return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}>{label}</span>;
+
+    // Time-based logic corrections
+    if (isFuture) {
+      // Future appointments cannot be completed, in_progress, or checked_in
+      if (['COMPLETED', 'IN_PROGRESS', 'CHECKED_IN', 'NO_SHOW'].includes(normalizedStatus)) {
+        return { label: 'Chờ đến', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      }
+    }
+
+    if (isPast) {
+      // Past appointments that are still scheduled/confirmed/pending should show as missed or expired
+      if (['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(normalizedStatus)) {
+        return { label: 'Đã qua giờ', className: 'bg-orange-50 text-orange-700 border-orange-200' };
+      }
+    }
+
+    return statusMap[normalizedStatus] || { label: status, className: 'bg-gray-50 text-gray-600 border-gray-200' };
+  };
+
+  const getStatusBadge = (status: string, date: string, time: string) => {
+    const config = getSmartStatus(status, date, time);
+    return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${config.className}`}>{config.label}</span>;
   };
 
   if (timeSlots.every(slot => slot.appointments.length === 0)) {
@@ -380,11 +444,11 @@ function DayView({ timeSlots }: { timeSlots: TimeSlot[] }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+      <div className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 px-4 py-3">
         <h3 className="text-sm font-semibold text-slate-900">Lịch trong ngày</h3>
       </div>
 
-      <div className="divide-y divide-slate-100">
+      <div className="max-h-[600px] overflow-y-auto divide-y divide-slate-100">
         {timeSlots.map((slot, index) => (
           <div key={index} className="group flex min-h-[100px] transition-colors hover:bg-slate-50">
             <div className="w-24 flex-shrink-0 border-r border-slate-100 bg-slate-50/50 p-4">
@@ -404,11 +468,15 @@ function DayView({ timeSlots }: { timeSlots: TimeSlot[] }) {
                   {slot.appointments.map((apt) => (
                     <div
                       key={apt.id}
-                      className="group/card cursor-pointer overflow-hidden rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-3 shadow-sm transition-all hover:shadow-md"
+                      onClick={() => router.push(`/admin/appointments/${apt.id}`)}
+                      className="group/card cursor-pointer overflow-hidden rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-3 shadow-sm transition-all hover:shadow-md hover:border-blue-400"
                     >
                       <div className="mb-2 flex items-start justify-between">
                         <h4 className="font-semibold text-slate-900">{apt.patientName}</h4>
-                        <button className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/60 group-hover/card:opacity-100">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); }}
+                          className="rounded-md p-1 opacity-0 transition-opacity hover:bg-white/60 group-hover/card:opacity-100"
+                        >
                           <MoreVertical className="h-4 w-4 text-slate-600" />
                         </button>
                       </div>
@@ -419,10 +487,11 @@ function DayView({ timeSlots }: { timeSlots: TimeSlot[] }) {
                       </div>
 
                       <div className="mb-2 flex items-center gap-2">
-                        <span className="text-xs text-slate-600">{apt.doctorAvatar} {apt.doctorName}</span>
+                        <User className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="text-xs text-slate-600">{apt.doctorName}</span>
                       </div>
 
-                      {getStatusBadge(apt.status)}
+                      {getStatusBadge(apt.status, apt.date, apt.startTime)}
                     </div>
                   ))}
                 </div>
@@ -453,8 +522,31 @@ function WeekView({ selectedDate, appointments }: { selectedDate: Date; appointm
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
         <h3 className="text-sm font-semibold text-slate-900">Lịch trong tuần</h3>
+        {/* Status Legend */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span className="text-[10px] text-slate-600">Chờ đến</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+            <span className="text-[10px] text-slate-600">Đã đặt</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+            <span className="text-[10px] text-slate-600">Đã xong</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-red-500"></span>
+            <span className="text-[10px] text-slate-600">Đã hủy</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+            <span className="text-[10px] text-slate-600">Chờ xác nhận</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 divide-x divide-slate-200">
@@ -465,6 +557,31 @@ function WeekView({ selectedDate, appointments }: { selectedDate: Date; appointm
           });
           const isToday = day.toDateString() === new Date().toDateString();
 
+          // Get status style for appointment card
+          const getStatusStyle = (status: string) => {
+            const s = status.toUpperCase();
+            switch (s) {
+              case 'CONFIRMED':
+                return { border: 'border-emerald-300 bg-emerald-50', dot: 'bg-emerald-500', label: 'Chờ đến' };
+              case 'COMPLETED':
+                return { border: 'border-green-300 bg-green-50', dot: 'bg-green-500', label: 'Đã xong' };
+              case 'SCHEDULED':
+                return { border: 'border-blue-300 bg-blue-50', dot: 'bg-blue-500', label: 'Đã đặt' };
+              case 'PENDING':
+                return { border: 'border-amber-300 bg-amber-50', dot: 'bg-amber-500', label: 'Chờ xác nhận' };
+              case 'CANCELLED':
+                return { border: 'border-red-300 bg-red-50', dot: 'bg-red-500', label: 'Đã hủy' };
+              case 'CHECKED_IN':
+                return { border: 'border-teal-300 bg-teal-50', dot: 'bg-teal-500', label: 'Đã đến' };
+              case 'IN_PROGRESS':
+                return { border: 'border-indigo-300 bg-indigo-50', dot: 'bg-indigo-500', label: 'Đang khám' };
+              case 'NO_SHOW':
+                return { border: 'border-gray-300 bg-gray-50', dot: 'bg-gray-500', label: 'Không đến' };
+              default:
+                return { border: 'border-slate-200 bg-white', dot: 'bg-slate-400', label: status };
+            }
+          };
+
           return (
             <div key={index} className={`min-h-[600px] ${isToday ? 'bg-blue-50/30' : ''}`}>
               <div className={`border-b border-slate-200 p-3 text-center ${isToday ? 'bg-blue-100' : 'bg-slate-50'}`}>
@@ -473,13 +590,20 @@ function WeekView({ selectedDate, appointments }: { selectedDate: Date; appointm
               </div>
 
               <div className="space-y-2 p-2">
-                {dayAppointments.map((apt) => (
-                  <div key={apt.id} className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-xs transition-all hover:border-blue-300 hover:shadow">
-                    <div className="font-semibold text-slate-900">{apt.time || apt.startTime}</div>
-                    <div className="mt-1 text-slate-700">{apt.patientName}</div>
-                    <div className="mt-0.5 text-slate-500">{apt.doctorName}</div>
-                  </div>
-                ))}
+                {dayAppointments.map((apt) => {
+                  const statusStyle = getStatusStyle(apt.status);
+                  return (
+                    <div key={apt.id} className={`cursor-pointer rounded-lg border p-2 text-xs transition-all hover:shadow ${statusStyle.border}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-900">{apt.startTime}</span>
+                        <span className={`h-2 w-2 rounded-full ${statusStyle.dot}`} title={statusStyle.label}></span>
+                      </div>
+                      <div className="mt-1 truncate text-slate-700">{apt.patientName}</div>
+                      <div className="mt-0.5 truncate text-slate-500">{apt.doctorName}</div>
+                      <div className="mt-1.5 text-[10px] font-medium text-slate-600">{statusStyle.label}</div>
+                    </div>
+                  );
+                })}
                 {dayAppointments.length === 0 && <div className="pt-4 text-center text-xs text-slate-400">Không có lịch</div>}
               </div>
             </div>
@@ -516,7 +640,11 @@ function MonthView({ selectedDate, appointments }: { selectedDate: Date; appoint
   const monthDays = generateMonthDays();
 
   const getAppointmentsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // Use local date parts to avoid timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     return appointments.filter(apt => apt.date === dateStr);
   };
 
@@ -569,16 +697,51 @@ function MonthView({ selectedDate, appointments }: { selectedDate: Date; appoint
   );
 }
 
-function ListView({ selectedDate, appointments }: { selectedDate: Date; appointments: Appointment[] }) {
-  const getStatusBadge = (status: string) => {
+function ListView({ appointments }: { appointments: Appointment[] }) {
+  // Get smart status based on time comparison
+  const getSmartStatus = (status: string, appointmentDate: string, appointmentTime: string): { label: string; className: string } => {
+    const normalizedStatus = status.toUpperCase();
+    const now = new Date();
+
+    // Parse appointment datetime
+    const [hours, minutes] = appointmentTime.split(':').map(Number);
+    const appointmentDateTime = new Date(appointmentDate);
+    appointmentDateTime.setHours(hours || 0, minutes || 0, 0, 0);
+
+    const isPast = appointmentDateTime < now;
+    const isFuture = appointmentDateTime > now;
+
+    // Status map
     const statusMap: { [key: string]: { label: string; className: string } } = {
-      confirmed: { label: 'Đã xác nhận', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-      scheduled: { label: 'Đã đặt', className: 'bg-blue-50 text-blue-700 border-blue-200' },
-      pending: { label: 'Chờ xác nhận', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-      cancelled: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' },
+      'CONFIRMED': { label: 'Chờ đến', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      'COMPLETED': { label: 'Đã xong', className: 'bg-green-50 text-green-700 border-green-200' },
+      'SCHEDULED': { label: 'Đã đặt', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+      'PENDING': { label: 'Chờ xác nhận', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+      'CANCELLED': { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' },
+      'CHECKED_IN': { label: 'Đã đến', className: 'bg-teal-50 text-teal-700 border-teal-200' },
+      'IN_PROGRESS': { label: 'Đang khám', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+      'NO_SHOW': { label: 'Không đến', className: 'bg-gray-50 text-gray-700 border-gray-200' },
     };
-    const { label, className } = statusMap[status] || statusMap.pending;
-    return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}>{label}</span>;
+
+    // Time-based logic corrections
+    if (isFuture) {
+      if (['COMPLETED', 'IN_PROGRESS', 'CHECKED_IN', 'NO_SHOW'].includes(normalizedStatus)) {
+        return { label: 'Chờ đến', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      }
+    }
+
+    if (isPast) {
+      if (['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(normalizedStatus)) {
+        return { label: 'Đã qua giờ', className: 'bg-orange-50 text-orange-700 border-orange-200' };
+      }
+    }
+
+    return statusMap[normalizedStatus] || { label: status, className: 'bg-gray-50 text-gray-600 border-gray-200' };
+  };
+
+  const getStatusBadge = (status: string, date: string, time: string) => {
+    const config = getSmartStatus(status, date, time);
+    return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${config.className}`}>{config.label}</span>;
   };
 
   if (appointments.length === 0) {
@@ -622,7 +785,7 @@ function ListView({ selectedDate, appointments }: { selectedDate: Date; appointm
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">{apt.doctorName}</td>
-                <td className="whitespace-nowrap px-6 py-4">{getStatusBadge(apt.status)}</td>
+                <td className="whitespace-nowrap px-6 py-4">{getStatusBadge(apt.status, apt.date, apt.startTime)}</td>
                 <td className="whitespace-nowrap px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-blue-600">

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/api/auth.service';
 import { patientsService } from '@/lib/api/patients.service';
+import { getStaffByUserId } from '@/lib/api/staff.service';
 import { toast } from 'sonner';
 import type { AuthContextType, User, LoginRequest, RegisterRequest } from '@/lib/types/auth';
 
@@ -55,38 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('[AuthContext] Init - Check if need to fetch patientId', {
               role: user.role,
               roleUpperCase: user.role?.toUpperCase(),
-              isPatient: user.role?.toUpperCase() === 'PATIENT'
+              isPatient: user.role?.toUpperCase() === 'PATIENT',
             });
 
-            if (user.role?.toUpperCase() === 'PATIENT') {
-              try {
-                console.log('[AuthContext] Init - Fetching patientId for PATIENT role...', {
-                  userId: user.userId
-                });
-                const patientResponse = await patientsService.getByUserId(user.userId);
-
-                console.log('[AuthContext] Init - Patient API response:', patientResponse);
-
-                if (patientResponse.success && patientResponse.data?.patientId) {
-                  user = {
-                    ...user,
-                    patientId: patientResponse.data.patientId,
-                  };
-                  console.log('[AuthContext] Init - PatientId fetched successfully', {
-                    patientId: patientResponse.data.patientId
-                  });
-                } else {
-                  console.warn('[AuthContext] Init - Patient record not found for user', {
-                    response: patientResponse
-                  });
-                }
-              } catch (error) {
-                console.error('[AuthContext] Init - Failed to fetch patientId:', error);
-                // Don't block init if patient fetch fails
-              }
-            } else {
-              console.log('[AuthContext] Init - Skipping patientId fetch - not a PATIENT role');
-            }
+            user = await enrichUserWithRoleData(user);
 
             setUser(user);
 
@@ -94,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userId: user.userId,
               fullName: user.fullName,
               role: user.role,
-              patientId: user.patientId
+              patientId: user.patientId,
             });
           }
         } catch (error: any) {
@@ -137,38 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AuthContext] Step 3 - Check if need to fetch patientId', {
           role: user.role,
           roleUpperCase: user.role?.toUpperCase(),
-          isPatient: user.role?.toUpperCase() === 'PATIENT'
+          isPatient: user.role?.toUpperCase() === 'PATIENT',
         });
 
-        if (user.role?.toUpperCase() === 'PATIENT') {
-          try {
-            console.log('[AuthContext] Fetching patientId for PATIENT role...', {
-              userId: user.userId
-            });
-            const patientResponse = await patientsService.getByUserId(user.userId);
-
-            console.log('[AuthContext] Patient API response:', patientResponse);
-
-            if (patientResponse.success && patientResponse.data?.patientId) {
-              user = {
-                ...user,
-                patientId: patientResponse.data.patientId,
-              };
-              console.log('[AuthContext] PatientId fetched successfully', {
-                patientId: patientResponse.data.patientId
-              });
-            } else {
-              console.warn('[AuthContext] Patient record not found for user', {
-                response: patientResponse
-              });
-            }
-          } catch (error) {
-            console.error('[AuthContext] Failed to fetch patientId:', error);
-            // Don't block login if patient fetch fails
-          }
-        } else {
-          console.log('[AuthContext] Skipping patientId fetch - not a PATIENT role');
-        }
+        user = await enrichUserWithRoleData(user);
 
         setUser(user);
 
@@ -176,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userId: user.userId,
           fullName: user.fullName,
           role: user.role,
-          patientId: user.patientId
+          patientId: user.patientId,
         });
 
         toast.success('Đăng nhập thành công!', {
@@ -203,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const redirectPath = getRedirectPath(user.role);
           console.log('[AuthContext] Redirecting to dashboard...', {
             role: user.role,
-            redirectPath
+            redirectPath,
           });
 
           // Small delay to ensure state is updated before navigation
@@ -275,8 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If we reach here without redirecting, something went wrong
         console.warn('Register completed but no redirect triggered. Response:', response);
       } catch (error: any) {
-        const errorMessage =
-          error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+        const errorMessage = error.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
         toast.error('Đăng ký thất bại', {
           description: errorMessage,
         });
@@ -313,16 +257,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // User data will be re-fetched from /auth/me on next page load
   }, []);
 
-  const verifyEmail = useCallback(async (token: string) => {
-    try {
-      const response = await authService.verifyEmail({ token });
-      toast.success('Xác thực email thành công!');
-      router.push('/auth/login?verified=true');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Xác thực email thất bại');
-      throw error;
-    }
-  }, [router]);
+  const verifyEmail = useCallback(
+    async (token: string) => {
+      try {
+        const response = await authService.verifyEmail({ token });
+        toast.success('Xác thực email thành công!');
+        router.push('/auth/login?verified=true');
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Xác thực email thất bại');
+        throw error;
+      }
+    },
+    [router]
+  );
 
   const resendVerification = useCallback(async (email: string) => {
     try {
@@ -398,4 +345,63 @@ function getProfilePath(role: string): string {
     default:
       return '/profile';
   }
+}
+
+const STAFF_ROLES = new Set(['DOCTOR', 'NURSE', 'ADMIN', 'STAFF', 'RECEPTIONIST']);
+
+async function enrichUserWithRoleData(user: User): Promise<User> {
+  const normalizedRole = user.role?.toUpperCase();
+  let enrichedUser = user;
+
+  if (normalizedRole === 'PATIENT') {
+    try {
+      console.log('[AuthContext] Fetching patientId for PATIENT role...', {
+        userId: user.userId,
+      });
+      const patientResponse = await patientsService.getByUserId(user.userId);
+
+      if (patientResponse.success && patientResponse.data?.patientId) {
+        enrichedUser = {
+          ...enrichedUser,
+          patientId: patientResponse.data.patientId,
+        };
+        console.log('[AuthContext] PatientId fetched successfully', {
+          patientId: patientResponse.data.patientId,
+        });
+      } else {
+        console.warn('[AuthContext] Patient record not found for user', {
+          response: patientResponse,
+        });
+      }
+    } catch (error) {
+      console.error('[AuthContext] Failed to fetch patientId:', error);
+    }
+  } else if (normalizedRole && STAFF_ROLES.has(normalizedRole)) {
+    try {
+      console.log('[AuthContext] Fetching staffId for staff role...', {
+        userId: user.userId,
+        role: normalizedRole,
+      });
+      const staffProfile = await getStaffByUserId(user.userId);
+      if (staffProfile?.staffId) {
+        enrichedUser = {
+          ...enrichedUser,
+          staffId: staffProfile.staffId,
+        };
+        console.log('[AuthContext] StaffId fetched successfully', {
+          staffId: staffProfile.staffId,
+        });
+      } else {
+        console.warn('[AuthContext] Staff profile not found for user', {
+          userId: user.userId,
+        });
+      }
+    } catch (error) {
+      console.error('[AuthContext] Failed to fetch staffId:', error);
+    }
+  } else {
+    console.log('[AuthContext] No additional role data required', { role: normalizedRole });
+  }
+
+  return enrichedUser;
 }

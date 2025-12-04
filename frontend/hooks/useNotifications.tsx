@@ -64,21 +64,35 @@ function useProvideNotifications(): NotificationContextValue {
   const recipientIds = useMemo(() => {
     const role = user?.role?.toUpperCase();
     const prioritized: string[] = [];
+    const addCandidate = (value?: string | null) => {
+      if (value) {
+        prioritized.push(value);
+      }
+    };
 
     if (role === 'PATIENT') {
-      if (user?.patientId) prioritized.push(user.patientId);
-      if (patient?.id) prioritized.push(patient.id);
-      if (patientId) prioritized.push(patientId);
-      if (internalId) prioritized.push(internalId);
+      addCandidate(user?.patientId);
+      addCandidate(patient?.id);
+      addCandidate(patientId);
+      addCandidate(internalId);
     } else {
-      if (user?.userId) prioritized.push(user.userId);
-      if (user?.id) prioritized.push(user.id);
-      if (internalId) prioritized.push(internalId);
+      addCandidate(user?.staffId);
+      addCandidate(user?.userId);
+      addCandidate(user?.id);
+      addCandidate(internalId);
     }
 
-    const unique = Array.from(new Set(prioritized.filter(Boolean)));
-    return unique.length > 0 ? [unique[0]] : [];
-  }, [internalId, patient?.id, patientId, user?.patientId, user?.userId, user?.id, user?.role]);
+    return Array.from(new Set(prioritized.filter(Boolean)));
+  }, [
+    internalId,
+    patient?.id,
+    patientId,
+    user?.patientId,
+    user?.staffId,
+    user?.userId,
+    user?.id,
+    user?.role,
+  ]);
 
   const primaryRecipientId = recipientIds[0] || null;
 
@@ -124,26 +138,40 @@ function useProvideNotifications(): NotificationContextValue {
   }, [primaryRecipientId]);
 
   const fetchUnreadCount = useCallback(async () => {
-    if (!primaryRecipientId) {
+    if (recipientIds.length === 0) {
       setUnreadCount(0);
       persistUnreadCount(0);
       return;
     }
     try {
-      const response = await getUnreadNotificationsCount(primaryRecipientId);
-      const total =
-        response.success && typeof response.data.unreadCount === 'number'
-          ? response.data.unreadCount
-          : 0;
+      const responses = await Promise.all(
+        recipientIds.map(async (recipientId) => {
+          try {
+            return await getUnreadNotificationsCount(recipientId);
+          } catch (error) {
+            console.error(
+              `[useNotifications] Failed to fetch unread summary for ${recipientId}:`,
+              error
+            );
+            return null;
+          }
+        })
+      );
+      const total = responses.reduce((sum, response) => {
+        if (response?.success && typeof response.data.unreadCount === 'number') {
+          return sum + response.data.unreadCount;
+        }
+        return sum;
+      }, 0);
       setUnreadCount(total);
       persistUnreadCount(total);
     } catch (error) {
       console.error('[useNotifications] Failed to fetch unread summary:', error);
     }
-  }, [primaryRecipientId, persistUnreadCount]);
+  }, [recipientIds, persistUnreadCount]);
 
   const fetchNotifications = useCallback(async () => {
-    if (!primaryRecipientId) {
+    if (recipientIds.length === 0) {
       setNotifications([]);
       setUnreadCount(0);
       setIsLoading(false);
@@ -156,32 +184,37 @@ function useProvideNotifications(): NotificationContextValue {
 
       const mergedMap = new Map<string, UserNotification & { recipientKey?: string }>();
 
-      try {
-        const response = await getUserNotifications(primaryRecipientId, {
-          limit: 20,
-          status: filter,
-        });
+      await Promise.all(
+        recipientIds.map(async (recipientId) => {
+          try {
+            const response = await getUserNotifications(recipientId, {
+              limit: 20,
+              status: filter,
+            });
 
-        if (response.success) {
-          response.data.notifications.forEach((notification) => {
-            const existing = mergedMap.get(notification.notificationId);
-            if (
-              !existing ||
-              new Date(notification.createdAt).getTime() > new Date(existing.createdAt).getTime()
-            ) {
-              mergedMap.set(notification.notificationId, {
-                ...notification,
-                recipientKey: notification.recipientId || primaryRecipientId,
+            if (response.success) {
+              response.data.notifications.forEach((notification) => {
+                const existing = mergedMap.get(notification.notificationId);
+                if (
+                  !existing ||
+                  new Date(notification.createdAt).getTime() >
+                    new Date(existing.createdAt).getTime()
+                ) {
+                  mergedMap.set(notification.notificationId, {
+                    ...notification,
+                    recipientKey: notification.recipientId || recipientId,
+                  });
+                }
               });
             }
-          });
-        }
-      } catch (err) {
-        console.error(
-          `[useNotifications] Failed to fetch notifications for ${primaryRecipientId}:`,
-          err
-        );
-      }
+          } catch (err) {
+            console.error(
+              `[useNotifications] Failed to fetch notifications for ${recipientId}:`,
+              err
+            );
+          }
+        })
+      );
 
       const mergedNotifications = Array.from(mergedMap.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -200,7 +233,7 @@ function useProvideNotifications(): NotificationContextValue {
     } finally {
       setIsLoading(false);
     }
-  }, [primaryRecipientId, filter, persistUnreadCount, fetchUnreadCount]);
+  }, [recipientIds, filter, persistUnreadCount, fetchUnreadCount]);
 
   useEffect(() => {
     fetchNotifications();

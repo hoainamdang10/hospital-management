@@ -297,7 +297,12 @@ export const appointmentsService = {
     doctorId: string,
     params?: ListAppointmentsParams
   ): Promise<ListAppointmentsResponse> {
-    const response = await apiClient.get<any>(`/v1/doctors/${doctorId}/appointments`, { params });
+    const response = await apiClient.get<any>(`/v1/doctors/${doctorId}/appointments`, {
+      params: {
+        ...(params || {}),
+        _ts: Date.now(), // cache buster to avoid stale 304
+      },
+    });
     const payload = response.data.data || response.data;
     return {
       success: payload.success ?? response.data.success ?? true,

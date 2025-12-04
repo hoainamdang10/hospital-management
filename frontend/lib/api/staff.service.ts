@@ -10,13 +10,13 @@ export interface Staff {
   staffId: string;
   userId: string;
   staffType:
-  | 'doctor'
-  | 'nurse'
-  | 'admin'
-  | 'receptionist'
-  | 'technician'
-  | 'pharmacist'
-  | 'therapist';
+    | 'doctor'
+    | 'nurse'
+    | 'admin'
+    | 'receptionist'
+    | 'technician'
+    | 'pharmacist'
+    | 'therapist';
   personalInfo: {
     fullName: string;
     email: string;
@@ -205,7 +205,8 @@ export async function getStaffById(staffId: string): Promise<Staff> {
 export async function getStaffByUserId(userId: string): Promise<Staff | null> {
   try {
     const response = await apiClient.get<{ success: boolean; data: any }>(
-      `/v1/staff/user/${userId}`
+      `/v1/staff/user/${userId}`,
+      { params: { _ts: Date.now() } } // cache buster
     );
     const data = response.data.data;
 
