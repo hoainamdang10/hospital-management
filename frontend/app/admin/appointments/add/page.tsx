@@ -1069,12 +1069,11 @@ export default function AddAppointmentPage() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto rounded-xl border-slate-200 p-0 shadow-xl">
+                  <PopoverContent className="w-auto rounded-xl border-slate-200 bg-white p-0 shadow-xl" align="start">
                     <Calendar
                       mode="single"
                       selected={date}
                       onSelect={setDate}
-                      initialFocus
                       disabled={(calendarDate) =>
                         calendarDate < new Date(new Date().setHours(0, 0, 0, 0))
                       }
