@@ -25,6 +25,26 @@ export interface PatientResponse {
   error?: string;
 }
 
+export interface PatientListResponse {
+  success: boolean;
+  data?: any[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+  message?: string;
+  error?: string;
+}
+
+interface GetPatientsParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+  status?: string;
+  sort?: string;
+}
+
 class PatientsService {
   private baseUrl = '/v1/patients'; // axios baseURL already includes '/api'
 
@@ -42,6 +62,20 @@ class PatientsService {
    */
   async getById(patientId: string): Promise<PatientResponse> {
     const response = await apiClient.get<PatientResponse>(`${this.baseUrl}/${patientId}`);
+    return response.data;
+  }
+
+  /**
+   * Search/list patients with filters
+   */
+  async getPatients(params?: GetPatientsParams): Promise<PatientListResponse> {
+    const response = await apiClient.get<PatientListResponse>(this.baseUrl, {
+      params: {
+        page: 1,
+        limit: 10,
+        ...params,
+      },
+    });
     return response.data;
   }
 }

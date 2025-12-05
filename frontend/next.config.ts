@@ -4,6 +4,10 @@ import path from 'path';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+
+  // Enable standalone output for Docker
+  output: 'standalone',
+
   eslint: {
     ignoreDuringBuilds: true,
   },

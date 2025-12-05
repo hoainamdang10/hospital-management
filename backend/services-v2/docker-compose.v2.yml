@@ -620,3 +620,49 @@ services:
 
   # REMOVED - Duplicate API Gateway V2 (consolidated with api-gateway service above)
   # All gateway functionality is in the main api-gateway service
+
+  # ============================================================================
+  # Frontend Service - Next.js Application
+  # ============================================================================
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://api-gateway:3101}
+        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_APP_NAME=Hospital Management System V2
+        - NEXT_PUBLIC_APP_VERSION=2.0.0
+    container_name: hospital-frontend-v2
+    env_file:
+      - .env.docker
+      - ../../frontend/.env.docker
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # API Gateway URL for server-side requests (internal Docker network)
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://api-gateway:3101}
+      # Supabase Configuration (for client-side)
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # App Configuration
+      - NEXT_PUBLIC_APP_NAME=Hospital Management System V2
+      - NEXT_PUBLIC_APP_VERSION=2.0.0
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - hospital-v2-network
+    profiles:
+      - frontend
+      - full
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped

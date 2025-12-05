@@ -70,7 +70,7 @@ export class StaffController {
     private getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
     private addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
     private removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase,
-  ) {}
+  ) { }
 
   /**
    * Register new staff
@@ -466,7 +466,7 @@ export class StaffController {
           searchTerm: effectiveSearchTerm,
           filters: {
             staffType: toStaffType(queryParams.staffType),
-            departmentId: queryParams.departmentId,
+            departmentId: queryParams.departmentCode || queryParams.departmentId,
             specialization: queryParams.specialization,
             status: toStaffStatus(queryParams.status),
             isActive: parseBoolean(queryParams.isActive),
@@ -480,9 +480,9 @@ export class StaffController {
           },
           sorting: sortField
             ? {
-                field: sortField,
-                direction: resolvedSortDirection,
-              }
+              field: sortField,
+              direction: resolvedSortDirection,
+            }
             : undefined,
           requestedBy,
           requestedByRole,
