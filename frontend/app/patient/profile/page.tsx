@@ -1,7 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Phone, Shield, Settings, LogOut, KeyRound, Camera } from 'lucide-react';
+import {
+  User,
+  Phone,
+  Shield,
+  Settings,
+  LogOut,
+  KeyRound,
+  Camera,
+  Mail,
+  Heart,
+  MapPin,
+  Sparkles,
+  AlertCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { BasicInfoTab } from '@/components/profile/BasicInfoTab';
@@ -17,6 +30,33 @@ import { patientService } from '@/lib/api/patient.service';
 import { authService } from '@/lib/api/auth.service';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+
+/**
+ * Normalize address from various formats to a consistent object
+ */
+function normalizeAddress(addressSource: any): any {
+  if (!addressSource) return {};
+  if (typeof addressSource === 'string') {
+    return { address: addressSource, street: addressSource };
+  }
+  if (typeof addressSource === 'object') {
+    return {
+      street: addressSource.street || addressSource.addressLine || addressSource.line1 || '',
+      address: addressSource.address || addressSource.street || '',
+      addressLine: addressSource.addressLine || addressSource.street || '',
+      line1: addressSource.line1 || addressSource.street || '',
+      city: addressSource.city || addressSource.province || '',
+      province: addressSource.province || addressSource.city || '',
+      district: addressSource.district || '',
+      ward: addressSource.ward || '',
+      postalCode: addressSource.postalCode || addressSource.zip || '',
+      zip: addressSource.zip || addressSource.postalCode || '',
+    };
+  }
+  return {};
+}
 
 /**
  * Patient Profile Page with Tabs
@@ -166,7 +206,7 @@ export default function PatientProfilePage() {
           if (existing.contactId) {
             try {
               await patientService.deleteEmergencyContact(patientId, existing.contactId);
-            } catch {}
+            } catch { }
           }
         }
       }
@@ -229,208 +269,216 @@ export default function PatientProfilePage() {
   }
 
   const tabs = [
-    {
-      id: 'basic' as const,
-      label: 'Thông tin cơ bản',
-      icon: User,
-    },
-    {
-      id: 'contact' as const,
-      label: 'Thông tin liên hệ',
-      icon: Phone,
-    },
-    {
-      id: 'emergency' as const,
-      label: 'Liên hệ khẩn cấp',
-      icon: Phone,
-    },
-    {
-      id: 'insurance' as const,
-      label: 'Bảo hiểm y tế',
-      icon: Shield,
-    },
-    {
-      id: 'settings' as const,
-      label: 'Cài đặt',
-      icon: Settings,
-    },
+    { id: 'basic' as const, label: 'Thông tin cơ bản', icon: User },
+    { id: 'contact' as const, label: 'Thông tin liên hệ', icon: Phone },
+    { id: 'emergency' as const, label: 'Liên hệ khẩn cấp', icon: AlertCircle },
+    { id: 'insurance' as const, label: 'Bảo hiểm y tế', icon: Shield },
+    { id: 'settings' as const, label: 'Cài đặt', icon: Settings },
   ];
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header Section */}
-
-        {/* Profile Card */}
+      <div className="min-h-screen space-y-6 pb-10">
+        {/* Premium Header with Healthcare Theme */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.99 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-8 text-white shadow-xl"
         >
-          <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-            <div className="flex items-center gap-5">
-              <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold text-white shadow-md ring-4 ring-blue-50">
-                  {profile?.firstName?.charAt(0)}
-                  {profile?.lastName?.charAt(0)}
-                </div>
-                <button className="absolute -right-1 -bottom-1 rounded-full border border-gray-200 bg-white p-1.5 text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-blue-600">
-                  <Camera className="h-3.5 w-3.5" />
-                </button>
-              </div>
+          {/* Background decorations */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                backgroundSize: '32px 32px',
+              }}
+            />
+          </div>
 
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {profile?.fullName || user?.fullName || '—'}
-                </h2>
-                <div className="mt-1 flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:gap-4">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="relative"
+              >
+                <div className="absolute -inset-1 rounded-full bg-white/30 blur-sm" />
+                <Avatar className="h-24 w-24 border-4 border-white/30 shadow-2xl lg:h-28 lg:w-28">
+                  <AvatarImage src={(profile as any)?.avatar} alt={profile?.fullName} />
+                  <AvatarFallback className="bg-white/20 text-2xl font-bold text-white backdrop-blur-md lg:text-3xl">
+                    {profile?.fullName?.split(' ').pop()?.substring(0, 2).toUpperCase() || 'BN'}
+                  </AvatarFallback>
+                </Avatar>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-emerald-500 p-2 text-white shadow-lg transition-colors hover:bg-emerald-600"
+                >
+                  <Camera className="h-4 w-4" />
+                </motion.button>
+              </motion.div>
+
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold tracking-tight text-white lg:text-3xl">
+                  {profile?.fullName || user?.fullName || 'Bệnh nhân'}
+                </h1>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-emerald-100">
+                    <Mail className="h-4 w-4" />
                     {user?.email || profile?.email || '—'}
-                  </span>
-                  <span className="hidden h-1 w-1 rounded-full bg-gray-300 sm:block" />
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-medium text-gray-700">ID:</span>
-                    <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-600">
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-emerald-100/80">
+                    <Heart className="h-4 w-4" />
+                    <span>ID: </span>
+                    <code className="rounded bg-white/20 px-2 py-0.5 font-mono text-xs">
                       {patientId || '—'}
                     </code>
-                  </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {/* Action buttons */}
+            <div className="flex flex-wrap items-center gap-3">
               <ChangePasswordDialog
                 userId={user?.userId}
                 trigger={
                   <Button
-                    variant="outline"
+                    type="button"
                     disabled={!user?.userId}
-                    className="h-9 gap-2 rounded-lg border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    className="rounded-xl border border-white/30 bg-white/15 px-5 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <KeyRound className="h-4 w-4" />
+                    <KeyRound className="mr-2 h-4 w-4" />
                     Đổi mật khẩu
                   </Button>
                 }
               />
-              <Button
-                variant="ghost"
-                onClick={async () => {
-                  await authService.logout();
-                  router.push('/auth/login');
-                }}
-                className="h-9 gap-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <LogOut className="h-4 w-4" />
-                Đăng xuất
-              </Button>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Button
+                  onClick={async () => {
+                    await authService.logout();
+                    router.push('/auth/login');
+                  }}
+                  className="rounded-xl border border-rose-200/30 bg-rose-500/90 px-5 py-2.5 font-semibold text-white shadow-lg transition-all hover:bg-rose-600"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Đăng xuất
+                </Button>
+              </motion.div>
             </div>
           </div>
         </motion.div>
 
-        {/* Tabs Section */}
-        <div className="space-y-6">
-          <div className="border-b border-gray-200">
-            <div className="flex gap-6 overflow-x-auto pb-px">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`group relative flex items-center gap-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors ${
-                      isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <Icon
-                      className={`h-4 w-4 ${
-                        isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
-                      }`}
-                    />
-                    {tab.label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeTabIndicator"
-                        className="absolute right-0 bottom-0 left-0 h-0.5 bg-blue-600"
-                        transition={{ duration: 0.3 }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="min-h-[400px]">
-            <AnimatePresence mode="wait">
-              {authRequired || (!user && !loading) ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="flex flex-col items-center justify-center py-16 text-center"
-                >
-                  <div className="mb-4 rounded-full bg-blue-50 p-4">
-                    <Shield className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Yêu cầu đăng nhập</h3>
-                  <p className="mt-2 mb-6 max-w-sm text-gray-500">
-                    Vui lòng đăng nhập để xem và quản lý thông tin hồ sơ cá nhân của bạn.
-                  </p>
-                  <Button
-                    onClick={() => router.push('/auth/login')}
-                    className="rounded-full bg-blue-600 px-8 hover:bg-blue-700"
-                  >
-                    Đăng nhập ngay
-                  </Button>
-                </motion.div>
-              ) : loading ? (
-                <ProfileSkeleton />
-              ) : (
-                <motion.div
-                  key={activeTab}
+        {/* Tabs Navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
+        >
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            {tabs.map((tab, index) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <motion.button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={cn(
+                    'relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all',
+                    isActive
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  )}
                 >
-                  {activeTab === 'basic' && profile && (
-                    <BasicInfoTab profile={profile} onUpdate={handleUpdateProfile} />
-                  )}
-                  {activeTab === 'contact' && profile && (
-                    <ContactInfoTab profile={profile} onUpdate={handleUpdateProfile} />
-                  )}
-                  {activeTab === 'emergency' && profile && (
-                    <EmergencyContactTab
-                      contacts={profile.emergencyContacts}
-                      onUpdate={handleUpdateEmergencyContacts}
-                    />
-                  )}
-                  {activeTab === 'insurance' && (
-                    <InsuranceTab
-                      insurance={profile?.insurance || undefined}
-                      onUpdate={handleUpdateInsurance}
-                    />
-                  )}
-                  {activeTab === 'settings' && (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-16 text-center">
-                      <div className="mb-4 rounded-full bg-gray-50 p-4">
-                        <Settings className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Tính năng đang phát triển
-                      </h3>
-                      <p className="mt-2 text-gray-500">
-                        Chúng tôi đang cập nhật thêm các tùy chọn cài đặt cho tài khoản của bạn.
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </motion.button>
+              );
+            })}
           </div>
+        </motion.div>
+
+        {/* Tab Content */}
+        <div className="min-h-[400px]">
+          <AnimatePresence mode="wait">
+            {authRequired || (!user && !loading) ? (
+              <motion.div
+                key="auth-required"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-sm"
+              >
+                <div className="mb-4 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 p-4">
+                  <Shield className="h-8 w-8 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900">Yêu cầu đăng nhập</h3>
+                <p className="mt-2 mb-6 max-w-sm text-slate-500">
+                  Vui lòng đăng nhập để xem và quản lý thông tin hồ sơ cá nhân của bạn.
+                </p>
+                <Button
+                  onClick={() => router.push('/auth/login')}
+                  className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 font-semibold shadow-lg hover:from-emerald-700 hover:to-teal-700"
+                >
+                  Đăng nhập ngay
+                </Button>
+              </motion.div>
+            ) : loading ? (
+              <ProfileSkeleton />
+            ) : (
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+              >
+                {activeTab === 'basic' && profile && (
+                  <BasicInfoTab profile={profile} onUpdate={handleUpdateProfile} />
+                )}
+                {activeTab === 'contact' && profile && (
+                  <ContactInfoTab profile={profile} onUpdate={handleUpdateProfile} />
+                )}
+                {activeTab === 'emergency' && profile && (
+                  <EmergencyContactTab
+                    contacts={profile.emergencyContacts}
+                    onUpdate={handleUpdateEmergencyContacts}
+                  />
+                )}
+                {activeTab === 'insurance' && (
+                  <InsuranceTab
+                    insurance={profile?.insurance || undefined}
+                    onUpdate={handleUpdateInsurance}
+                  />
+                )}
+                {activeTab === 'settings' && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 py-16 text-center"
+                  >
+                    <div className="mb-4 rounded-full bg-slate-100 p-4">
+                      <Settings className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Tính năng đang phát triển
+                    </h3>
+                    <p className="mt-2 max-w-sm text-slate-500">
+                      Chúng tôi đang cập nhật thêm các tùy chọn cài đặt cho tài khoản của bạn.
+                    </p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </DashboardLayout>
@@ -439,24 +487,35 @@ export default function PatientProfilePage() {
 
 function ProfileSkeleton() {
   return (
-    <div className="animate-pulse space-y-8">
-      <div className="grid gap-8 md:grid-cols-2">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+    >
+      <div className="flex items-center gap-4">
+        <div className="h-12 w-12 animate-pulse rounded-xl bg-slate-100" />
+        <div className="space-y-2">
+          <div className="h-5 w-40 animate-pulse rounded bg-slate-100" />
+          <div className="h-3 w-24 animate-pulse rounded bg-slate-50" />
+        </div>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="space-y-3">
-            <div className="h-4 w-24 rounded bg-gray-100" />
-            <div className="h-10 w-full rounded-xl bg-gray-50" />
+          <div key={i} className="space-y-2">
+            <div className="h-4 w-20 animate-pulse rounded bg-slate-100" />
+            <div className="h-12 w-full animate-pulse rounded-xl bg-slate-50" />
           </div>
         ))}
       </div>
-      <div className="h-px bg-gray-100" />
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="h-px bg-slate-100" />
+      <div className="grid gap-6 md:grid-cols-2">
         {[1, 2].map((i) => (
-          <div key={i} className="space-y-3">
-            <div className="h-4 w-24 rounded bg-gray-100" />
-            <div className="h-10 w-full rounded-xl bg-gray-50" />
+          <div key={i} className="space-y-2">
+            <div className="h-4 w-20 animate-pulse rounded bg-slate-100" />
+            <div className="h-12 w-full animate-pulse rounded-xl bg-slate-50" />
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

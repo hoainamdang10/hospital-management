@@ -7,7 +7,7 @@
  * @compliance Production-Ready, Anti-Pattern Mitigation, Clean Architecture
  */
 
-import { ValueObject } from '@shared/domain/base/value-object';
+import { ValueObject } from "@shared/domain/base/value-object";
 
 interface EmailProps {
   value: string;
@@ -32,17 +32,17 @@ export class Email extends ValueObject<EmailProps> {
   public static create(email: string): Email {
     try {
       if (!email || email.trim().length === 0) {
-        throw new Error('Email không được để trống');
+        throw new Error("Email không được để trống");
       }
 
       const normalizedEmail = email.trim().toLowerCase();
 
       if (!this.isValidEmail(normalizedEmail)) {
-        throw new Error('Định dạng email không hợp lệ');
+        throw new Error("Định dạng email không hợp lệ");
       }
 
       if (normalizedEmail.length > 254) {
-        throw new Error('Email quá dài (tối đa 254 ký tự)');
+        throw new Error("Email quá dài (tối đa 254 ký tự)");
       }
 
       return new Email({ value: normalizedEmail });
@@ -73,13 +73,13 @@ export class Email extends ValueObject<EmailProps> {
   }
 
   public get domain(): string {
-    const parts = this.props.value.split('@');
-    return parts.length > 1 ? parts[1] : '';
+    const parts = this.props.value.split("@");
+    return parts.length > 1 ? parts[1] : "";
   }
 
   public get localPart(): string {
-    const parts = this.props.value.split('@');
-    return parts.length > 0 ? parts[0] : '';
+    const parts = this.props.value.split("@");
+    return parts.length > 0 ? parts[0] : "";
   }
 
   /**
@@ -87,7 +87,8 @@ export class Email extends ValueObject<EmailProps> {
    */
   private static isValidEmail(email: string): boolean {
     // RFC 5322 compliant email regex (simplified)
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     return emailRegex.test(email);
   }
 
@@ -96,13 +97,13 @@ export class Email extends ValueObject<EmailProps> {
    */
   public isVietnameseHospitalEmail(): boolean {
     const vietnameseHospitalDomains = [
-      'benhvien.vn',
-      'hospital.vn',
-      'medic.vn',
-      'bv.vn',
-      'phongkham.vn',
-      'clinic.vn',
-      'yte.vn'
+      "benhvien.vn",
+      "hospital.vn",
+      "medic.vn",
+      "bv.vn",
+      "phongkham.vn",
+      "clinic.vn",
+      "yte.vn",
     ];
     return vietnameseHospitalDomains.includes(this.domain);
   }
@@ -115,12 +116,23 @@ export class Email extends ValueObject<EmailProps> {
     const localPart = this.localPart.toLowerCase();
 
     // Check domain patterns
-    const healthcareDomains = ['hospital', 'clinic', 'medic', 'doctor', 'nurse', 'benhvien', 'phongkham'];
-    const domainMatch = healthcareDomains.some(pattern => domain.includes(pattern));
+    const healthcareDomains = [
+      "hospital",
+      "clinic",
+      "medic",
+      "doctor",
+      "benhvien",
+      "phongkham",
+    ];
+    const domainMatch = healthcareDomains.some((pattern) =>
+      domain.includes(pattern),
+    );
 
     // Check local part patterns
-    const healthcarePatterns = ['doctor', 'dr', 'nurse', 'bacsi', 'yta', 'admin'];
-    const localMatch = healthcarePatterns.some(pattern => localPart.includes(pattern));
+    const healthcarePatterns = ["doctor", "dr", "bacsi", "admin"];
+    const localMatch = healthcarePatterns.some((pattern) =>
+      localPart.includes(pattern),
+    );
 
     return domainMatch || localMatch || this.isVietnameseHospitalEmail();
   }
@@ -128,26 +140,26 @@ export class Email extends ValueObject<EmailProps> {
   /**
    * Get email type for role assignment
    */
-  public getEmailType(): 'patient' | 'doctor' | 'nurse' | 'admin' | 'staff' | 'unknown' {
+  public getEmailType(): "patient" | "doctor" | "admin" | "staff" | "unknown" {
     const localPart = this.localPart.toLowerCase();
 
-    if (localPart.includes('admin') || localPart.includes('quanly')) {
-      return 'admin';
+    if (localPart.includes("admin") || localPart.includes("quanly")) {
+      return "admin";
     }
 
-    if (localPart.includes('doctor') || localPart.includes('dr') || localPart.includes('bacsi')) {
-      return 'doctor';
-    }
-
-    if (localPart.includes('nurse') || localPart.includes('yta')) {
-      return 'nurse';
+    if (
+      localPart.includes("doctor") ||
+      localPart.includes("dr") ||
+      localPart.includes("bacsi")
+    ) {
+      return "doctor";
     }
 
     if (this.isHealthcareStaffEmail()) {
-      return 'staff';
+      return "staff";
     }
 
-    return 'patient'; // Default to patient for public emails
+    return "patient"; // Default to patient for public emails
   }
 
   /**
@@ -161,7 +173,8 @@ export class Email extends ValueObject<EmailProps> {
       return `${localPart}***@${domain}`;
     }
 
-    const maskedLocal = localPart.substring(0, 2) + '*'.repeat(localPart.length - 2);
+    const maskedLocal =
+      localPart.substring(0, 2) + "*".repeat(localPart.length - 2);
     return `${maskedLocal}@${domain}`;
   }
 

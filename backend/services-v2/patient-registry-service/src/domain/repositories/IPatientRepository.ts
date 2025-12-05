@@ -7,8 +7,9 @@
  * @compliance Clean Architecture, DDD, Repository Pattern
  */
 
-import { Patient } from '../aggregates/Patient';
-import { PatientId } from '../value-objects/PatientId';
+import { Patient } from "../aggregates/Patient";
+import { PatientId } from "../value-objects/PatientId";
+import { PatientStatus } from "../value-objects/PatientStatus";
 
 export interface IPatientRepository {
   /**
@@ -41,7 +42,7 @@ export interface IPatientRepository {
     city?: string;
     province?: string;
     dateOfBirth?: Date;
-    gender?: 'male' | 'female' | 'other';
+    gender?: "male" | "female" | "other";
     citizenId?: string;
   }): Promise<Patient>;
 
@@ -54,6 +55,24 @@ export interface IPatientRepository {
    * Delete patient (soft delete)
    */
   delete(patientId: PatientId): Promise<void>;
+
+  /**
+   * Update patient lifecycle status by user ID
+   * Used by cross-service event handlers (e.g., identity-service)
+   */
+  updateStatusByUserId(
+    userId: string,
+    newStatus: PatientStatus,
+    options?: {
+      updatedBy?: string;
+      reason?: string;
+      source?: string;
+    },
+  ): Promise<{
+    updated: boolean;
+    patientId?: string;
+    previousStatus?: PatientStatus;
+  }>;
 
   /**
    * Find patients with filters
@@ -72,9 +91,9 @@ export interface IPatientRepository {
       limit: number;
       sorting?: {
         field: string;
-        direction: 'asc' | 'desc';
+        direction: "asc" | "desc";
       };
-    }
+    },
   ): Promise<{
     patients: Patient[];
     total: number;
@@ -92,7 +111,7 @@ export interface IPatientRepository {
     pagination?: {
       page: number;
       limit: number;
-    }
+    },
   ): Promise<{
     patients: Patient[];
     total: number;
@@ -111,12 +130,14 @@ export interface IPatientRepository {
       email?: string;
     },
     onlyCertainMatches?: boolean,
-    limit?: number
-  ): Promise<Array<{
-    patient: Patient;
-    matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
-    score: number;
-  }>>;
+    limit?: number,
+  ): Promise<
+    Array<{
+      patient: Patient;
+      matchGrade: "certain" | "probable" | "possible" | "certainly-not";
+      score: number;
+    }>
+  >;
 
   /**
    * Find patient by BHYT number
@@ -140,10 +161,10 @@ export interface IPatientRepository {
       unknown: number;
     };
     byAgeRange: {
-      '0-18': number;
-      '19-40': number;
-      '41-60': number;
-      '60+': number;
+      "0-18": number;
+      "19-40": number;
+      "41-60": number;
+      "60+": number;
     };
     byInsuranceType: {
       bhyt: number;
@@ -175,7 +196,7 @@ export interface IPatientRepository {
       dateFrom?: Date;
       dateTo?: Date;
       eventTypes?: string[];
-    }
+    },
   ): Promise<{
     history: Array<{
       eventId: string;
@@ -192,4 +213,3 @@ export interface IPatientRepository {
     total: number;
   }>;
 }
-

@@ -93,8 +93,8 @@ const GetInsuranceInfoUseCase_1 = require("../../src/application/use-cases/GetIn
 const AddInsuranceInfoUseCase_1 = require("../../src/application/use-cases/AddInsuranceInfoUseCase");
 const UpdateInsuranceInfoUseCase_1 = require("../../src/application/use-cases/UpdateInsuranceInfoUseCase");
 const VerifyInsuranceUseCase_1 = require("../../src/application/use-cases/VerifyInsuranceUseCase");
+const GetPatientStatisticsUseCase_1 = require("../../src/application/use-cases/GetPatientStatisticsUseCase");
 /* POST-MVP: Archived use case imports - Not required for graduation project
-import { GetPatientStatisticsUseCase } from '../../src/application/use-cases/GetPatientStatisticsUseCase';
 import { UploadPatientPhotoUseCase } from '../../src/application/use-cases/UploadPatientPhotoUseCase';
 import { GetPatientPhotoUseCase } from '../../src/application/use-cases/GetPatientPhotoUseCase';
 import { DeletePatientPhotoUseCase } from '../../src/application/use-cases/DeletePatientPhotoUseCase';
@@ -121,9 +121,9 @@ const SupabaseOutboxRepository_1 = require("../../src/infrastructure/outbox/Supa
 const createTestLogger = () => ({
     debug: () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
     info: () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
-    warn: (...args) => console.warn('[TestLogger][WARN]', ...args),
-    error: (...args) => console.error('[TestLogger][ERROR]', ...args),
-    fatal: (...args) => console.error('[TestLogger][FATAL]', ...args)
+    warn: (...args) => console.warn("[TestLogger][WARN]", ...args),
+    error: (...args) => console.error("[TestLogger][ERROR]", ...args),
+    fatal: (...args) => console.error("[TestLogger][FATAL]", ...args),
 });
 /**
  * Create Express app for testing
@@ -138,22 +138,22 @@ async function createTestApp(config) {
     if (config.enableRabbitMQ && config.rabbitmqUrl) {
         eventPublisher = new RabbitMQEventPublisher_1.RabbitMQEventPublisher({
             url: config.rabbitmqUrl,
-            exchange: 'patient-registry-events-test',
-            exchangeType: 'topic',
+            exchange: "patient-registry-events-test",
+            exchangeType: "topic",
             durable: false,
             autoDelete: true,
-            serviceName: 'patient-registry'
+            serviceName: "patient-registry",
         }, {
             enableRetry: false,
             maxRetries: 1,
             retryDelayMs: 100,
-            enableLogging: false
+            enableLogging: false,
         }, logger);
         try {
             await eventPublisher.connect();
         }
         catch (error) {
-            console.warn('⚠️  RabbitMQ not available for tests, continuing without event publishing');
+            console.warn("⚠️  RabbitMQ not available for tests, continuing without event publishing");
             eventPublisher = undefined;
         }
     }
@@ -161,7 +161,7 @@ async function createTestApp(config) {
     const matchingService = new PatientMatchingService_1.PatientMatchingService(logger);
     const insuranceValidationService = new InsuranceValidationService_1.InsuranceValidationService(logger);
     // Initialize Cache (optional for tests)
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6380';
+    const redisUrl = process.env.REDIS_URL || "redis://localhost:6380";
     const patientCache = new PatientCache_1.PatientCache(redisUrl);
     // Initialize Audit Service (optional for tests)
     const supabaseClient = (0, supabase_js_1.createClient)(config.supabaseUrl, config.supabaseKey);
@@ -173,29 +173,28 @@ async function createTestApp(config) {
     }
     else {
         // Create OptimizedSupabaseClient for SupabasePatientRepository
-        const { createOptimizedSupabaseClient } = await Promise.resolve().then(() => __importStar(require('../../../shared/infrastructure/database/optimized-supabase-client')));
+        const { createOptimizedSupabaseClient } = await Promise.resolve().then(() => __importStar(require("../../../shared/infrastructure/database/optimized-supabase-client")));
         const optimizedClient = createOptimizedSupabaseClient({
             supabaseUrl: config.supabaseUrl,
             supabaseServiceKey: config.supabaseKey,
-            serviceName: 'patient-registry-service',
-            schemaName: 'patient_schema',
+            serviceName: "patient-registry-service",
+            schemaName: "patient_schema",
             enableOptimizations: false, // Disable for tests
         });
         // Create Outbox Repository for tests
         const outboxRepository = new SupabaseOutboxRepository_1.SupabaseOutboxRepository(supabaseClient, logger);
-        patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(optimizedClient, logger, matchingService, eventPublisher, patientCache, outboxRepository // ✅ Inject outbox repository
-        );
+        patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(optimizedClient, logger, matchingService, eventPublisher, patientCache, outboxRepository);
     }
     // Create mock event bus for tests (if no RabbitMQ)
     const mockEventBus = {
         connect: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
         disconnect: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
         publish: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
-        subscribe: async () => { } // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+        subscribe: async () => { }, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
     };
     const eventBus = eventPublisher || mockEventBus;
     // Mock SupabaseClient for tests
-    const mockSupabaseClient = (0, supabase_js_1.createClient)('https://mock.supabase.co', 'mock-key');
+    const mockSupabaseClient = (0, supabase_js_1.createClient)("https://mock.supabase.co", "mock-key");
     // Initialize Use Cases
     const registerPatientUseCase = new RegisterPatientUseCase_1.RegisterPatientUseCase(patientRepository, eventBus, logger, auditService, mockSupabaseClient);
     const updatePatientInfoUseCase = new UpdatePatientInfoUseCase_1.UpdatePatientInfoUseCase(patientRepository, eventBus, logger, auditService);
@@ -248,9 +247,8 @@ async function createTestApp(config) {
     const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase_1.AddInsuranceInfoUseCase(patientRepository, logger);
     const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase_1.UpdateInsuranceInfoUseCase(patientRepository, eventBus, logger);
     const verifyInsuranceUseCase = new VerifyInsuranceUseCase_1.VerifyInsuranceUseCase(patientRepository, logger);
+    const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase_1.GetPatientStatisticsUseCase(patientRepository);
     /* POST-MVP: Archived use case instantiations - Not required for graduation project
-    // Additional use cases for PatientController
-    const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(patientRepository);
   
     // Mock storage service for photo use cases
     const mockStorageService = {
@@ -287,15 +285,15 @@ async function createTestApp(config) {
     linkPatientsUseCase,
     deactivatePatientUseCase,
     END POST-MVP */
-    validateInsuranceUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase);
+    validateInsuranceUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, getPatientStatisticsUseCase);
     const commandController = new CommandController_1.CommandController(logger, patientCommandHandlers);
     const errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger);
     // Setup Middleware
     app.use((0, helmet_1.default)({ contentSecurityPolicy: false }));
-    app.use((0, cors_1.default)({ origin: '*', credentials: true }));
+    app.use((0, cors_1.default)({ origin: "*", credentials: true }));
     app.use((0, compression_1.default)());
-    app.use(express_1.default.json({ limit: '10mb' }));
-    app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+    app.use(express_1.default.json({ limit: "10mb" }));
+    app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
     // Setup Authentication Middleware (if enabled)
     let authMiddleware;
     let identityMockRelease;
@@ -305,7 +303,7 @@ async function createTestApp(config) {
             const identityMock = await (0, identityMockServer_1.ensureIdentityMockServer)();
             identityMockRelease = identityMock.release;
             identityServiceUrl = identityMock.url;
-            process.env.IDENTITY_USE_MOCK = 'true';
+            process.env.IDENTITY_USE_MOCK = "true";
             process.env.IDENTITY_SERVICE_URL = identityServiceUrl;
             console.log(`[AppFactory] Using mock Identity Service at ${identityServiceUrl}`);
         }
@@ -315,30 +313,30 @@ async function createTestApp(config) {
         authMiddleware = new AuthenticationMiddleware_1.AuthenticationMiddleware({
             identityServiceUrl,
             logger,
-            skipPaths: ['/health', '/api-docs']
+            skipPaths: ["/health", "/api-docs"],
         });
         // Apply authentication to all routes except skipped paths
         app.use(authMiddleware.authenticate());
     }
     // Setup Routes
-    app.get('/health', (_req, res) => {
+    app.get("/health", (_req, res) => {
         res.status(200).json({
-            status: 'healthy',
-            service: 'patient-registry-service-test',
-            version: '2.0.0',
-            timestamp: new Date().toISOString()
+            status: "healthy",
+            service: "patient-registry-service-test",
+            version: "2.0.0",
+            timestamp: new Date().toISOString(),
         });
     });
     // Create AuthorizationMiddleware for tests
-    const { AuthorizationMiddleware } = await Promise.resolve().then(() => __importStar(require('../../src/presentation/middleware/AuthorizationMiddleware')));
+    const { AuthorizationMiddleware } = await Promise.resolve().then(() => __importStar(require("../../src/presentation/middleware/AuthorizationMiddleware")));
     const authorizationMiddleware = new AuthorizationMiddleware({
         logger,
-        patientRepository
+        patientRepository,
     });
     const patientRoutes = (0, patientRoutes_1.createPatientRoutes)(patientController, authorizationMiddleware);
-    app.use('/api/v1/patients', patientRoutes);
+    app.use("/api/v1/patients", patientRoutes);
     const commandRoutes = (0, commandRoutes_1.createCommandRoutes)(commandController);
-    app.use('/api/v1/commands', commandRoutes);
+    app.use("/api/v1/commands", commandRoutes);
     // Error handling
     app.use(errorHandlingMiddleware.notFound());
     app.use(errorHandlingMiddleware.handle());
@@ -370,7 +368,7 @@ async function createTestApp(config) {
         patientRepository,
         inMemoryRepository: patientRepository instanceof InMemoryPatientRepository_1.InMemoryPatientRepository
             ? patientRepository
-            : undefined
+            : undefined,
     };
 }
 /**
@@ -378,10 +376,10 @@ async function createTestApp(config) {
  */
 async function createMinimalTestApp() {
     return createTestApp({
-        supabaseUrl: process.env.SUPABASE_URL || '',
-        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        supabaseUrl: process.env.SUPABASE_URL || "",
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
         enableRabbitMQ: false,
-        enableAuthentication: false
+        enableAuthentication: false,
     });
 }
 /**
@@ -390,15 +388,17 @@ async function createMinimalTestApp() {
  * - If IDENTITY_USE_MOCK=false: Uses REAL Identity Service at IDENTITY_SERVICE_URL
  */
 async function createAuthenticatedTestApp() {
-    const useMock = process.env.IDENTITY_USE_MOCK === 'true' || process.env.NODE_ENV === 'test';
-    const identityServiceUrl = useMock ? undefined : (process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021');
+    const useMock = process.env.IDENTITY_USE_MOCK === "true" || process.env.NODE_ENV === "test";
+    const identityServiceUrl = useMock
+        ? undefined
+        : process.env.IDENTITY_SERVICE_URL || "http://localhost:3021";
     return createTestApp({
-        supabaseUrl: process.env.SUPABASE_URL || '',
-        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        supabaseUrl: process.env.SUPABASE_URL || "",
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
         enableRabbitMQ: false,
         enableAuthentication: true,
         useInMemoryRepository: true,
-        identityServiceUrl // Pass URL for real service, undefined for mock
+        identityServiceUrl, // Pass URL for real service, undefined for mock
     });
 }
 /**
@@ -406,10 +406,10 @@ async function createAuthenticatedTestApp() {
  */
 async function createFullTestApp() {
     return createTestApp({
-        supabaseUrl: process.env.SUPABASE_URL || '',
-        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-        rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5672',
-        enableRabbitMQ: true
+        supabaseUrl: process.env.SUPABASE_URL || "",
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+        rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5672",
+        enableRabbitMQ: true,
     });
 }
 //# sourceMappingURL=appFactory.js.map

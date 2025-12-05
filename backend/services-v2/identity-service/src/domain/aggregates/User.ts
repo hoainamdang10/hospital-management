@@ -32,15 +32,10 @@ import { UserActivatedEvent } from "../events/UserActivatedEvent";
  */
 function convertToSharedRoleType(
   roleType: string,
-): "admin" | "doctor" | "nurse" | "patient" | "receptionist" {
-  const roleMapping: Record<
-    string,
-    "admin" | "doctor" | "nurse" | "patient" | "receptionist"
-  > = {
+): "admin" | "doctor" | "patient" {
+  const roleMapping: Record<string, "admin" | "doctor" | "patient"> = {
     ADMIN: "admin",
     DOCTOR: "doctor",
-    NURSE: "nurse",
-    RECEPTIONIST: "receptionist",
     PATIENT: "patient",
   };
 
@@ -605,6 +600,44 @@ export class User extends HealthcareAggregateRoot<UserProps> {
       );
     } catch (error) {
       throw new Error(`Failed to deactivate user: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Reactivate patient account that was previously deactivated.
+   * Only applies to users có role PATIENT.
+   */
+  public reactivatePatient(_reactivatedBy: string, _reason?: string): void {
+    try {
+      if (!this.hasRole("PATIENT")) {
+        throw new Error("Only patient accounts can be reactivated");
+      }
+
+      if (this.props.accountStatus !== AccountStatus.DEACTIVATED) {
+        throw new Error(
+          `Cannot reactivate account with status: ${this.props.accountStatus}`,
+        );
+      }
+
+      const now = new Date();
+      this.props.accountStatus = AccountStatus.ACTIVE;
+      this.props.deactivationReason = undefined;
+      this.props.deactivatedAt = undefined;
+      this.props.deactivatedBy = undefined;
+      this.props.updatedAt = now;
+
+      this.addDomainEvent(
+        new UserActivatedEvent(
+          this.props.id.value,
+          this.props.email.value,
+          this.props.personalInfo.fullName,
+          now,
+        ),
+      );
+    } catch (error) {
+      throw new Error(
+        `Failed to reactivate patient: ${getErrorMessage(error)}`,
+      );
     }
   }
 

@@ -6,9 +6,9 @@
  * @version 2.0.0
  * @compliance RESTful API, Clean Architecture
  */
-import { Router } from 'express';
-import { PatientController } from '../controllers/PatientController';
-import { AuthorizationMiddleware } from '../middleware/AuthorizationMiddleware';
+import { Router } from "express";
+import { PatientController } from "../controllers/PatientController";
+import { AuthorizationMiddleware } from "../middleware/AuthorizationMiddleware";
 /**
  * Create patient routes
  * @param controller - Patient controller instance

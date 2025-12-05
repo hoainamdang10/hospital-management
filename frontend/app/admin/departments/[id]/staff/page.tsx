@@ -2,9 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, UserPlus, Search, MoreVertical, Loader2, Eye, Shield, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  UserPlus,
+  Search,
+  MoreVertical,
+  Loader2,
+  Eye,
+  Shield,
+  Trash2,
+} from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
-import { getDepartmentById, getDepartmentStaff, setDepartmentHead, type Department } from '@/lib/api/departments.service';
+import {
+  getDepartmentById,
+  getDepartmentStaff,
+  setDepartmentHead,
+  type Department,
+} from '@/lib/api/departments.service';
 
 /**
  * Manage Department Staff Page
@@ -62,10 +76,13 @@ export default function ManageDepartmentStaffPage() {
   };
 
   // Filter staff
-  const filteredStaff = staffList.filter(staff => {
-    const matchesSearch = staff.personalInfo?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         staff.personalInfo?.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'all' || staff.professionalInfo?.position?.toLowerCase() === roleFilter.toLowerCase();
+  const filteredStaff = staffList.filter((staff) => {
+    const matchesSearch =
+      staff.personalInfo?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      staff.personalInfo?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole =
+      roleFilter === 'all' ||
+      staff.professionalInfo?.position?.toLowerCase() === roleFilter.toLowerCase();
     return matchesSearch && matchesRole;
   });
 
@@ -82,7 +99,7 @@ export default function ManageDepartmentStaffPage() {
   if (!department) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
+        <div className="py-12 text-center">
           <p>Không tìm thấy khoa</p>
         </div>
       </DashboardLayout>
@@ -97,7 +114,7 @@ export default function ManageDepartmentStaffPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
@@ -105,62 +122,69 @@ export default function ManageDepartmentStaffPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-gray-900">Quản lý nhân viên</h1>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">{department.nameVi}</span>
+                  <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+                    {department.nameVi}
+                  </span>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">Quản lý nhân viên được phân công vào khoa {department.nameVi}</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Quản lý nhân viên được phân công vào khoa {department.nameVi}
+                </p>
               </div>
             </div>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium text-sm">
+          <button className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
             <UserPlus className="h-4 w-4" />
             Thêm nhân viên
           </button>
         </div>
 
         {/* Staff List Card */}
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="rounded-lg border border-gray-200 bg-white">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200">
+          <div className="border-b border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900">Nhân viên khoa</h2>
-            <p className="text-sm text-gray-500 mt-1">Quản lý nhân viên được phân công vào khoa {department.nameVi}</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Quản lý nhân viên được phân công vào khoa {department.nameVi}
+            </p>
           </div>
 
           {/* Search and Filter */}
-          <div className="p-6 border-b border-gray-200 flex items-center gap-4">
+          <div className="flex items-center gap-4 border-b border-gray-200 p-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Tìm kiếm nhân viên..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 py-2 pr-4 pl-9 text-sm focus:border-transparent focus:ring-2 focus:ring-gray-900"
               />
             </div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-gray-900"
             >
               <option value="all">Tất cả vai trò</option>
               <option value="cardiologist">Bác sĩ tim mạch</option>
-              <option value="nurse">Y tá</option>
               <option value="technician">Kỹ thuật viên</option>
             </select>
           </div>
 
           {/* Table */}
           {isLoadingStaff ? (
-            <div className="text-center py-12">
-              <Loader2 className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-2" />
+            <div className="py-12 text-center">
+              <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-gray-400" />
               <p className="text-gray-500">Đang tải danh sách nhân viên...</p>
             </div>
           ) : filteredStaff.length === 0 ? (
-            <div className="text-center py-12">
-              <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-900 font-medium">Không tìm thấy nhân viên</p>
-              <p className="text-gray-500 text-sm mt-1">
-                {searchQuery ? `Không có nhân viên nào khớp với "${searchQuery}"` : 'Thêm nhân viên vào khoa này'}
+            <div className="py-12 text-center">
+              <UserPlus className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+              <p className="font-medium text-gray-900">Không tìm thấy nhân viên</p>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchQuery
+                  ? `Không có nhân viên nào khớp với "${searchQuery}"`
+                  : 'Thêm nhân viên vào khoa này'}
               </p>
             </div>
           ) : (
@@ -171,27 +195,27 @@ export default function ManageDepartmentStaffPage() {
                     <th className="w-12 px-6 py-3">
                       <input type="checkbox" className="rounded border-gray-300" />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                       Tên
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                       Vai trò
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                       Trạng thái
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                       Ngày tham gia
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredStaff.map((staff, index) => (
                     <tr key={staff.id || index} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -199,42 +223,58 @@ export default function ManageDepartmentStaffPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
                             <span className="text-sm font-semibold text-gray-600">
-                              {staff.personalInfo?.fullName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'DS'}
+                              {staff.personalInfo?.fullName
+                                ?.split(' ')
+                                .map((n: string) => n[0])
+                                .join('')
+                                .slice(0, 2) || 'DS'}
                             </span>
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900">
                               {staff.personalInfo?.fullName || 'Không rõ'}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              {staff.staffId || 'N/A'}
-                            </div>
+                            <div className="text-xs text-gray-500">{staff.staffId || 'N/A'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {staff.professionalInfo?.title || staff.professionalInfo?.position || 'Nhân viên'}
+                      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                        {staff.professionalInfo?.title ||
+                          staff.professionalInfo?.position ||
+                          'Nhân viên'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                         {staff.personalInfo?.email || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          staff.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            staff.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
                           {staff.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {staff.registrationDate ? new Date(staff.registrationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                        {staff.registrationDate
+                          ? new Date(staff.registrationDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })
+                          : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
                         <div className="relative">
                           <button
-                            onClick={() => setOpenDropdown(openDropdown === staff.id ? null : staff.id)}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            onClick={() =>
+                              setOpenDropdown(openDropdown === staff.id ? null : staff.id)
+                            }
+                            className="rounded-full p-2 transition-colors hover:bg-gray-100"
                             title="Actions"
                           >
                             <MoreVertical className="h-4 w-4 text-gray-600" />
@@ -242,18 +282,18 @@ export default function ManageDepartmentStaffPage() {
 
                           {openDropdown === staff.id && (
                             <>
-                              <div 
-                                className="fixed inset-0 z-10" 
+                              <div
+                                className="fixed inset-0 z-10"
                                 onClick={() => setOpenDropdown(null)}
                               />
-                              
-                              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+
+                              <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
                                 <button
                                   onClick={() => {
                                     setOpenDropdown(null);
                                     router.push(`/admin/staff/${staff.staffId}`);
                                   }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                                 >
                                   <Eye className="h-4 w-4" />
                                   Xem hồ sơ
@@ -264,7 +304,7 @@ export default function ManageDepartmentStaffPage() {
                                     setSelectedStaff(staff);
                                     setShowChangeRoleModal(true);
                                   }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                                 >
                                   <Shield className="h-4 w-4" />
                                   Thay đổi vai trò
@@ -272,12 +312,14 @@ export default function ManageDepartmentStaffPage() {
                                 <button
                                   onClick={() => {
                                     setOpenDropdown(null);
-                                    if (confirm(`Xóa ${staff.personalInfo?.fullName} khỏi khoa này?`)) {
+                                    if (
+                                      confirm(`Xóa ${staff.personalInfo?.fullName} khỏi khoa này?`)
+                                    ) {
                                       // TODO: Call API to remove staff from department
                                       console.log('Remove staff:', staff.id);
                                     }
                                   }}
-                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   Xóa khỏi khoa
@@ -297,40 +339,47 @@ export default function ManageDepartmentStaffPage() {
 
         {/* Change Role Modal */}
         {showChangeRoleModal && selectedStaff && (
-          <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50" onClick={() => {
-            setShowChangeRoleModal(false);
-            setSelectedStaff(null);
-          }}>
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Thay đổi vai trò</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Thay đổi vai trò cho <span className="font-medium">{selectedStaff.personalInfo?.fullName}</span>
+          <div
+            className="bg-opacity-20 fixed inset-0 z-50 flex items-center justify-center bg-black"
+            onClick={() => {
+              setShowChangeRoleModal(false);
+              setSelectedStaff(null);
+            }}
+          >
+            <div
+              className="mx-4 w-full max-w-md rounded-lg bg-white p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Thay đổi vai trò</h3>
+              <p className="mb-4 text-sm text-gray-600">
+                Thay đổi vai trò cho{' '}
+                <span className="font-medium">{selectedStaff.personalInfo?.fullName}</span>
               </p>
-              
-              <div className="space-y-3 mb-6">
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+
+              <div className="mb-6 space-y-3">
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50">
                   <input
                     type="radio"
                     name="role"
                     value="head"
                     checked={selectedRole === 'head'}
                     onChange={(e) => setSelectedRole(e.target.value as 'head' | 'staff')}
-                    className="w-4 h-4"
+                    className="h-4 w-4"
                   />
                   <div>
                     <div className="text-sm font-medium text-gray-900">Trưởng khoa</div>
                     <div className="text-xs text-gray-500">Đặt làm trưởng khoa</div>
                   </div>
                 </label>
-                
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50">
                   <input
                     type="radio"
                     name="role"
                     value="staff"
                     checked={selectedRole === 'staff'}
                     onChange={(e) => setSelectedRole(e.target.value as 'head' | 'staff')}
-                    className="w-4 h-4"
+                    className="h-4 w-4"
                   />
                   <div>
                     <div className="text-sm font-medium text-gray-900">Nhân viên thường</div>
@@ -347,17 +396,17 @@ export default function ManageDepartmentStaffPage() {
                     setSelectedRole('staff');
                   }}
                   disabled={isSavingRole}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={async () => {
                     if (!department?.id || !selectedStaff?.staffId) return;
-                    
+
                     try {
                       setIsSavingRole(true);
-                      
+
                       if (selectedRole === 'head') {
                         // Set as department head - use staffId not id (UUID)
                         await setDepartmentHead(department.id, selectedStaff.staffId);
@@ -366,10 +415,10 @@ export default function ManageDepartmentStaffPage() {
                         // TODO: Remove department head status
                         alert('Tính năng xóa trưởng khoa đang phát triển!');
                       }
-                      
+
                       // Reload staff list
                       await fetchStaff(department.id);
-                      
+
                       setShowChangeRoleModal(false);
                       setSelectedStaff(null);
                       setSelectedRole('staff');
@@ -381,7 +430,7 @@ export default function ManageDepartmentStaffPage() {
                     }
                   }}
                   disabled={isSavingRole}
-                  className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
                 >
                   {isSavingRole ? (
                     <>

@@ -93,6 +93,8 @@ export interface ListAppointmentsParams {
   endDate?: string; // YYYY-MM-DD
   limit?: number; // default: 50, max: 100
   offset?: number; // default: 0
+  page?: number; // default: 1
+  pageSize?: number; // default: 20
 }
 
 // ============================================================================

@@ -7,14 +7,10 @@ import {
   Clock,
   User,
   Search,
-  Filter,
-  MoreHorizontal,
   CheckCircle2,
   PlayCircle,
   ClipboardList,
   RefreshCw,
-  ChevronRight,
-  TrendingUp,
   Users,
   Activity,
   Loader2,
@@ -23,8 +19,10 @@ import {
   AlertCircle,
   MoreVertical,
   Phone,
-  Mail,
   MapPin,
+  ChevronRight,
+  Filter,
+  Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -38,14 +36,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { getStaffByUserId } from '@/lib/api/staff.service';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -56,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 interface Appointment {
   id: string;
@@ -71,6 +68,25 @@ interface Appointment {
   patientGender?: string;
   patientAge?: number;
 }
+
+// Status configuration with consistent styling
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+  CANCELLED: { label: 'Đã hủy', color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200', icon: AlertCircle },
+  PENDING_PAYMENT: { label: 'Chờ thanh toán', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: Clock },
+  CHECKED_IN: { label: 'Đã đến', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: MapPin },
+  IN_PROGRESS: { label: 'Đang khám', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Activity },
+  COMPLETED: { label: 'Hoàn thành', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200', icon: CheckCircle2 },
+  CONFIRMED: { label: 'Chờ đến', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: Clock },
+  DEFAULT: { label: 'Không rõ', color: 'text-slate-500', bg: 'bg-slate-50 border-slate-200', icon: AlertCircle },
+};
+
+// Tab configuration
+const TABS = [
+  { id: 'ALL', label: 'Tất cả', icon: ClipboardList },
+  { id: 'WAITING', label: 'Chờ khám', icon: Clock },
+  { id: 'CANCELLED', label: 'Đã hủy', icon: AlertCircle },
+  { id: 'COMPLETED', label: 'Đã xong', icon: CheckCircle2 },
+];
 
 export default function DoctorAppointmentsPage() {
   const router = useRouter();
@@ -158,18 +174,12 @@ export default function DoctorAppointmentsPage() {
         startDate: dateFilter === 'TODAY' ? today : undefined,
         endDate: dateFilter === 'TODAY' ? today : undefined,
       };
-      console.log('[DEBUG] Fetching appointments with:', {
-        doctorId: resolvedDoctorId,
-        dateFilter,
-        ...baseFilters,
-      });
 
       const aggregatedAppointments: any[] = [];
       const PAGE_SIZE = 50;
       const MAX_PAGES = 10;
       let page = 1;
       let hasMore = true;
-      let pagesFetched = 0;
 
       while (hasMore && page <= MAX_PAGES) {
         const res = await appointmentsService.getDoctorAppointments(resolvedDoctorId, {
@@ -180,28 +190,14 @@ export default function DoctorAppointmentsPage() {
 
         const batch = res.appointments || [];
         aggregatedAppointments.push(...batch);
-        pagesFetched += 1;
 
         hasMore = res.hasMore && batch.length === PAGE_SIZE;
-        if (!res.hasMore || batch.length < PAGE_SIZE) {
-          break;
-        }
+        if (!res.hasMore || batch.length < PAGE_SIZE) break;
         page += 1;
       }
 
-      console.log('[DEBUG] Aggregated appointments:', {
-        totalAppointments: aggregatedAppointments.length,
-        pagesFetched,
-        statusDistribution: aggregatedAppointments.reduce((acc: any, apt: any) => {
-          const status = apt.status || apt.appointment_status || 'UNKNOWN';
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {}),
-      });
-
       if (aggregatedAppointments.length) {
         const mapped = aggregatedAppointments.map((apt: any) => {
-          // Calculate age if DOB is available
           let age = undefined;
           const dob = apt.patient_date_of_birth || apt.patientDateOfBirth || apt.patient_dob;
           if (dob) {
@@ -231,15 +227,6 @@ export default function DoctorAppointmentsPage() {
         });
 
         mapped.sort((a: any, b: any) => a.appointmentTime.localeCompare(b.appointmentTime));
-        console.log(
-          'Appointments Data:',
-          mapped.map((a: any) => ({
-            time: a.appointmentTime,
-            status: a.status,
-            payment: a.paymentStatus,
-            cancelReason: a.cancellationReason || a.cancellation_reason,
-          }))
-        );
         setAppointments(mapped);
       } else {
         setAppointments([]);
@@ -266,13 +253,12 @@ export default function DoctorAppointmentsPage() {
     }
   };
 
-  // Helper: Translate gender to Vietnamese
   const translateGender = (gender?: string): string => {
-    if (!gender) return 'Chưa cập nhật';
+    if (!gender) return 'Chưa rõ';
     const normalized = gender.toLowerCase();
     if (normalized === 'male' || normalized === 'm') return 'Nam';
     if (normalized === 'female' || normalized === 'f') return 'Nữ';
-    return gender; // Return as-is if already in Vietnamese or unknown
+    return gender;
   };
 
   // Filter Logic
@@ -298,377 +284,401 @@ export default function DoctorAppointmentsPage() {
     });
   }, [appointments, searchTerm, activeTab]);
 
-  // Stats Logic
-  const stats = useMemo(
-    () => [
-      {
-        title: 'Tổng bệnh nhân',
-        value: appointments.length,
-        icon: Users,
-        color: 'text-blue-600',
-        bg: 'bg-blue-100',
-      },
-      {
-        title: 'Đang chờ',
-        value: appointments.filter((a) =>
-          ['CHECKED_IN', 'CONFIRMED'].includes(a.status.toUpperCase())
-        ).length,
-        icon: Clock,
-        color: 'text-amber-600',
-        bg: 'bg-amber-100',
-      },
-      {
-        title: 'Hoàn thành',
-        value: appointments.filter((a) => a.status.toUpperCase() === 'COMPLETED').length,
-        icon: CheckCircle2,
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-100',
-      },
-    ],
-    [appointments]
-  );
+  // Stats
+  const stats = useMemo(() => [
+    {
+      title: 'Tổng bệnh nhân',
+      value: appointments.length,
+      icon: Users,
+      gradient: 'from-blue-500 to-cyan-500',
+      lightBg: 'bg-blue-50',
+    },
+    {
+      title: 'Đang chờ',
+      value: appointments.filter((a) =>
+        ['CHECKED_IN', 'CONFIRMED'].includes(a.status.toUpperCase())
+      ).length,
+      icon: Clock,
+      gradient: 'from-amber-500 to-orange-500',
+      lightBg: 'bg-amber-50',
+    },
+    {
+      title: 'Hoàn thành',
+      value: appointments.filter((a) => a.status.toUpperCase() === 'COMPLETED').length,
+      icon: CheckCircle2,
+      gradient: 'from-emerald-500 to-teal-500',
+      lightBg: 'bg-emerald-50',
+    },
+  ], [appointments]);
 
   const getStatusConfig = (status: string, paymentStatus?: string) => {
-    if (status === 'CANCELLED')
-      return { label: 'Đã hủy', color: 'text-red-600 bg-red-100', icon: AlertCircle };
-    if (paymentStatus === 'PENDING')
-      return { label: 'Chờ thanh toán', color: 'text-orange-600 bg-orange-100', icon: Clock };
-
-    switch (status) {
-      case 'CHECKED_IN':
-        return { label: 'Đã đến', color: 'text-green-600 bg-green-100', icon: MapPin };
-      case 'IN_PROGRESS':
-        return { label: 'Đang khám', color: 'text-blue-600 bg-blue-100', icon: Activity };
-      case 'COMPLETED':
-        return { label: 'Đã xong', color: 'text-gray-600 bg-gray-100', icon: CheckCircle2 };
-      case 'CONFIRMED':
-        return { label: 'Chờ đến', color: 'text-amber-600 bg-amber-100', icon: Clock };
-      default:
-        return { label: status, color: 'text-gray-600 bg-gray-100', icon: AlertCircle };
-    }
+    if (status === 'CANCELLED') return STATUS_CONFIG.CANCELLED;
+    if (paymentStatus === 'PENDING' && status !== 'CANCELLED') return STATUS_CONFIG.PENDING_PAYMENT;
+    return STATUS_CONFIG[status] || STATUS_CONFIG.DEFAULT;
   };
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen space-y-8 pb-10">
-        {/* Header Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white shadow-2xl">
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+      <div className="min-h-screen space-y-6 pb-10">
+        {/* Hero Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-600 via-cyan-600 to-blue-600 p-6 text-white shadow-xl lg:p-8"
+        >
+          {/* Background decorations */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                backgroundSize: '32px 32px'
+              }}
+            />
+          </div>
 
-          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur-md">
-                <CalendarDays className="h-10 w-10 text-white" />
-              </div>
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-sm lg:h-16 lg:w-16"
+              >
+                <Stethoscope className="h-7 w-7 text-white lg:h-8 lg:w-8" />
+              </motion.div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Lịch khám bệnh</h1>
-                <p className="mt-1 text-blue-100">
-                  Quản lý danh sách bệnh nhân và lịch hẹn hôm nay
+                <h1 className="text-2xl font-bold lg:text-3xl">Lịch khám bệnh</h1>
+                <p className="mt-1 text-sm text-cyan-100 lg:text-base">
+                  Quản lý danh sách bệnh nhân và lịch hẹn
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+            <div className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
               <div className="text-right">
-                <p className="text-sm font-medium text-blue-100">Hôm nay</p>
-                <p className="text-xl font-bold">
+                <p className="text-xs font-medium text-cyan-100">Hôm nay</p>
+                <p className="text-base font-bold lg:text-lg">
                   {format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })}
                 </p>
               </div>
-              <div className="h-10 w-[1px] bg-white/20" />
+              <div className="h-8 w-px bg-white/20" />
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-full bg-white/20 text-white hover:bg-white/30"
+                className="h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20"
                 onClick={fetchAppointments}
                 disabled={isLoading}
               >
-                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={cn('h-5 w-5', isLoading && 'animate-spin')} />
               </Button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
+              className="group relative overflow-hidden rounded-xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-lg"
             >
-              <Card className="border-none shadow-lg transition-all hover:shadow-xl">
-                <CardContent className="flex items-center p-6">
-                  <div
-                    className={`mr-4 flex h-14 w-14 items-center justify-center rounded-full ${stat.bg}`}
-                  >
-                    <stat.icon className={`h-7 w-7 ${stat.color}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                    <h3 className="text-3xl font-bold text-gray-900">{stat.value}</h3>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Gradient accent */}
+              <div className={cn(
+                'absolute inset-x-0 top-0 h-1 bg-gradient-to-r',
+                stat.gradient
+              )} />
+
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  'flex h-12 w-12 items-center justify-center rounded-xl',
+                  stat.lightBg
+                )}>
+                  <stat.icon className={cn(
+                    'h-6 w-6 bg-gradient-to-r bg-clip-text',
+                    stat.gradient.replace('from-', 'text-').split(' ')[0]
+                  )} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{stat.title}</p>
+                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Main Content Area */}
-        <div className="grid gap-8 lg:grid-cols-12">
-          {/* Left Column: Filters & List */}
-          <div className="space-y-6 lg:col-span-12">
-            <div className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-              <Tabs
-                defaultValue="ALL"
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-full md:w-auto"
-              >
-                <TabsList className="grid w-full grid-cols-4 md:w-[400px]">
-                  <TabsTrigger value="ALL">Tất cả</TabsTrigger>
-                  <TabsTrigger value="WAITING">Chờ khám</TabsTrigger>
-                  <TabsTrigger value="CANCELLED">Đã hủy</TabsTrigger>
-                  <TabsTrigger value="COMPLETED">Đã xong</TabsTrigger>
-                </TabsList>
-              </Tabs>
+        {/* Filter Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-col gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between"
+        >
+          {/* Tab Pills */}
+          <div className="flex flex-wrap gap-2">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
+                    isActive
+                      ? 'bg-cyan-600 text-white shadow-md'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  )}
+                >
+                  <TabIcon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-              <div className="flex items-center gap-3">
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    placeholder="Tìm tên hoặc mã BN..."
-                    className="rounded-xl border-gray-200 bg-gray-50 pl-9 transition-all focus:bg-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[140px] rounded-xl border-gray-200 bg-gray-50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TODAY">Hôm nay</SelectItem>
-                    <SelectItem value="ALL">Tất cả</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Search & Date Filter */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Tìm tên hoặc mã BN..."
+                className="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 transition-all focus:bg-white sm:w-64"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-full rounded-lg border-slate-200 bg-slate-50 sm:w-[140px]">
+                <CalendarDays className="mr-2 h-4 w-4 text-slate-400" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODAY">Hôm nay</SelectItem>
+                <SelectItem value="ALL">Tất cả</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </motion.div>
 
-            {/* Appointment List - Timeline Style */}
-            <div className="min-h-[500px] rounded-3xl bg-white p-6 shadow-xl">
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex gap-4">
-                      <Skeleton className="h-24 w-24 rounded-xl" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-1/3" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-16 w-full rounded-xl" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredAppointments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-4 rounded-full bg-blue-50 p-6">
-                    <ClipboardList className="h-12 w-12 text-blue-200" />
+        {/* Appointment List */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-xl border border-slate-100 bg-white shadow-sm"
+        >
+          {isLoading ? (
+            <div className="space-y-4 p-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton className="h-16 w-16 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-12 w-full rounded-lg" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900">Không có lịch hẹn</h3>
-                  <p className="text-gray-500">
-                    Không tìm thấy lịch hẹn nào phù hợp với bộ lọc hiện tại.
-                  </p>
                 </div>
-              ) : (
-                <div className="relative space-y-0">
-                  {/* Timeline Line */}
-                  <div className="absolute top-4 bottom-4 left-8 w-[2px] bg-gray-100" />
+              ))}
+            </div>
+          ) : filteredAppointments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
+                <ClipboardList className="h-10 w-10 text-slate-400" />
+              </div>
+              <h3 className="mb-1 text-lg font-semibold text-slate-900">Không có lịch hẹn</h3>
+              <p className="text-sm text-slate-500">
+                Không tìm thấy lịch hẹn nào phù hợp với bộ lọc hiện tại.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              <AnimatePresence mode="popLayout">
+                {filteredAppointments.map((apt, index) => {
+                  let statusConfig = getStatusConfig(apt.status, apt.paymentStatus);
+                  if (apt.status === 'CANCELLED') {
+                    statusConfig = STATUS_CONFIG.CANCELLED;
+                  } else if (apt.paymentStatus === 'PENDING' && apt.status !== 'CANCELLED') {
+                    statusConfig = STATUS_CONFIG.PENDING_PAYMENT;
+                  }
+                  const StatusIcon = statusConfig.icon;
 
-                  <AnimatePresence mode="popLayout">
-                    {filteredAppointments.map((apt, index) => {
-                      // Inline logic to guarantee priority
-                      let statusConfig = getStatusConfig(apt.status, apt.paymentStatus);
+                  return (
+                    <motion.div
+                      key={apt.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="group cursor-pointer p-4 transition-colors hover:bg-slate-50 lg:p-5"
+                      onClick={() => router.push(`/doctor/appointments/${apt.id}`)}
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        {/* Left: Time + Avatar + Info */}
+                        <div className="flex items-center gap-4">
+                          {/* Time Badge */}
+                          <div className={cn(
+                            'flex h-14 w-14 flex-col items-center justify-center rounded-xl border-2 bg-white transition-all lg:h-16 lg:w-16',
+                            apt.status === 'IN_PROGRESS'
+                              ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
+                              : 'border-slate-100 group-hover:border-cyan-200 group-hover:shadow-sm'
+                          )}>
+                            <span className="text-base font-bold text-slate-900 lg:text-lg">
+                              {apt.appointmentTime.substring(0, 5)}
+                            </span>
+                            <span className="text-[10px] font-medium uppercase text-slate-400">
+                              {parseInt(apt.appointmentTime.substring(0, 2)) >= 12 ? 'PM' : 'AM'}
+                            </span>
+                          </div>
 
-                      // Force override if status is CANCELLED
-                      if (apt.status === 'CANCELLED') {
-                        statusConfig = {
-                          label: 'Đã hủy',
-                          color: 'text-red-600 bg-red-100',
-                          icon: AlertCircle,
-                        };
-                      } else if (apt.paymentStatus === 'PENDING' && apt.status !== 'CANCELLED') {
-                        statusConfig = {
-                          label: 'Chờ thanh toán',
-                          color: 'text-orange-600 bg-orange-100',
-                          icon: Clock,
-                        };
-                      }
+                          {/* Avatar */}
+                          <Avatar className="h-12 w-12 border-2 border-white shadow-sm lg:h-14 lg:w-14">
+                            <AvatarImage
+                              src={`https://api.dicebear.com/7.x/initials/svg?seed=${apt.patientName}`}
+                            />
+                            <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-500 text-white">
+                              {apt.patientName.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
 
-                      const StatusIcon = statusConfig.icon;
-
-                      return (
-                        <motion.div
-                          key={apt.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="group relative flex gap-6 pb-8 last:pb-0"
-                        >
-                          {/* Time Column */}
-                          <div className="relative z-10 flex flex-col items-center">
-                            <div
-                              className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border-2 bg-white shadow-sm transition-colors group-hover:border-blue-500 group-hover:shadow-md ${
-                                apt.status === 'IN_PROGRESS'
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-gray-100'
-                              }`}
-                            >
-                              <span className="text-lg font-bold text-gray-900">
-                                {apt.appointmentTime.substring(0, 5)}
+                          {/* Patient Info */}
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-base font-semibold text-slate-900 transition-colors group-hover:text-cyan-600 lg:text-lg">
+                                {apt.patientName}
+                              </h3>
+                              <Badge variant="outline" className="text-xs font-normal text-slate-500">
+                                {apt.patientId}
+                              </Badge>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <User className="h-3.5 w-3.5" />
+                                {translateGender(apt.patientGender)}
+                                {apt.patientAge ? `, ${apt.patientAge} tuổi` : ''}
                               </span>
-                              <span className="text-[10px] font-medium text-gray-500 uppercase">
-                                {parseInt(apt.appointmentTime.substring(0, 2)) >= 12 ? 'PM' : 'AM'}
+                              <span className="h-1 w-1 rounded-full bg-slate-300" />
+                              <span className={cn(
+                                'font-medium',
+                                apt.type === 'FOLLOW_UP' ? 'text-purple-600' : 'text-cyan-600'
+                              )}>
+                                {apt.type === 'FOLLOW_UP' ? 'Tái khám' : 'Khám mới'}
                               </span>
                             </div>
                           </div>
+                        </div>
 
-                          {/* Card Content */}
-                          <div
-                            className={`flex-1 cursor-pointer rounded-2xl border bg-white p-5 transition-all hover:border-blue-200 hover:shadow-lg ${
-                              apt.status === 'IN_PROGRESS'
-                                ? 'border-blue-200 ring-2 ring-blue-500 ring-offset-2'
-                                : 'border-gray-100 shadow-sm'
-                            }`}
-                            onClick={() => router.push(`/doctor/appointments/${apt.id}`)}
+                        {/* Right: Reason + Status + Actions */}
+                        <div className="flex items-center gap-4 pl-[72px] lg:pl-0">
+                          {/* Reason - Hidden on mobile */}
+                          <div className="hidden max-w-[180px] text-right lg:block">
+                            <p className="mb-0.5 text-xs text-slate-400">Lý do khám</p>
+                            <p className="truncate text-sm font-medium text-slate-700" title={apt.reason}>
+                              {apt.reason || 'Không có lý do'}
+                            </p>
+                          </div>
+
+                          {/* Status Badge */}
+                          <Badge
+                            className={cn(
+                              'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-medium',
+                              statusConfig.bg,
+                              statusConfig.color
+                            )}
                           >
-                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                              {/* Patient Info */}
-                              <div className="flex items-center gap-4">
-                                <Avatar className="h-14 w-14 border-2 border-white shadow-sm">
-                                  <AvatarImage
-                                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${apt.patientName}`}
-                                  />
-                                  <AvatarFallback>
-                                    {apt.patientName.substring(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="text-lg font-bold text-gray-900 transition-colors group-hover:text-blue-600">
-                                      {apt.patientName}
-                                    </h3>
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs font-normal text-gray-500"
-                                    >
-                                      {apt.patientId}
-                                    </Badge>
-                                  </div>
-                                  <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                      <User className="h-3.5 w-3.5" />
-                                      {translateGender(apt.patientGender)}
-                                      {apt.patientAge ? `, ${apt.patientAge} tuổi` : ''}
-                                    </span>
-                                    <span className="h-1 w-1 rounded-full bg-gray-300" />
-                                    <span className="flex items-center gap-1 font-medium text-blue-600">
-                                      {apt.type === 'FOLLOW_UP' ? 'Tái khám' : 'Khám mới'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
+                            <StatusIcon className="h-3.5 w-3.5" />
+                            {statusConfig.label}
+                          </Badge>
 
-                              {/* Reason & Status */}
-                              <div className="flex flex-1 items-center justify-between gap-4 md:justify-end">
-                                <div className="mr-4 hidden text-right md:block">
-                                  <p className="mb-1 text-xs text-gray-400">Lý do khám</p>
-                                  <p
-                                    className="max-w-[200px] truncate text-sm font-medium text-gray-700"
-                                    title={apt.reason}
-                                  >
-                                    {apt.reason || 'Không có lý do'}
-                                  </p>
-                                </div>
+                          {/* Start Exam Button - Only for CHECKED_IN */}
+                          {apt.status === 'CHECKED_IN' && (
+                            <Button
+                              size="sm"
+                              className="hidden bg-emerald-600 text-white hover:bg-emerald-700 lg:flex"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartExam(apt.id);
+                              }}
+                            >
+                              <PlayCircle className="mr-1.5 h-4 w-4" />
+                              Chờ đến
+                            </Button>
+                          )}
 
-                                <div className="flex items-center gap-3">
-                                  <Badge
-                                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 ${statusConfig.color} border-none`}
-                                  >
-                                    <StatusIcon className="h-3.5 w-3.5" />
-                                    {statusConfig.label}
-                                  </Badge>
-
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 rounded-full hover:bg-gray-100"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MoreVertical className="h-4 w-4 text-gray-500" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48">
-                                      <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          router.push(`/doctor/appointments/${apt.id}`);
-                                        }}
-                                      >
-                                        <Stethoscope className="mr-2 h-4 w-4" /> Xem chi tiết
-                                      </DropdownMenuItem>
-                                      {apt.status === 'CHECKED_IN' && (
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStartExam(apt.id);
-                                          }}
-                                          className="text-green-600 focus:text-green-700"
-                                        >
-                                          <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                                        <Phone className="mr-2 h-4 w-4" /> Gọi điện
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Quick Actions Footer (Optional - visible on hover or always) */}
-                            {apt.status === 'CHECKED_IN' && (
-                              <div className="mt-4 flex justify-end border-t border-gray-50 pt-3 md:hidden">
-                                <Button
-                                  size="sm"
-                                  className="w-full bg-green-600 text-white hover:bg-green-700"
+                          {/* Dropdown Menu */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg hover:bg-slate-100"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-4 w-4 text-slate-500" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/doctor/appointments/${apt.id}`);
+                                }}
+                              >
+                                <Stethoscope className="mr-2 h-4 w-4" /> Xem chi tiết
+                              </DropdownMenuItem>
+                              {apt.status === 'CHECKED_IN' && (
+                                <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleStartExam(apt.id);
                                   }}
+                                  className="text-emerald-600 focus:text-emerald-700"
                                 >
-                                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám ngay
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
-              )}
+                                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                                <Phone className="mr-2 h-4 w-4" /> Gọi điện
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
+                          {/* Chevron */}
+                          <ChevronRight className="hidden h-5 w-5 text-slate-300 transition-colors group-hover:text-cyan-500 lg:block" />
+                        </div>
+                      </div>
+
+                      {/* Mobile: Start Exam Button */}
+                      {apt.status === 'CHECKED_IN' && (
+                        <div className="mt-3 pl-[72px] lg:hidden">
+                          <Button
+                            size="sm"
+                            className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartExam(apt.id);
+                            }}
+                          >
+                            <PlayCircle className="mr-2 h-4 w-4" />
+                            Bắt đầu khám ngay
+                          </Button>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
-          </div>
-        </div>
+          )}
+        </motion.div>
       </div>
     </DashboardLayout>
   );

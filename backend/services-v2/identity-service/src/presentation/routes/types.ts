@@ -25,6 +25,8 @@ import { ValidateStaffInvitationUseCase } from "../../application/use-cases/Vali
 import { ChangePasswordUseCase } from "../../application/use-cases/ChangePasswordUseCase";
 import { AssignRoleUseCase } from "../../application/use-cases/AssignRoleUseCase";
 import { UnlockAccountUseCase } from "../../application/use-cases/UnlockAccountUseCase";
+import { DeactivateUserUseCase } from "../../application/use-cases/DeactivateUserUseCase";
+import { ReactivatePatientAccountUseCase } from "../../application/use-cases/ReactivatePatientAccountUseCase";
 import { IHealthCheckService } from "../../application/services/IHealthCheckService";
 import { IDegradationService } from "../../application/services/IDegradationService";
 import { IPermissionService } from "../../domain/services/IPermissionService";
@@ -62,6 +64,8 @@ export interface RouteDependencies {
   changePasswordUseCase: ChangePasswordUseCase;
   assignRoleUseCase: AssignRoleUseCase;
   unlockAccountUseCase: UnlockAccountUseCase;
+  deactivateUserUseCase: DeactivateUserUseCase;
+  reactivatePatientAccountUseCase: ReactivatePatientAccountUseCase;
 
   // Staff Management Use Cases
   provisionStaffUseCase: ProvisionStaffUseCase;

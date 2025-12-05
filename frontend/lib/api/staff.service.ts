@@ -10,13 +10,13 @@ export interface Staff {
   staffId: string;
   userId: string;
   staffType:
-    | 'doctor'
-    | 'nurse'
-    | 'admin'
-    | 'receptionist'
-    | 'technician'
-    | 'pharmacist'
-    | 'therapist';
+  | 'doctor'
+  | 'nurse'
+  | 'admin'
+  | 'receptionist'
+  | 'technician'
+  | 'pharmacist'
+  | 'therapist';
   personalInfo: {
     fullName: string;
     email: string;
@@ -329,7 +329,7 @@ export function calculateExperience(createdAt: string): number {
 
 export async function createStaffProfile(payload: {
   userId: string;
-  staffType: 'doctor' | 'receptionist';
+  staffType: 'doctor' | 'admin';
   personalInfo: {
     fullName: string;
     dateOfBirth: string;
@@ -377,12 +377,12 @@ export async function createStaffProfile(payload: {
 
 export async function assignStaffToDepartment(
   staffId: string,
-  options: { departmentId: string; role?: string; isPrimary?: boolean; startDate?: string }
+  options: { departmentId: string; departmentName?: string; role?: string; isPrimary?: boolean; startDate?: string }
 ): Promise<{ success: boolean; message?: string }> {
   const body = {
     staffId,
     departmentId: options.departmentId,
-    departmentName: undefined,
+    departmentName: options.departmentName || '',
     role: options.role || 'Member',
     isPrimary: options.isPrimary ?? true,
     startDate: options.startDate || new Date().toISOString().slice(0, 10),
@@ -394,8 +394,11 @@ export async function assignStaffToDepartment(
 export async function updateStaffInfo(
   staffId: string,
   data: Partial<Staff>
-): Promise<{ success: boolean; data: Staff }> {
-  const response = await apiClient.put(`/v1/staff/${staffId}`, data);
+): Promise<{ success: boolean; data: { staffId: string }; message?: string }> {
+  const response = await apiClient.put(`/v1/staff/${staffId}`, {
+    staffId,
+    ...data,
+  });
   return response.data;
 }
 

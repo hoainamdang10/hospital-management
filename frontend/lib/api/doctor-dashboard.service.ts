@@ -47,13 +47,28 @@ export async function getDoctorDashboardStats(userId: string): Promise<DoctorDas
     };
     const todayString = formatDate(today);
 
-    // 3. Fetch 3 weeks of appointments
+    // 3. Fetch 3 weeks of appointments (including COMPLETED)
+    // Note: Do NOT pass 'status' param so we get ALL statuses including COMPLETED
     const response = await appointmentsService.getDoctorAppointments(doctorId, {
       startDate: formatDate(startDate),
       endDate: formatDate(endDate),
+      pageSize: 200, // Increased pageSize to ensure we get all appointments in 3-week range
     });
 
     const allAppointments = response.appointments || [];
+
+    // DEBUG: Log fetched appointments
+    console.log('[DoctorDashboard] Fetched appointments:', {
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate),
+      total: allAppointments.length,
+      appointments: allAppointments.map((apt: any) => ({
+        id: apt.id || apt.appointment_id,
+        date: apt.appointment_date || apt.appointmentDate,
+        status: apt.status,
+        patientName: apt.patient_full_name || apt.patientName,
+      })),
+    });
 
     // 4. For calendar: Include COMPLETED, exclude CANCELLED only
     const calendarAppointments = allAppointments.filter((apt: any) => {
@@ -70,7 +85,9 @@ export async function getDoctorDashboardStats(userId: string): Promise<DoctorDas
     // 6. Today's appointments for KPI calculation
     const todayAll = allAppointments.filter((apt: any) => {
       const aptDate = apt.appointment_date || apt.appointmentDate;
-      return aptDate === todayString;
+      const status = (apt.status || '').toUpperCase();
+      // Exclude CANCELLED from today's total
+      return aptDate === todayString && status !== 'CANCELLED';
     });
 
     const todayUpcoming = upcomingAppointments.filter((apt: any) => {
@@ -79,22 +96,25 @@ export async function getDoctorDashboardStats(userId: string): Promise<DoctorDas
     });
 
     // 7. Calculate KPIs
-    const todayAppointmentsCount = todayUpcoming.length;
+    // TOTAL appointments today (including completed, excluding cancelled)
+    const todayAppointmentsCount = todayAll.length;
 
     const completedCount = todayAll.filter(
       (apt: any) => (apt.status || '').toUpperCase() === 'COMPLETED'
     ).length;
 
+    // Remaining = appointments still waiting (not completed)
     const remainingCount = todayUpcoming.length;
 
-    const paidCount = todayUpcoming.filter(
+    // Payment stats from ALL today's appointments (including completed)
+    const paidCount = todayAll.filter(
       (apt: any) => (apt.paymentStatus || apt.payment_status || '').toUpperCase() === 'PAID'
     ).length;
 
-    const unpaidCount = todayUpcoming.length - paidCount;
+    const unpaidCount = todayAll.length - paidCount;
 
     const paymentRate =
-      todayUpcoming.length > 0 ? Math.round((paidCount / todayUpcoming.length) * 100) : 0;
+      todayAll.length > 0 ? Math.round((paidCount / todayAll.length) * 100) : 0;
 
     const averageTimeMinutes = 25;
 

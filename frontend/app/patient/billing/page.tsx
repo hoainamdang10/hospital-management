@@ -194,7 +194,7 @@ export default function PatientBillingPage() {
     const pendingCount =
       eligibleInvoices.length > 0
         ? eligibleInvoices.filter((inv) => isPendingStatus(inv.status) || inv.status === 'draft')
-            .length
+          .length
         : (summary?.pendingInvoiceCount ?? 0);
 
     const paidCount =
@@ -411,14 +411,14 @@ export default function PatientBillingPage() {
         )}
 
         {isLoading ? (
-          <div className="flex h-64 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white shadow-sm">
             <div className="flex flex-col items-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <span className="text-gray-500">Đang tải dữ liệu tài chính...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+              <span className="text-slate-500">Đang tải dữ liệu tài chính...</span>
             </div>
           </div>
         ) : error ? (
-          <Card className="border-red-100 bg-red-50/50">
+          <Card className="rounded-2xl border-red-100 bg-red-50/50">
             <CardContent className="flex flex-col items-center justify-center py-10 text-center">
               <AlertCircle className="mb-3 h-10 w-10 text-red-500" />
               <h3 className="text-lg font-medium text-red-900">Không thể tải dữ liệu</h3>
@@ -426,7 +426,7 @@ export default function PatientBillingPage() {
               <Button
                 onClick={reload}
                 variant="outline"
-                className="border-red-200 text-red-700 hover:bg-red-100"
+                className="rounded-xl border-red-200 text-red-700 hover:bg-red-100"
               >
                 Thử lại
               </Button>
@@ -435,15 +435,15 @@ export default function PatientBillingPage() {
         ) : (
           <>
             {/* Stats Row */}
-            <div className="grid grid-cols-2 gap-4 rounded-xl border border-gray-100 bg-white p-6 shadow-sm md:grid-cols-4 md:gap-8">
+            <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:grid-cols-4 md:gap-8">
               <StatItem
                 label="Tổng chi phí"
                 value={resolvedSummary.totalAmount}
                 icon={Wallet}
-                color="text-blue-600"
-                bg="bg-blue-50"
+                color="text-teal-600"
+                bg="bg-teal-50"
               />
-              <div className="hidden w-px bg-gray-100 md:block" />
+              <div className="hidden w-px bg-slate-100 md:block" />
               <StatItem
                 label="Cần thanh toán"
                 value={resolvedSummary.totalOutstanding}
@@ -452,7 +452,7 @@ export default function PatientBillingPage() {
                 bg="bg-amber-50"
                 highlight={resolvedSummary.totalOutstanding > 0}
               />
-              <div className="hidden w-px bg-gray-100 md:block" />
+              <div className="hidden w-px bg-slate-100 md:block" />
               <StatItem
                 label="Đã thanh toán"
                 value={resolvedSummary.totalPaid}
@@ -460,13 +460,13 @@ export default function PatientBillingPage() {
                 color="text-emerald-600"
                 bg="bg-emerald-50"
               />
-              <div className="hidden w-px bg-gray-100 md:block" />
+              <div className="hidden w-px bg-slate-100 md:block" />
               <StatItem
                 label="Đã hoàn tiền"
                 value={resolvedSummary.totalRefunded}
                 icon={ArrowUpRight}
-                color="text-indigo-600"
-                bg="bg-indigo-50"
+                color="text-cyan-600"
+                bg="bg-cyan-50"
               />
             </div>
 
@@ -479,28 +479,28 @@ export default function PatientBillingPage() {
                   onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}
                   className="w-full sm:w-auto"
                 >
-                  <TabsList className="grid w-full grid-cols-4 bg-gray-100/50 p-1 sm:inline-flex sm:w-auto">
+                  <TabsList className="grid w-full grid-cols-4 bg-slate-100/80 p-1 sm:inline-flex sm:w-auto">
                     <TabsTrigger
                       value="all"
-                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
                     >
                       Tất cả
                     </TabsTrigger>
                     <TabsTrigger
                       value="pending"
-                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm"
                     >
                       Chưa trả
                     </TabsTrigger>
                     <TabsTrigger
                       value="paid"
-                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
                     >
                       Đã trả
                     </TabsTrigger>
                     <TabsTrigger
                       value="refunded"
-                      className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                      className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm"
                     >
                       Hoàn tiền
                     </TabsTrigger>
@@ -508,9 +508,9 @@ export default function PatientBillingPage() {
                 </Tabs>
 
                 <div className="relative w-full sm:w-72">
-                  <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
-                    className="border-gray-200 bg-white pl-9 focus-visible:ring-blue-500"
+                    className="rounded-xl border-slate-200 bg-white pl-9 focus-visible:ring-emerald-500"
                     placeholder="Tìm kiếm hóa đơn..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -518,11 +518,11 @@ export default function PatientBillingPage() {
                 </div>
               </div>
 
-              <Card className="overflow-hidden border-none shadow-sm">
+              <Card className="overflow-hidden rounded-xl border-slate-100 shadow-sm">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-gray-50/50">
-                      <TableRow className="border-gray-100 hover:bg-transparent">
+                    <TableHeader className="bg-slate-50/80">
+                      <TableRow className="border-slate-100 hover:bg-transparent">
                         <TableHead className="w-[180px]">Mã hóa đơn</TableHead>
                         <TableHead className="min-w-[200px]">Dịch vụ</TableHead>
                         <TableHead>Ngày tạo</TableHead>
@@ -572,7 +572,7 @@ export default function PatientBillingPage() {
                     size="icon"
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
-                    className="h-8 w-8 border-gray-200"
+                    className="h-8 w-8 border-slate-200 hover:bg-emerald-50 hover:text-emerald-600"
                   >
                     <ChevronsLeft className="h-4 w-4" />
                   </Button>
@@ -581,7 +581,7 @@ export default function PatientBillingPage() {
                     size="icon"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="h-8 w-8 border-gray-200"
+                    className="h-8 w-8 border-slate-200 hover:bg-emerald-50 hover:text-emerald-600"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -597,7 +597,7 @@ export default function PatientBillingPage() {
                     size="icon"
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="h-8 w-8 border-gray-200"
+                    className="h-8 w-8 border-slate-200 hover:bg-emerald-50 hover:text-emerald-600"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -606,7 +606,7 @@ export default function PatientBillingPage() {
                     size="icon"
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="h-8 w-8 border-gray-200"
+                    className="h-8 w-8 border-slate-200 hover:bg-emerald-50 hover:text-emerald-600"
                   >
                     <ChevronsRight className="h-4 w-4" />
                   </Button>
@@ -669,10 +669,10 @@ function WalletSection({
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Left: Wallet Card (Credit Card Style) */}
       <div className="lg:col-span-1">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-6 text-white shadow-xl">
           {/* Background Pattern */}
           <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-400/20 blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-emerald-400/20 blur-3xl" />
 
           {/* Shine Effect */}
           <motion.div
@@ -691,7 +691,7 @@ function WalletSection({
           <div className="relative z-10 flex h-full flex-col justify-between gap-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-100">Số dư khả dụng</p>
+                <p className="text-sm font-medium text-emerald-100">Số dư khả dụng</p>
                 {isLoading ? (
                   <Skeleton className="mt-2 h-8 w-32 bg-white/20" />
                 ) : (
@@ -718,7 +718,7 @@ function WalletSection({
 
               <Button
                 onClick={onTopUp}
-                className="w-full border-none bg-white font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+                className="w-full border-none bg-white font-semibold text-emerald-700 shadow-lg shadow-emerald-900/20 hover:bg-emerald-50"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Nạp tiền vào ví
@@ -742,21 +742,21 @@ function WalletSection({
       </div>
 
       {/* Right: Recent Transactions (List) */}
-      <Card className="border-none bg-white/50 shadow-sm backdrop-blur-sm lg:col-span-2">
+      <Card className="rounded-2xl border-slate-100 bg-white/80 shadow-sm backdrop-blur-sm lg:col-span-2">
         <CardHeader className="flex flex-row items-center justify-between border-b-0 px-6 py-4 pb-2">
-          <CardTitle className="text-base font-semibold text-gray-900">Giao dịch gần đây</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-900">Giao dịch gần đây</CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={onReload}
             disabled={isLoading}
-            className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+            className="h-8 w-8 p-0 text-slate-500 hover:text-emerald-600"
           >
             <RefreshCcw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </Button>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-slate-100">
             {isLoading ? (
               Array.from({ length: 4 }).map((_, idx) => (
                 <div key={idx} className="flex items-center justify-between px-6 py-4">
@@ -848,7 +848,7 @@ function WalletTopUpDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:rounded-2xl">
         <DialogHeader>
           <DialogTitle>Nạp tiền vào ví bệnh nhân</DialogTitle>
           <DialogDescription>
@@ -866,6 +866,7 @@ function WalletTopUpDialog({
               placeholder="Ví dụ: 500000"
               value={amount}
               onChange={(e) => onAmountChange(e.target.value)}
+              className="rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -876,14 +877,15 @@ function WalletTopUpDialog({
               placeholder="Ví dụ: Nạp tiền khám tổng quát tháng 12"
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
+              className="rounded-xl"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="rounded-xl">
             Hủy
           </Button>
-          <Button onClick={onSubmit} disabled={isSubmitting}>
+          <Button onClick={onSubmit} disabled={isSubmitting} className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -994,7 +996,7 @@ function InvoiceRow({
     <motion.tr
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ backgroundColor: 'rgba(239, 246, 255, 0.8)', x: 4 }}
+      whileHover={{ backgroundColor: 'rgba(236, 253, 245, 0.8)', x: 4 }}
       transition={{ duration: 0.15, ease: 'easeOut' }}
       className="group cursor-pointer border-b border-gray-50 last:border-none"
     >
@@ -1065,7 +1067,7 @@ function InvoiceRow({
               variant="ghost"
               onClick={() => onPayment(invoice)}
               disabled={isProcessing}
-              className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
               title="Thanh toán ngay"
             >
               {isProcessing ? (
@@ -1140,7 +1142,7 @@ function InvoiceDetailsDialog({
     <Dialog open={!!invoice} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0 sm:rounded-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-gray-100 bg-white px-6 py-5">
+        <div className="flex items-start justify-between border-b border-slate-100 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 px-6 py-5">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
               <DialogTitle className="text-xl font-bold text-gray-900">
@@ -1197,10 +1199,10 @@ function InvoiceDetailsDialog({
           {/* Services Table */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-gray-900">Chi tiết dịch vụ</h4>
-            <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50/30">
+            <div className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/30">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500">
+                  <tr className="border-b border-slate-100 text-left text-xs font-medium text-slate-500">
                     <th className="px-4 py-3 font-medium">Mô tả dịch vụ</th>
                     <th className="px-4 py-3 text-right font-medium">Đơn giá</th>
                     <th className="px-4 py-3 text-right font-medium">SL</th>
@@ -1259,7 +1261,7 @@ function InvoiceDetailsDialog({
               </div>
 
               {invoice.outstandingAmount !== undefined && invoice.outstandingAmount > 0 && (
-                <div className="flex justify-between rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                <div className="flex justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
                   <span>Còn lại phải trả</span>
                   <span>{formatCurrency(invoice.outstandingAmount)}</span>
                 </div>
@@ -1333,12 +1335,12 @@ function InfoItem({
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/50 py-16 text-center">
-      <div className="rounded-full bg-gray-100 p-4">
-        <FileText className="h-8 w-8 text-gray-400" />
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white py-16 text-center">
+      <div className="rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 p-4">
+        <FileText className="h-8 w-8 text-emerald-600" />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-gray-900">Chưa có hóa đơn nào</h3>
-      <p className="mt-2 max-w-sm text-sm text-gray-500">
+      <h3 className="mt-4 text-lg font-semibold text-slate-900">Chưa có hóa đơn nào</h3>
+      <p className="mt-2 max-w-sm text-sm text-slate-500">
         Hiện tại bạn không có hóa đơn nào phù hợp với bộ lọc. Hãy thử thay đổi điều kiện tìm kiếm.
       </p>
     </div>

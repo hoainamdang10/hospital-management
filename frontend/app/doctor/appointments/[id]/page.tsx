@@ -22,10 +22,10 @@ import {
   CreditCard,
   Globe,
   MoreVertical,
-  Sparkles,
   Stethoscope,
   Banknote,
-  ShieldCheck
+  Heart,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,60 +53,27 @@ type AppointmentLegacyFields = AppointmentReadModel & {
   doctor?: { doctor_id?: string };
 };
 
-const statusConfig = (status?: string) => {
-  const value = (status || '').toUpperCase();
-  switch (value) {
-    case 'ARRIVED':
-    case 'CHECKED_IN':
-      return {
-        label: 'Đã check-in',
-        color: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10',
-        icon: MapPin,
-      };
-    case 'IN_PROGRESS':
-      return {
-        label: 'Đang khám',
-        color: 'bg-blue-50 text-blue-700 border-blue-200 ring-blue-500/10',
-        icon: Activity,
-      };
-    case 'COMPLETED':
-      return {
-        label: 'Hoàn thành',
-        color: 'bg-slate-50 text-slate-700 border-slate-200 ring-slate-500/10',
-        icon: CheckCircle,
-      };
-    case 'CONFIRMED':
-    case 'SCHEDULED':
-      return {
-        label: 'Chờ khám',
-        color: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10',
-        icon: Clock,
-      };
-    case 'CANCELLED':
-      return {
-        label: 'Đã hủy',
-        color: 'bg-red-50 text-red-700 border-red-200 ring-red-500/10',
-        icon: AlertCircle,
-      };
-    default:
-      return {
-        label: value || 'N/A',
-        color: 'bg-slate-50 text-slate-700 border-slate-200',
-        icon: AlertCircle,
-      };
-  }
+// Status configuration with updated colors
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+  ARRIVED: { label: 'Đã check-in', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: MapPin },
+  CHECKED_IN: { label: 'Đã check-in', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: MapPin },
+  IN_PROGRESS: { label: 'Đang khám', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: Activity },
+  COMPLETED: { label: 'Hoàn thành', color: 'text-slate-700', bg: 'bg-slate-100 border-slate-200', icon: CheckCircle },
+  CONFIRMED: { label: 'Chờ khám', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Clock },
+  SCHEDULED: { label: 'Chờ khám', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Clock },
+  CANCELLED: { label: 'Đã hủy', color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', icon: AlertCircle },
 };
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
 const itemVariants = {
-  hidden: { y: 10, opacity: 0 },
+  hidden: { y: 15, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
@@ -173,7 +140,6 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
     const legacy = apt as AppointmentLegacyFields;
     const doctorId =
       apt?.doctor?.doctorId ?? apt?.doctorId ?? legacy?.doctor_id ?? legacy?.doctor?.doctor_id;
-
     return doctorId ? { doctorId } : {};
   };
 
@@ -194,7 +160,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
   };
 
   const status = (appointment?.status || '').toUpperCase();
-  const statusInfo = statusConfig(status);
+  const statusInfo = STATUS_CONFIG[status] || STATUS_CONFIG.SCHEDULED;
   const StatusIcon = statusInfo.icon;
 
   async function initChat(aptId: string, aptData?: AppointmentReadModel | null) {
@@ -236,10 +202,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
         },
         (payload: { new: ChatMessage }) => {
           setMessages((prev) => {
-            // Prevent duplicate: check if message already exists
-            if (prev.some(m => m.id === payload.new.id)) {
-              return prev;
-            }
+            if (prev.some(m => m.id === payload.new.id)) return prev;
             return [...prev, payload.new];
           });
         }
@@ -261,10 +224,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
       setChatInput('');
       if (response?.message) {
         setMessages((prev) => {
-          // Prevent duplicate: check if message already exists
-          if (prev.some(m => m.id === response.message.id)) {
-            return prev;
-          }
+          if (prev.some(m => m.id === response.message.id)) return prev;
           return [...prev, response.message];
         });
       } else if (!isSupabaseConfigured()) {
@@ -349,22 +309,17 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           )}
         >
           <Avatar className="h-8 w-8 border border-slate-200 shadow-sm">
-            <AvatarFallback className={cn("text-xs font-bold", isDoctor ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600')}>
+            <AvatarFallback className={cn("text-xs font-bold", isDoctor ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-600')}>
               {isDoctor ? 'BS' : 'BN'}
             </AvatarFallback>
           </Avatar>
 
-          <div
-            className={cn(
-              'flex max-w-[80%] flex-col',
-              isDoctor ? 'items-end' : 'items-start'
-            )}
-          >
+          <div className={cn('flex max-w-[80%] flex-col', isDoctor ? 'items-end' : 'items-start')}>
             <div
               className={cn(
                 'relative rounded-2xl px-4 py-2.5 text-sm shadow-sm',
                 isDoctor
-                  ? 'rounded-tr-none bg-blue-600 text-white'
+                  ? 'rounded-tr-none bg-gradient-to-br from-cyan-600 to-teal-600 text-white'
                   : 'rounded-tl-none bg-white text-slate-800 border border-slate-100'
               )}
             >
@@ -387,7 +342,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
       <DashboardLayout>
         <div className="flex h-[80vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            <div className="h-10 w-10 animate-spin rounded-full border-3 border-cyan-600 border-t-transparent" />
             <p className="text-sm font-medium text-slate-500">Đang tải thông tin...</p>
           </div>
         </div>
@@ -397,109 +352,133 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-slate-50/50 pb-10">
+      <div className="min-h-screen pb-10">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="mx-auto max-w-7xl space-y-6 p-6"
         >
-          {/* Header Bar */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <Button
-                variant="ghost"
-                className="group -ml-2 h-auto p-0 text-slate-500 hover:bg-transparent hover:text-blue-600"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="mr-1 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                <span className="text-sm font-medium">Quay lại danh sách</span>
-              </Button>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Chi tiết lịch hẹn
-                </h1>
-                <Badge
-                  variant="outline"
-                  className={cn('px-2.5 py-0.5 text-xs font-semibold shadow-sm', statusInfo.color)}
-                >
-                  <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
-                  {statusInfo.label}
-                </Badge>
+          {/* Header */}
+          <motion.div variants={itemVariants} className="space-y-4">
+            <Button
+              variant="ghost"
+              className="group -ml-2 h-auto p-0 text-slate-500 hover:bg-transparent hover:text-cyan-600"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              <span className="text-sm font-medium">Quay lại danh sách</span>
+            </Button>
+
+            {/* Hero Header */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-600 p-6 text-white shadow-xl">
+              {/* Background decoration */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+                <div
+                  className="absolute inset-0 opacity-10"
+                  style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}
+                />
+              </div>
+
+              <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                    className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-sm"
+                  >
+                    <Stethoscope className="h-7 w-7 text-white" />
+                  </motion.div>
+                  <div>
+                    <h1 className="text-2xl font-bold">Chi tiết lịch hẹn</h1>
+                    <p className="mt-0.5 text-sm text-cyan-100">
+                      Mã: #{appointment?.appointmentId || appointmentId.slice(0, 8)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge className={cn('border px-3 py-1.5 text-sm font-semibold', statusInfo.bg, statusInfo.color)}>
+                    <StatusIcon className="mr-1.5 h-4 w-4" />
+                    {statusInfo.label}
+                  </Badge>
+
+                  {(status === 'CONFIRMED' || status === 'SCHEDULED' || status === 'ARRIVED' || status === 'CHECKED_IN') && (
+                    <Button
+                      className="bg-white text-cyan-700 hover:bg-cyan-50 shadow-lg transition-all hover:scale-105"
+                      disabled={actionLoading}
+                      onClick={() => doAction('start')}
+                    >
+                      <PlayCircle className="mr-2 h-4 w-4" />
+                      Bắt đầu khám
+                    </Button>
+                  )}
+                  {status === 'IN_PROGRESS' && (
+                    <Button
+                      className="bg-white text-slate-900 hover:bg-slate-50 shadow-lg transition-all hover:scale-105"
+                      disabled={actionLoading}
+                      onClick={() => doAction('complete')}
+                    >
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      Hoàn thành
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+          </motion.div>
 
-            <div className="flex items-center gap-3">
-              {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
-                  disabled={actionLoading}
-                  onClick={() => doAction('start')}
-                >
-                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
-                </Button>
-              )}
-              {(status === 'ARRIVED' || status === 'CHECKED_IN') && (
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
-                  disabled={actionLoading}
-                  onClick={() => doAction('start')}
-                >
-                  <PlayCircle className="mr-2 h-4 w-4" /> Bắt đầu khám
-                </Button>
-              )}
-              {status === 'IN_PROGRESS' && (
-                <Button
-                  className="bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 transition-all hover:scale-105"
-                  disabled={actionLoading}
-                  onClick={() => doAction('complete')}
-                >
-                  <CheckSquare className="mr-2 h-4 w-4" /> Hoàn thành
-                </Button>
-              )}
-            </div>
-          </div>
-
+          {/* Main Content */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            {/* LEFT COLUMN: Main Info (8 cols) */}
-            <motion.div variants={itemVariants} className="space-y-6 lg:col-span-8">
+            {/* Left Column */}
+            <motion.div variants={itemVariants} className="space-y-5 lg:col-span-8">
 
-              {/* 1. Patient Info Card (Compact) */}
-              <Card className="border-slate-200 shadow-sm">
+              {/* Patient Card */}
+              <Card className="overflow-hidden border-slate-200 shadow-sm">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
                 <CardContent className="p-5">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
-                      <Avatar className="h-14 w-14 border-2 border-white shadow-md ring-2 ring-slate-100">
+                      <Avatar className="h-16 w-16 border-3 border-white shadow-lg ring-2 ring-cyan-100">
                         <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`} />
-                        <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
+                        <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white text-lg font-bold">
                           {appointment?.patient?.fullName?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h2 className="text-lg font-bold text-slate-900">{appointment?.patient?.fullName}</h2>
-                        <div className="flex items-center gap-2 text-sm text-slate-500 mt-0.5">
+                        <h2 className="text-xl font-bold text-slate-900">{appointment?.patient?.fullName}</h2>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                           <span className="font-medium text-slate-700">
                             {translateGender(appointment?.patient?.gender)}
                           </span>
-                          <span className="h-1 w-1 rounded-full bg-slate-300"></span>
+                          <span className="h-1 w-1 rounded-full bg-slate-300" />
                           <span>
                             {appointment?.patient?.dateOfBirth && calculateAge(appointment?.patient?.dateOfBirth)}
                           </span>
-                          <span className="h-1 w-1 rounded-full bg-slate-300"></span>
-                          <span className="font-mono text-xs text-slate-400">#{appointment?.patient?.patientId || 'ID'}</span>
+                          <span className="h-1 w-1 rounded-full bg-slate-300" />
+                          <Badge variant="outline" className="font-mono text-xs text-slate-500">
+                            {appointment?.patient?.patientId || 'ID'}
+                          </Badge>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 sm:items-end">
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Phone className="h-4 w-4 text-slate-400" />
+                    <div className="flex flex-col gap-2 text-sm">
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                          <Phone className="h-4 w-4 text-slate-500" />
+                        </div>
                         {appointment?.patient?.phone || 'Chưa cập nhật'}
                       </div>
                       {appointment?.patient?.email && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Mail className="h-4 w-4 text-slate-400" />
-                          {appointment?.patient?.email}
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                            <Mail className="h-4 w-4 text-slate-500" />
+                          </div>
+                          <span className="truncate max-w-[200px]">{appointment?.patient?.email}</span>
                         </div>
                       )}
                     </div>
@@ -507,134 +486,141 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                 </CardContent>
               </Card>
 
-              {/* 2. Clinical Context (Highlight) */}
-              <Card className="border-blue-100 bg-blue-50/30 shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-600">
-                    <Stethoscope className="h-4 w-4" />
-                    Thông tin lâm sàng
+              {/* Clinical Info */}
+              <Card className="border-cyan-100 bg-gradient-to-br from-cyan-50/50 to-teal-50/30 shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100">
+                      <Heart className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-wider text-cyan-700">
+                      Thông tin lâm sàng
+                    </span>
                   </div>
                 </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2">
+                <CardContent className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Lý do khám</label>
-                    <p className="text-base font-semibold text-slate-900 leading-relaxed">
+                    <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Lý do khám</label>
+                    <p className="text-base font-semibold leading-relaxed text-slate-900">
                       {appointment?.reason || 'Không có lý do cụ thể'}
                     </p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Ghi chú thêm</label>
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                    <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Ghi chú thêm</label>
+                    <p className="text-sm leading-relaxed text-slate-600">
                       {appointment?.notes || 'Không có ghi chú'}
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* 3. Logistics Grid */}
-              <div className="grid gap-6 sm:grid-cols-2">
-                {/* Appointment Details */}
-                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex items-center gap-2 text-slate-500 mb-2">
+              {/* Time & Payment Grid */}
+              <div className="grid gap-5 sm:grid-cols-2">
+                {/* Time Card */}
+                <Card className="group relative overflow-hidden border-slate-200 shadow-sm transition-all hover:shadow-md">
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
+                  <CardContent className="p-5">
+                    <div className="mb-3 flex items-center gap-2 text-slate-500">
                       <Calendar className="h-4 w-4" />
                       <span className="text-xs font-bold uppercase tracking-wide">Thời gian & Loại</span>
                     </div>
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-900">
-                          {appointment?.appointmentTime?.substring(0, 5)}
-                        </span>
-                        <span className="text-sm font-medium text-slate-500">
-                          {appointment?.appointmentDate && format(new Date(appointment.appointmentDate), 'dd/MM/yyyy', { locale: vi })}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100">
-                          <Globe className="mr-1 h-3 w-3" /> Đặt trực tuyến
-                        </Badge>
-                        <Badge variant="outline" className="text-slate-600 border-slate-200">
-                          {translateAppointmentType(appointment?.type)}
-                        </Badge>
-                      </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-slate-900">
+                        {appointment?.appointmentTime?.substring(0, 5)}
+                      </span>
+                      <span className="text-sm font-medium text-slate-500">
+                        {appointment?.appointmentDate && format(new Date(appointment.appointmentDate), 'dd/MM/yyyy', { locale: vi })}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100">
+                        <Globe className="mr-1 h-3 w-3" />
+                        Đặt trực tuyến
+                      </Badge>
+                      <Badge variant="outline" className="border-slate-200 text-slate-600">
+                        {translateAppointmentType(appointment?.type)}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Payment Details */}
-                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex items-center gap-2 text-slate-500 mb-2">
-                      <CreditCard className="h-4 w-4" />
+                {/* Payment Card */}
+                <Card className="group relative overflow-hidden border-slate-200 shadow-sm transition-all hover:shadow-md">
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                  <CardContent className="p-5">
+                    <div className="mb-3 flex items-center gap-2 text-slate-500">
+                      <Banknote className="h-4 w-4" />
                       <span className="text-xs font-bold uppercase tracking-wide">Thanh toán</span>
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-mono font-bold text-emerald-600">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(appointment?.consultationFee || 0)}
-                        </span>
-                        {(appointment?.paymentStatus || '').toUpperCase() === 'PAID' ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200 shadow-none">
-                            Đã thanh toán
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-                            {translatePaymentStatus(appointment?.paymentStatus)}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mt-2 text-xs text-slate-400">Phí khám bệnh (Trả trước)</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-mono font-bold text-emerald-600">
+                        {new Intl.NumberFormat('vi-VN').format(appointment?.consultationFee || 0)}
+                        <span className="ml-1 text-lg">₫</span>
+                      </span>
+                      {(appointment?.paymentStatus || '').toUpperCase() === 'PAID' ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200">
+                          <CheckCircle className="mr-1 h-3 w-3" />
+                          Đã thanh toán
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                          <Clock className="mr-1 h-3 w-3" />
+                          {translatePaymentStatus(appointment?.paymentStatus)}
+                        </Badge>
+                      )}
                     </div>
+                    <p className="mt-2 text-xs text-slate-400">Phí khám bệnh (Trả trước)</p>
                   </CardContent>
                 </Card>
               </div>
-
             </motion.div>
 
-            {/* RIGHT COLUMN: Chat (4 cols) */}
+            {/* Right Column: Chat */}
             <motion.div variants={itemVariants} className="lg:col-span-4">
-              <Card className="flex h-[calc(100vh-140px)] flex-col overflow-hidden border-slate-200 shadow-lg">
-                <CardHeader className="border-b border-slate-100 bg-white p-4 py-3">
+              <Card className="flex h-[calc(100vh-200px)] flex-col overflow-hidden border-slate-200 shadow-lg">
+                {/* Chat Header */}
+                <div className="border-b border-slate-100 bg-gradient-to-r from-cyan-600 to-teal-600 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <Avatar className="h-9 w-9 border border-slate-100">
+                        <Avatar className="h-10 w-10 border-2 border-white/30">
                           <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`} />
-                          <AvatarFallback>BN</AvatarFallback>
+                          <AvatarFallback className="bg-white/20 text-white font-bold">BN</AvatarFallback>
                         </Avatar>
-                        <span className="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500"></span>
+                        <span className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-cyan-600 bg-emerald-400" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-900 text-sm">Trao đổi trực tiếp</h3>
-                        <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                        <h3 className="font-bold text-white text-sm">Trao đổi trực tiếp</h3>
+                        <p className="text-[11px] text-cyan-100 font-medium flex items-center gap-1">
                           <span className="relative flex h-1.5 w-1.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
                           </span>
                           Đang trực tuyến
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </div>
-                </CardHeader>
+                </div>
 
+                {/* Chat Messages */}
                 <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 space-y-4">
                   {chatLoading ? (
                     <div className="flex h-full flex-col items-center justify-center gap-3">
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                      <p className="text-xs text-slate-500 font-medium">Đang kết nối...</p>
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent" />
+                      <p className="text-xs font-medium text-slate-500">Đang kết nối...</p>
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center opacity-60">
-                      <div className="bg-white p-4 rounded-full shadow-sm ring-1 ring-slate-100">
-                        <MessageSquare className="h-6 w-6 text-blue-400" />
+                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-cyan-100 to-teal-100 shadow-sm">
+                        <MessageSquare className="h-7 w-7 text-cyan-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900 text-sm">Chưa có tin nhắn</p>
-                        <p className="text-xs text-slate-500 mt-1">Bắt đầu trao đổi với bệnh nhân</p>
+                        <p className="text-sm font-semibold text-slate-900">Chưa có tin nhắn</p>
+                        <p className="mt-1 text-xs text-slate-500">Bắt đầu trao đổi với bệnh nhân</p>
                       </div>
                     </div>
                   ) : (
@@ -645,10 +631,11 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   )}
                 </div>
 
-                <div className="p-3 bg-white border-t border-slate-100">
+                {/* Chat Input */}
+                <div className="border-t border-slate-100 bg-white p-3">
                   <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                     <Input
-                      className="flex-1 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-full px-4 h-10 text-sm transition-all"
+                      className="flex-1 rounded-full border-slate-200 bg-slate-50 px-4 h-10 text-sm transition-all focus:bg-white focus:ring-2 focus:ring-cyan-100"
                       placeholder="Nhập tin nhắn..."
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
@@ -658,10 +645,10 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                       type="submit"
                       size="icon"
                       className={cn(
-                        "rounded-full h-10 w-10 shrink-0 transition-all shadow-sm",
+                        'h-10 w-10 shrink-0 rounded-full shadow-sm transition-all',
                         chatInput.trim()
-                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                          : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                          ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white'
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                       )}
                       disabled={!conversationId || chatSending || !chatInput.trim()}
                     >

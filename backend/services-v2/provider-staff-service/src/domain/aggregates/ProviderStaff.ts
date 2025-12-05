@@ -10,29 +10,39 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareAggregateRoot } from '@shared/domain/base/aggregate-root';
-import { DomainEvent } from '@shared/domain/base/domain-event';
-import { StaffId } from '../value-objects/StaffId';
-import { PersonalInfo } from '../value-objects/PersonalInfo';
-import { ProfessionalInfo } from '../value-objects/ProfessionalInfo';
-import { WorkSchedule } from '../value-objects/WorkSchedule';
-import { Specialization } from '../entities/Specialization';
-import { StaffCredential } from '../entities/StaffCredential';
-import { StaffCertification } from '../entities/StaffCertification';
+import { HealthcareAggregateRoot } from "@shared/domain/base/aggregate-root";
+import { DomainEvent } from "@shared/domain/base/domain-event";
+import { StaffId } from "../value-objects/StaffId";
+import { PersonalInfo } from "../value-objects/PersonalInfo";
+import { ProfessionalInfo } from "../value-objects/ProfessionalInfo";
+import { WorkSchedule } from "../value-objects/WorkSchedule";
+import { Specialization } from "../entities/Specialization";
+import { StaffCredential } from "../entities/StaffCredential";
+import { StaffCertification } from "../entities/StaffCertification";
 // REMOVED: StaffAvailability - Belongs to Scheduling/Appointment Service (bounded context violation)
-import { DepartmentAssignment } from '../entities/DepartmentAssignment';
-import { StaffRegisteredEvent } from '../events/StaffRegisteredEvent';
-import { StaffUpdatedEvent } from '../events/StaffUpdatedEvent';
+import { DepartmentAssignment } from "../entities/DepartmentAssignment";
+import { StaffRegisteredEvent } from "../events/StaffRegisteredEvent";
+import { StaffUpdatedEvent } from "../events/StaffUpdatedEvent";
 // import { StaffCredentialVerifiedEvent } from '../events/StaffCredentialVerifiedEvent'; // Event removed in scope reduction
-import { StaffScheduleUpdatedEvent } from '../events/StaffScheduleUpdatedEvent';
-import { StaffStatusChangedEvent } from '../events/StaffStatusChangedEvent';
+import { StaffScheduleUpdatedEvent } from "../events/StaffScheduleUpdatedEvent";
+import { StaffStatusChangedEvent } from "../events/StaffStatusChangedEvent";
 // import { StaffEmploymentStatusUpdatedEvent } from '../events/StaffEmploymentStatusUpdatedEvent'; // Event removed in scope reduction
 // import { StaffSpecializationAddedEvent } from '../events/StaffSpecializationAddedEvent'; // Event removed in scope reduction
-import { StaffDepartmentAssignedEvent } from '../events/StaffDepartmentAssignedEvent';
+import { StaffDepartmentAssignedEvent } from "../events/StaffDepartmentAssignedEvent";
 
-export type StaffType = 'doctor' | 'receptionist';
-export type StaffStatus = 'active' | 'inactive' | 'suspended' | 'on_leave' | 'terminated';
-export type EmploymentType = 'full_time' | 'part_time' | 'contract' | 'intern' | 'volunteer';
+export type StaffType = "doctor" | "receptionist";
+export type StaffStatus =
+  | "active"
+  | "inactive"
+  | "suspended"
+  | "on_leave"
+  | "terminated";
+export type EmploymentType =
+  | "full_time"
+  | "part_time"
+  | "contract"
+  | "intern"
+  | "volunteer";
 
 export interface ProviderStaffProps {
   id: StaffId;
@@ -99,39 +109,40 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     specializations: Specialization[] = [],
     vietnameseHealthcareLicense?: string,
     mohRegistrationNumber?: string,
-    departmentCode?: string  // 🔄 NEW: Optional department parameter
+    departmentCode?: string, // 🔄 NEW: Optional department parameter
   ): ProviderStaff {
     // 🔄 Default department mapping for proper ID generation
     const defaultDepartmentMap: Record<StaffType, string> = {
-      doctor: 'INTE',      // Internal Medicine (default for doctors)
-      receptionist: 'ADMI' // Administration (default for receptionists)
+      doctor: "INTE", // Internal Medicine (default for doctors)
+      receptionist: "ADMI", // Administration (default for receptionists)
     };
-    
-    const deptCode = departmentCode || defaultDepartmentMap[staffType] || 'INTE';
+
+    const deptCode =
+      departmentCode || defaultDepartmentMap[staffType] || "INTE";
     const staffId = StaffId.generate(staffType, deptCode);
     const now = new Date();
 
     // Validate minimum requirements
     if (!licenseNumber || licenseNumber.trim().length === 0) {
-      throw new Error('Số giấy phép hành nghề không được để trống');
+      throw new Error("Số giấy phép hành nghề không được để trống");
     }
 
     if (yearsOfExperience < 0) {
-      throw new Error('Số năm kinh nghiệm không được âm');
+      throw new Error("Số năm kinh nghiệm không được âm");
     }
 
     if (hireDate > new Date()) {
-      throw new Error('Ngày tuyển dụng không được là ngày trong tương lai');
+      throw new Error("Ngày tuyển dụng không được là ngày trong tương lai");
     }
 
     // Doctors must have specializations
-    if (staffType === 'doctor' && specializations.length === 0) {
-      throw new Error('Bác sĩ phải có ít nhất một chuyên khoa');
+    if (staffType === "doctor" && specializations.length === 0) {
+      throw new Error("Bác sĩ phải có ít nhất một chuyên khoa");
     }
 
     // Receptionists should not have specializations
-    if (staffType === 'receptionist' && specializations.length > 0) {
-      throw new Error('Lễ tân không cần chuyên khoa');
+    if (staffType === "receptionist" && specializations.length > 0) {
+      throw new Error("Lễ tân không cần chuyên khoa");
     }
 
     const staff = new ProviderStaff({
@@ -154,27 +165,29 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       // REMOVED: rating - Belongs to Review/Rating Service
       // REMOVED: totalPatients - Belongs to Scheduling/Appointment Service
       // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service
-      status: 'active',
+      status: "active",
       isActive: true,
       registrationDate: now,
       vietnameseHealthcareLicense,
       mohRegistrationNumber,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     });
 
     // Domain event for staff registration
-    staff.addDomainEvent(new StaffRegisteredEvent(
-      staffId, 
-      userId, 
-      staffType, 
-      personalInfo, 
-      professionalInfo,
-      licenseNumber,
-      employmentType,
-      hireDate,
-      workSchedule
-    ));
+    staff.addDomainEvent(
+      new StaffRegisteredEvent(
+        staffId,
+        userId,
+        staffType,
+        personalInfo,
+        professionalInfo,
+        licenseNumber,
+        employmentType,
+        hireDate,
+        workSchedule,
+      ),
+    );
 
     return staff;
   }
@@ -311,8 +324,10 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
 
   // Business methods
   public addSpecialization(specialization: Specialization): void {
-    if (this.props.specializations.some(s => s.code === specialization.code)) {
-      throw new Error('Chuyên khoa này đã tồn tại');
+    if (
+      this.props.specializations.some((s) => s.code === specialization.code)
+    ) {
+      throw new Error("Chuyên khoa này đã tồn tại");
     }
 
     this.props.specializations.push(specialization);
@@ -326,14 +341,19 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   }
 
   public removeSpecialization(specializationCode: string): void {
-    const index = this.props.specializations.findIndex(s => s.code === specializationCode);
+    const index = this.props.specializations.findIndex(
+      (s) => s.code === specializationCode,
+    );
     if (index === -1) {
-      throw new Error('Không tìm thấy chuyên khoa');
+      throw new Error("Không tìm thấy chuyên khoa");
     }
 
     // Doctors must have at least one specialization
-    if (this.props.staffType === 'doctor' && this.props.specializations.length === 1) {
-      throw new Error('Bác sĩ phải có ít nhất một chuyên khoa');
+    if (
+      this.props.staffType === "doctor" &&
+      this.props.specializations.length === 1
+    ) {
+      throw new Error("Bác sĩ phải có ít nhất một chuyên khoa");
     }
 
     this.props.specializations.splice(index, 1);
@@ -341,8 +361,12 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   }
 
   public addCredential(credential: StaffCredential): void {
-    if (this.props.credentials.some(c => c.credentialNumber === credential.credentialNumber)) {
-      throw new Error('Chứng chỉ này đã tồn tại');
+    if (
+      this.props.credentials.some(
+        (c) => c.credentialNumber === credential.credentialNumber,
+      )
+    ) {
+      throw new Error("Chứng chỉ này đã tồn tại");
     }
 
     this.props.credentials.push(credential);
@@ -362,16 +386,21 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Business rule: Cannot remove if it's the only valid credential
    */
   public removeCredential(credentialNumber: string): void {
-    const index = this.props.credentials.findIndex(c => c.credentialNumber === credentialNumber);
-    
+    const index = this.props.credentials.findIndex(
+      (c) => c.credentialNumber === credentialNumber,
+    );
+
     if (index === -1) {
-      throw new Error('Chứng chỉ không tồn tại');
+      throw new Error("Chứng chỉ không tồn tại");
     }
 
     // Check if this is the only valid credential
     const validCredentials = this.getValidCredentials();
-    if (validCredentials.length === 1 && validCredentials[0].credentialNumber === credentialNumber) {
-      throw new Error('Không thể xóa chứng chỉ duy nhất còn hiệu lực');
+    if (
+      validCredentials.length === 1 &&
+      validCredentials[0].credentialNumber === credentialNumber
+    ) {
+      throw new Error("Không thể xóa chứng chỉ duy nhất còn hiệu lực");
     }
 
     this.props.credentials.splice(index, 1);
@@ -381,11 +410,17 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   /**
    * Renew credential by credential number
    */
-  public renewCredential(credentialNumber: string, newExpiryDate: Date, renewedBy: string): void {
-    const credential = this.props.credentials.find(c => c.credentialNumber === credentialNumber);
-    
+  public renewCredential(
+    credentialNumber: string,
+    newExpiryDate: Date,
+    renewedBy: string,
+  ): void {
+    const credential = this.props.credentials.find(
+      (c) => c.credentialNumber === credentialNumber,
+    );
+
     if (!credential) {
-      throw new Error('Chứng chỉ không tồn tại');
+      throw new Error("Chứng chỉ không tồn tại");
     }
 
     credential.renew(newExpiryDate, renewedBy);
@@ -404,7 +439,9 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Get credentials expiring within specified days
    */
   public getExpiringCredentials(daysThreshold: number = 30): StaffCredential[] {
-    return this.props.credentials.filter(c => c.isExpiringSoon(daysThreshold));
+    return this.props.credentials.filter((c) =>
+      c.isExpiringSoon(daysThreshold),
+    );
   }
 
   public addCertification(certification: StaffCertification): void {
@@ -417,10 +454,9 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     this.props.updatedAt = new Date();
 
     // Domain event for schedule update
-    this.addDomainEvent(new StaffScheduleUpdatedEvent(
-      this.props.id,
-      newSchedule
-    ));
+    this.addDomainEvent(
+      new StaffScheduleUpdatedEvent(this.props.id, newSchedule),
+    );
   }
 
   /**
@@ -430,15 +466,13 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   public updatePersonalInfo(newPersonalInfo: PersonalInfo): void {
     this.props.personalInfo = newPersonalInfo;
     this.props.updatedAt = new Date();
-    
-    this.addDomainEvent(new StaffUpdatedEvent(
-      this.props.id,
-      ['personalInfo'],
-      { 
+
+    this.addDomainEvent(
+      new StaffUpdatedEvent(this.props.id, ["personalInfo"], {
         userId: this.props.userId,
-        personalInfo: newPersonalInfo.toPersistence() 
-      }
-    ));
+        personalInfo: newPersonalInfo.toPersistence(),
+      }),
+    );
   }
 
   /**
@@ -448,44 +482,40 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   public updateProfessionalInfo(newProfessionalInfo: ProfessionalInfo): void {
     this.props.professionalInfo = newProfessionalInfo;
     this.props.updatedAt = new Date();
-    
-    this.addDomainEvent(new StaffUpdatedEvent(
-      this.props.id,
-      ['professionalInfo'],
-      { 
+
+    this.addDomainEvent(
+      new StaffUpdatedEvent(this.props.id, ["professionalInfo"], {
         userId: this.props.userId,
-        professionalInfo: newProfessionalInfo.toPersistence() 
-      }
-    ));
+        professionalInfo: newProfessionalInfo.toPersistence(),
+      }),
+    );
   }
 
   public updateConsultationFee(newFee: number): void {
-    if (this.props.staffType !== 'doctor') {
-      throw new Error('Chỉ bác sĩ mới có phí khám');
+    if (this.props.staffType !== "doctor") {
+      throw new Error("Chỉ bác sĩ mới có phí khám");
     }
 
     if (newFee < 0) {
-      throw new Error('Phí khám không được âm');
+      throw new Error("Phí khám không được âm");
     }
 
     this.props.consultationFee = newFee;
     this.props.updatedAt = new Date();
-    
-    this.addDomainEvent(new StaffUpdatedEvent(
-      this.props.id,
-      ['consultationFee'],
-      { 
+
+    this.addDomainEvent(
+      new StaffUpdatedEvent(this.props.id, ["consultationFee"], {
         userId: this.props.userId,
-        consultationFee: newFee 
-      }
-    ));
+        consultationFee: newFee,
+      }),
+    );
   }
 
   // REMOVED: setAcceptingNewPatients - Belongs to Scheduling/Appointment Service
 
   public updateStatus(newStatus: StaffStatus, _reason?: string): void {
     this.props.status = newStatus;
-    this.props.isActive = newStatus === 'active';
+    this.props.isActive = newStatus === "active";
     this.props.updatedAt = new Date();
 
     // REMOVED: isAcceptingNewPatients update - Belongs to Scheduling/Appointment Service
@@ -493,20 +523,22 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
 
   public deactivate(reason?: string, deactivatedBy?: string): void {
     const oldStatus = this.props.status;
-    this.updateStatus('inactive', reason);
+    this.updateStatus("inactive", reason);
     this.props.isActive = false;
     this.props.updatedBy = deactivatedBy;
     this.props.updatedAt = new Date();
 
     // Publish domain event
-    this.addDomainEvent(new StaffStatusChangedEvent({
-      staffId: this.props.id.value,
-      oldStatus,
-      newStatus: 'inactive',
-      reason,
-      changedBy: deactivatedBy || 'system',
-      timestamp: new Date()
-    }));
+    this.addDomainEvent(
+      new StaffStatusChangedEvent({
+        staffId: this.props.id.value,
+        oldStatus,
+        newStatus: "inactive",
+        reason,
+        changedBy: deactivatedBy || "system",
+        timestamp: new Date(),
+      }),
+    );
   }
 
   /**
@@ -514,57 +546,63 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Business rule: Can only activate if status is inactive or suspended
    */
   public activate(activatedBy: string): void {
-    if (this.props.status === 'terminated') {
-      throw new Error('Không thể kích hoạt nhân viên đã bị chấm dứt hợp đồng');
+    if (this.props.status === "terminated") {
+      throw new Error("Không thể kích hoạt nhân viên đã bị chấm dứt hợp đồng");
     }
-    if (this.props.status === 'active') {
-      throw new Error('Nhân viên đã ở trạng thái hoạt động');
+    if (this.props.status === "active") {
+      throw new Error("Nhân viên đã ở trạng thái hoạt động");
     }
 
     const oldStatus = this.props.status;
-    this.props.status = 'active';
+    this.props.status = "active";
     this.props.isActive = true;
     this.props.updatedBy = activatedBy;
     this.props.updatedAt = new Date();
     this.props.lastActiveDate = new Date();
 
     // Publish domain event
-    this.addDomainEvent(new StaffStatusChangedEvent({
-      staffId: this.props.id.value,
-      oldStatus,
-      newStatus: 'active',
-      changedBy: activatedBy,
-      timestamp: new Date()
-    }));
+    this.addDomainEvent(
+      new StaffStatusChangedEvent({
+        staffId: this.props.id.value,
+        oldStatus,
+        newStatus: "active",
+        changedBy: activatedBy,
+        timestamp: new Date(),
+      }),
+    );
   }
 
   /**
    * Suspend staff member
    * Business rule: Can only suspend active staff
    */
-  public suspend(reason: string, suspendedBy: string): void {
-    if (this.props.status !== 'active') {
-      throw new Error('Chỉ có thể tạm ngưng nhân viên đang hoạt động');
-    }
-    if (!reason || reason.trim().length === 0) {
-      throw new Error('Lý do tạm ngưng không được để trống');
+  public suspend(reason: string | undefined, suspendedBy: string): void {
+    if (this.props.status !== "active") {
+      throw new Error("Chỉ có thể tạm ngưng nhân viên đang hoạt động");
     }
 
+    const normalizedReason =
+      reason && reason.trim().length > 0
+        ? reason.trim()
+        : "Suspended by administrator";
+
     const oldStatus = this.props.status;
-    this.props.status = 'suspended';
+    this.props.status = "suspended";
     this.props.isActive = false;
     this.props.updatedBy = suspendedBy;
     this.props.updatedAt = new Date();
 
     // Publish domain event
-    this.addDomainEvent(new StaffStatusChangedEvent({
-      staffId: this.props.id.value,
-      oldStatus,
-      newStatus: 'suspended',
-      reason,
-      changedBy: suspendedBy,
-      timestamp: new Date()
-    }));
+    this.addDomainEvent(
+      new StaffStatusChangedEvent({
+        staffId: this.props.id.value,
+        oldStatus,
+        newStatus: "suspended",
+        reason: normalizedReason,
+        changedBy: suspendedBy,
+        timestamp: new Date(),
+      }),
+    );
   }
 
   /**
@@ -572,55 +610,63 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Business rule: Can only reactivate suspended staff
    */
   public reactivate(reactivatedBy: string): void {
-    if (this.props.status !== 'suspended') {
-      throw new Error('Chỉ có thể kích hoạt lại nhân viên đang bị tạm ngưng');
+    if (this.props.status !== "suspended") {
+      throw new Error("Chỉ có thể kích hoạt lại nhân viên đang bị tạm ngưng");
     }
 
     const oldStatus = this.props.status;
-    this.props.status = 'active';
+    this.props.status = "active";
     this.props.isActive = true;
     this.props.updatedBy = reactivatedBy;
     this.props.updatedAt = new Date();
     this.props.lastActiveDate = new Date();
 
     // Publish domain event
-    this.addDomainEvent(new StaffStatusChangedEvent({
-      staffId: this.props.id.value,
-      oldStatus,
-      newStatus: 'active',
-      changedBy: reactivatedBy,
-      timestamp: new Date()
-    }));
+    this.addDomainEvent(
+      new StaffStatusChangedEvent({
+        staffId: this.props.id.value,
+        oldStatus,
+        newStatus: "active",
+        changedBy: reactivatedBy,
+        timestamp: new Date(),
+      }),
+    );
   }
 
   /**
    * Terminate staff member
    * Business rule: Cannot terminate already terminated staff
    */
-  public terminate(reason: string, terminatedBy: string, terminationDate?: Date): void {
-    if (this.props.status === 'terminated') {
-      throw new Error('Nhân viên đã bị chấm dứt hợp đồng');
+  public terminate(
+    reason: string,
+    terminatedBy: string,
+    terminationDate?: Date,
+  ): void {
+    if (this.props.status === "terminated") {
+      throw new Error("Nhân viên đã bị chấm dứt hợp đồng");
     }
     if (!reason || reason.trim().length === 0) {
-      throw new Error('Lý do chấm dứt hợp đồng không được để trống');
+      throw new Error("Lý do chấm dứt hợp đồng không được để trống");
     }
 
     const oldStatus = this.props.status;
-    this.props.status = 'terminated';
+    this.props.status = "terminated";
     this.props.isActive = false;
     this.props.contractEndDate = terminationDate || new Date();
     this.props.updatedBy = terminatedBy;
     this.props.updatedAt = new Date();
 
     // Publish domain event
-    this.addDomainEvent(new StaffStatusChangedEvent({
-      staffId: this.props.id.value,
-      oldStatus,
-      newStatus: 'terminated',
-      reason,
-      changedBy: terminatedBy,
-      timestamp: new Date()
-    }));
+    this.addDomainEvent(
+      new StaffStatusChangedEvent({
+        staffId: this.props.id.value,
+        oldStatus,
+        newStatus: "terminated",
+        reason,
+        changedBy: terminatedBy,
+        timestamp: new Date(),
+      }),
+    );
   }
 
   /**
@@ -630,15 +676,23 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   public updateEmploymentStatus(
     newEmploymentType: EmploymentType,
     updatedBy: string,
-    contractEndDate?: Date
+    contractEndDate?: Date,
   ): void {
-    if (this.props.status === 'terminated') {
-      throw new Error('Không thể cập nhật trạng thái làm việc của nhân viên đã bị chấm dứt hợp đồng');
+    if (this.props.status === "terminated") {
+      throw new Error(
+        "Không thể cập nhật trạng thái làm việc của nhân viên đã bị chấm dứt hợp đồng",
+      );
     }
 
-    const validEmploymentTypes: EmploymentType[] = ['full_time', 'part_time', 'contract', 'intern', 'volunteer'];
+    const validEmploymentTypes: EmploymentType[] = [
+      "full_time",
+      "part_time",
+      "contract",
+      "intern",
+      "volunteer",
+    ];
     if (!validEmploymentTypes.includes(newEmploymentType)) {
-      throw new Error('Loại hình làm việc không hợp lệ');
+      throw new Error("Loại hình làm việc không hợp lệ");
     }
 
     // const _oldEmploymentType = this.props.employmentType; // Removed - event disabled in scope reduction
@@ -662,7 +716,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
 
   public removeCertification(certificationId: string): void {
     this.props.certifications = this.props.certifications.filter(
-      c => c.id !== certificationId
+      (c) => c.id !== certificationId,
     );
     this.props.updatedAt = new Date();
   }
@@ -675,17 +729,16 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   public assignToDepartment(assignment: DepartmentAssignment): void {
     // Remove existing assignment to same department
     this.props.departmentAssignments = this.props.departmentAssignments.filter(
-      a => a.departmentId !== assignment.departmentId
+      (a) => a.departmentId !== assignment.departmentId,
     );
 
     this.props.departmentAssignments.push(assignment);
     this.props.updatedAt = new Date();
-    
+
     // Publish domain event
-    this.addDomainEvent(new StaffDepartmentAssignedEvent(
-      this.props.id,
-      assignment
-    ));
+    this.addDomainEvent(
+      new StaffDepartmentAssignedEvent(this.props.id, assignment),
+    );
   }
 
   public recordActivity(): void {
@@ -695,27 +748,27 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
 
   // Query methods
   public getActiveSpecializations(): Specialization[] {
-    return this.props.specializations.filter(s => s.isActive);
+    return this.props.specializations.filter((s) => s.isActive);
   }
 
   public getValidCredentials(): StaffCredential[] {
     const now = new Date();
-    return this.props.credentials.filter(c => 
-      c.isValid && (!c.expiryDate || c.expiryDate > now)
+    return this.props.credentials.filter(
+      (c) => c.isValid && (!c.expiryDate || c.expiryDate > now),
     );
   }
 
   public getValidCertifications(): StaffCertification[] {
     const now = new Date();
-    return this.props.certifications.filter(c => 
-      c.isValid && (!c.expiryDate || c.expiryDate > now)
+    return this.props.certifications.filter(
+      (c) => c.isValid && (!c.expiryDate || c.expiryDate > now),
     );
   }
 
   public getCurrentDepartmentAssignments(): DepartmentAssignment[] {
     const now = new Date();
-    return this.props.departmentAssignments.filter(a => 
-      a.isActive && (!a.endDate || a.endDate > now)
+    return this.props.departmentAssignments.filter(
+      (a) => a.isActive && (!a.endDate || a.endDate > now),
     );
   }
 
@@ -723,7 +776,8 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
 
   public getTotalExperience(): number {
     const experienceFromHire = Math.floor(
-      (new Date().getTime() - this.props.hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+      (new Date().getTime() - this.props.hireDate.getTime()) /
+        (1000 * 60 * 60 * 24 * 365),
     );
     return this.props.yearsOfExperience + experienceFromHire;
   }
@@ -733,8 +787,8 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   public canTreatPatients(): boolean {
     return (
       this.props.isActive &&
-      this.props.status === 'active' &&
-      this.props.staffType === 'doctor' &&
+      this.props.status === "active" &&
+      this.props.staffType === "doctor" &&
       this.getValidCredentials().length > 0
     );
   }
@@ -747,57 +801,79 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   protected override validateBusinessInvariants(): void {
     // Personal info must be valid
     if (!this.props.personalInfo || !this.props.personalInfo.isValid()) {
-      throw new Error('Thông tin cá nhân nhân viên không hợp lệ');
+      throw new Error("Thông tin cá nhân nhân viên không hợp lệ");
     }
 
     // Professional info must be valid
-    if (!this.props.professionalInfo || !this.props.professionalInfo.isValid()) {
-      throw new Error('Thông tin nghề nghiệp không hợp lệ');
+    if (
+      !this.props.professionalInfo ||
+      !this.props.professionalInfo.isValid()
+    ) {
+      throw new Error("Thông tin nghề nghiệp không hợp lệ");
     }
 
     // Must have valid user ID
     if (!this.props.userId || this.props.userId.trim().length === 0) {
-      throw new Error('ID người dùng không được để trống');
+      throw new Error("ID người dùng không được để trống");
     }
 
     // License number must be valid
-    if (!this.props.licenseNumber || this.props.licenseNumber.trim().length === 0) {
-      throw new Error('Số giấy phép hành nghề không được để trống');
+    if (
+      !this.props.licenseNumber ||
+      this.props.licenseNumber.trim().length === 0
+    ) {
+      throw new Error("Số giấy phép hành nghề không được để trống");
     }
 
     // Hire date must be valid
     if (!this.props.hireDate || this.props.hireDate > new Date()) {
-      throw new Error('Ngày tuyển dụng không hợp lệ');
+      throw new Error("Ngày tuyển dụng không hợp lệ");
     }
 
     // Years of experience must be non-negative
     if (this.props.yearsOfExperience < 0) {
-      throw new Error('Số năm kinh nghiệm không được âm');
+      throw new Error("Số năm kinh nghiệm không được âm");
     }
 
     // Doctors must have specializations
-    if (this.props.staffType === 'doctor' && this.props.specializations.length === 0) {
-      throw new Error('Bác sĩ phải có ít nhất một chuyên khoa');
+    if (
+      this.props.staffType === "doctor" &&
+      this.props.specializations.length === 0
+    ) {
+      throw new Error("Bác sĩ phải có ít nhất một chuyên khoa");
     }
 
     // Receptionists should not have specializations
-    if (this.props.staffType === 'receptionist' && this.props.specializations.length > 0) {
-      throw new Error('Lễ tân không cần chuyên khoa');
+    if (
+      this.props.staffType === "receptionist" &&
+      this.props.specializations.length > 0
+    ) {
+      throw new Error("Lễ tân không cần chuyên khoa");
     }
 
     // Consultation fee validation for doctors
-    if (this.props.staffType === 'doctor' && this.props.consultationFee !== undefined && this.props.consultationFee < 0) {
-      throw new Error('Phí khám không được âm');
+    if (
+      this.props.staffType === "doctor" &&
+      this.props.consultationFee !== undefined &&
+      this.props.consultationFee < 0
+    ) {
+      throw new Error("Phí khám không được âm");
     }
 
     // Receptionists should not have consultation fee
-    if (this.props.staffType === 'receptionist' && this.props.consultationFee !== undefined) {
-      throw new Error('Lễ tân không có phí khám');
+    if (
+      this.props.staffType === "receptionist" &&
+      this.props.consultationFee !== undefined
+    ) {
+      throw new Error("Lễ tân không có phí khám");
     }
 
     // Contract end date must be after hire date
-    if (this.props.contractEndDate && this.props.contractEndDate <= this.props.hireDate) {
-      throw new Error('Ngày kết thúc hợp đồng phải sau ngày tuyển dụng');
+    if (
+      this.props.contractEndDate &&
+      this.props.contractEndDate <= this.props.hireDate
+    ) {
+      throw new Error("Ngày kết thúc hợp đồng phải sau ngày tuyển dụng");
     }
 
     // Must have at least one valid credential
@@ -814,25 +890,25 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    */
   protected applyEvent(event: DomainEvent): void {
     switch (event.eventType) {
-      case 'StaffRegistered':
+      case "StaffRegistered":
         this.props.isActive = true;
-        this.props.status = 'active';
+        this.props.status = "active";
         this.props.updatedAt = new Date();
         break;
 
-      case 'StaffCredentialVerified':
+      case "StaffCredentialVerified":
         this.props.updatedAt = new Date();
         break;
 
-      case 'StaffScheduleUpdated':
+      case "StaffScheduleUpdated":
         this.props.updatedAt = new Date();
         break;
 
-      case 'StaffStatusChanged':
+      case "StaffStatusChanged":
         this.props.updatedAt = new Date();
         break;
 
-      case 'StaffDepartmentAssigned':
+      case "StaffDepartmentAssigned":
         this.props.updatedAt = new Date();
         break;
 
@@ -855,8 +931,27 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Maps domain properties to database columns
    * Note: id (UUID) is the primary key, staff_id is the business identifier
    */
+  /**
+   * Safely convert a date to ISO string, handling invalid dates
+   */
+  private safeToISOString(
+    date: Date | undefined | null,
+    fallback: Date = new Date(),
+  ): string {
+    if (!date) return fallback.toISOString();
+    if (!(date instanceof Date)) {
+      // Try to create a Date from the value
+      const parsed = new Date(date as any);
+      if (isNaN(parsed.getTime())) return fallback.toISOString();
+      return parsed.toISOString();
+    }
+    if (isNaN(date.getTime())) return fallback.toISOString();
+    return date.toISOString();
+  }
+
   toPersistence(): any {
     try {
+      const now = new Date();
       return {
         id: this._id,
         staff_id: this.props.id.value,
@@ -865,16 +960,22 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
         personal_info: this.props.personalInfo.toPersistence(),
         professional_info: this.props.professionalInfo.toPersistence(),
         work_schedule: this.props.workSchedule.toPersistence(),
-        specializations: this.props.specializations.map(s => s.toPersistence()),
-        credentials: this.props.credentials.map(c => c.toPersistence()),
-        certifications: this.props.certifications.map(c => c.toPersistence()),
+        specializations: this.props.specializations.map((s) =>
+          s.toPersistence(),
+        ),
+        credentials: this.props.credentials.map((c) => c.toPersistence()),
+        certifications: this.props.certifications.map((c) => c.toPersistence()),
         // REMOVED: availability - Belongs to Scheduling/Appointment Service
         // REMOVED: reviews - Belongs to Review/Rating Service
-        department_assignments: this.props.departmentAssignments.map(d => d.toPersistence()),
+        department_assignments: this.props.departmentAssignments.map((d) =>
+          d.toPersistence(),
+        ),
         license_number: this.props.licenseNumber,
         employment_type: this.props.employmentType,
-        hire_date: this.props.hireDate ? this.props.hireDate.toISOString() : new Date().toISOString(),
-        contract_end_date: this.props.contractEndDate?.toISOString() || null,
+        hire_date: this.safeToISOString(this.props.hireDate, now),
+        contract_end_date: this.props.contractEndDate
+          ? this.safeToISOString(this.props.contractEndDate)
+          : null,
         consultation_fee: this.props.consultationFee,
         years_of_experience: this.props.yearsOfExperience,
         // REMOVED: rating - Belongs to Review/Rating Service
@@ -882,21 +983,26 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
         // REMOVED: is_accepting_new_patients - Belongs to Scheduling/Appointment Service
         status: this.props.status,
         is_active: this.props.isActive,
-        registration_date: this.props.registrationDate ? this.props.registrationDate.toISOString() : new Date().toISOString(),
-        last_active_date: this.props.lastActiveDate?.toISOString() || null,
+        registration_date: this.safeToISOString(
+          this.props.registrationDate,
+          now,
+        ),
+        last_active_date: this.props.lastActiveDate
+          ? this.safeToISOString(this.props.lastActiveDate)
+          : null,
         vietnamese_healthcare_license: this.props.vietnameseHealthcareLicense,
         moh_registration_number: this.props.mohRegistrationNumber,
-        created_at: this.props.createdAt ? this.props.createdAt.toISOString() : new Date().toISOString(),
-        updated_at: this.props.updatedAt ? this.props.updatedAt.toISOString() : new Date().toISOString()
+        created_at: this.safeToISOString(this.props.createdAt, now),
+        updated_at: this.safeToISOString(this.props.updatedAt, now),
       };
     } catch (error: any) {
-      console.error('[ProviderStaff] toPersistence error:', {
+      console.error("[ProviderStaff] toPersistence error:", {
         staffId: this.props.id.value,
         error: error.message,
         hireDate: this.props.hireDate,
         registrationDate: this.props.registrationDate,
         createdAt: this.props.createdAt,
-        updatedAt: this.props.updatedAt
+        updatedAt: this.props.updatedAt,
       });
       throw error;
     }
@@ -910,74 +1016,95 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   public static fromPersistenceData(data: any): ProviderStaff {
     // Ensure staff_id exists and is not a UUID
     const staffIdValue = data.staff_id || data.staffId;
-    
+
     // DEBUG: Log what we're getting from database
-    console.log('[ProviderStaff] fromPersistenceData DEBUG:', {
+    console.log("[ProviderStaff] fromPersistenceData DEBUG:", {
       uuid: data.id?.substring(0, 8),
       staff_id_snake: data.staff_id?.substring(0, 20),
       staffId_camel: data.staffId?.substring(0, 20),
-      using: staffIdValue?.substring(0, 20)
+      using: staffIdValue?.substring(0, 20),
     });
-    
+
     if (!staffIdValue) {
-      console.error('[ProviderStaff] Missing staff_id in data:', { id: data.id, hasStaffId: !!data.staff_id, hasStaffIdCamel: !!data.staffId });
+      console.error("[ProviderStaff] Missing staff_id in data:", {
+        id: data.id,
+        hasStaffId: !!data.staff_id,
+        hasStaffIdCamel: !!data.staffId,
+      });
       throw new Error(`Missing staff_id for record with UUID: ${data.id}`);
     }
-    
+
     const props: ProviderStaffProps = {
       id: StaffId.fromString(staffIdValue),
       userId: data.user_id || data.userId,
       staffType: data.staff_type || data.staffType,
       personalInfo: PersonalInfo.fromPersistence(data.personal_info),
-      professionalInfo: ProfessionalInfo.fromPersistence(data.professional_info),
+      professionalInfo: ProfessionalInfo.fromPersistence(
+        data.professional_info,
+      ),
       workSchedule: WorkSchedule.fromPersistence(data.work_schedule),
       specializations: (() => {
         const items = (data.specializations || []).map((s: any) => {
-          if (typeof s === 'string') {
+          if (typeof s === "string") {
             return Specialization.fromPersistenceData({
-              code: s.toUpperCase().replace(/\s+/g, '_'),
+              code: s.toUpperCase().replace(/\s+/g, "_"),
               name: s,
-              description: '',
+              description: "",
               is_active: true,
               created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             });
           }
           return Specialization.fromPersistenceData(s);
         });
         if (items.length === 0) {
-          const deptName = (data.professional_info?.department || (Array.isArray(data.department_assignments) && data.department_assignments[0]?.departmentNameEn) || (Array.isArray(data.department_assignments) && data.department_assignments[0]?.departmentNameVi)) || undefined;
-          if (typeof deptName === 'string' && deptName.trim().length > 0) {
+          const deptName =
+            data.professional_info?.department ||
+            (Array.isArray(data.department_assignments) &&
+              data.department_assignments[0]?.departmentNameEn) ||
+            (Array.isArray(data.department_assignments) &&
+              data.department_assignments[0]?.departmentNameVi) ||
+            undefined;
+          if (typeof deptName === "string" && deptName.trim().length > 0) {
             items.push(
               Specialization.fromPersistenceData({
-                code: deptName.toUpperCase().replace(/\s+/g, '_'),
+                code: deptName.toUpperCase().replace(/\s+/g, "_"),
                 name: deptName,
-                description: '',
+                description: "",
                 is_active: true,
                 created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              })
+                updated_at: new Date().toISOString(),
+              }),
             );
           }
         }
         return items;
       })(),
-      credentials: (data.credentials || []).map((c: any) => StaffCredential.fromPersistenceData(c)),
-      certifications: (data.certifications || []).map((c: any) => StaffCertification.fromPersistenceData(c)),
+      credentials: (data.credentials || []).map((c: any) =>
+        StaffCredential.fromPersistenceData(c),
+      ),
+      certifications: (data.certifications || []).map((c: any) =>
+        StaffCertification.fromPersistenceData(c),
+      ),
       // REMOVED: availability - Belongs to Scheduling/Appointment Service
       // REMOVED: reviews - Belongs to Review/Rating Service
       departmentAssignments: (() => {
         // Handle both array and object formats (defensive coding)
         const deptData = data.department_assignments;
         if (!deptData) return [];
-        if (Array.isArray(deptData)) return deptData.map((d: any) => DepartmentAssignment.fromPersistenceData(d));
+        if (Array.isArray(deptData))
+          return deptData.map((d: any) =>
+            DepartmentAssignment.fromPersistenceData(d),
+          );
         // If it's an object (legacy single assignment), wrap in array
         return [DepartmentAssignment.fromPersistenceData(deptData)];
       })(),
       licenseNumber: data.license_number,
       employmentType: data.employment_type,
       hireDate: new Date(data.hire_date),
-      contractEndDate: data.contract_end_date ? new Date(data.contract_end_date) : undefined,
+      contractEndDate: data.contract_end_date
+        ? new Date(data.contract_end_date)
+        : undefined,
       consultationFee: data.consultation_fee,
       yearsOfExperience: data.years_of_experience,
       // REMOVED: rating - Belongs to Review/Rating Service (ignore from DB)
@@ -986,11 +1113,13 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       status: data.status,
       isActive: data.is_active,
       registrationDate: new Date(data.registration_date),
-      lastActiveDate: data.last_active_date ? new Date(data.last_active_date) : undefined,
+      lastActiveDate: data.last_active_date
+        ? new Date(data.last_active_date)
+        : undefined,
       vietnameseHealthcareLicense: data.vietnamese_healthcare_license,
       mohRegistrationNumber: data.moh_registration_number,
       createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
+      updatedAt: new Date(data.updated_at),
     };
 
     return new ProviderStaff(props, data.id);
@@ -1001,12 +1130,19 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    */
   public isVietnameseHealthcareCompliant(): boolean {
     // Check if staff has required Vietnamese healthcare information
-    const hasValidPersonalInfo = this.props.personalInfo.isVietnameseCompliant();
-    const hasValidProfessionalInfo = this.props.professionalInfo.isVietnameseCompliant();
+    const hasValidPersonalInfo =
+      this.props.personalInfo.isVietnameseCompliant();
+    const hasValidProfessionalInfo =
+      this.props.professionalInfo.isVietnameseCompliant();
     const hasVietnameseLicense = !!this.props.vietnameseHealthcareLicense;
     const hasMOHRegistration = !!this.props.mohRegistrationNumber;
 
-    return hasValidPersonalInfo && hasValidProfessionalInfo && hasVietnameseLicense && hasMOHRegistration;
+    return (
+      hasValidPersonalInfo &&
+      hasValidProfessionalInfo &&
+      hasVietnameseLicense &&
+      hasMOHRegistration
+    );
   }
 
   /**
@@ -1016,8 +1152,8 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     return (
       this.props.personalInfo.isHIPAACompliant() &&
       this.props.professionalInfo.isHIPAACompliant() &&
-      this.getValidCredentials().every(c => c.isHIPAACompliant()) &&
-      this.getValidCertifications().every(c => c.isHIPAACompliant())
+      this.getValidCredentials().every((c) => c.isHIPAACompliant()) &&
+      this.getValidCertifications().every((c) => c.isHIPAACompliant())
     );
   }
 
@@ -1043,7 +1179,7 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       hireDate: this.props.hireDate.toISOString(),
       registrationDate: this.props.registrationDate.toISOString(),
       lastActiveDate: this.props.lastActiveDate?.toISOString(),
-      createdAt: this.props.createdAt.toISOString()
+      createdAt: this.props.createdAt.toISOString(),
     };
   }
 
@@ -1066,10 +1202,12 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    */
   public canWorkWithPatientType(_patientType: string): boolean {
     // This would be expanded based on specializations and certifications
-    return this.props.isActive && this.props.status === 'active';
+    return this.props.isActive && this.props.status === "active";
   }
 
-  public override equals(other?: import('@shared/domain/base/entity').Entity<ProviderStaffProps>): boolean {
+  public override equals(
+    other?: import("@shared/domain/base/entity").Entity<ProviderStaffProps>,
+  ): boolean {
     if (!other) return false;
     if (!(other instanceof ProviderStaff)) return false;
     return this.props.id.equals(other.props.id);

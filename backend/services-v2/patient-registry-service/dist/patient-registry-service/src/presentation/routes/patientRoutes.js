@@ -25,33 +25,28 @@ function createPatientRoutes(controller, authorizationMiddleware) {
      * Register new patient
      * POST /api/v1/patients
      */
-    router.post('/', ValidationMiddleware_1.validateRegisterPatient, asyncHandler(controller.registerPatient.bind(controller)));
+    router.post("/", ValidationMiddleware_1.validateRegisterPatient, asyncHandler(controller.registerPatient.bind(controller)));
     /**
      * Validate insurance
      * POST /api/v1/patients/validate-insurance
      */
-    router.post('/validate-insurance', asyncHandler(controller.validateInsurance.bind(controller)));
+    router.post("/validate-insurance", asyncHandler(controller.validateInsurance.bind(controller)));
     // ==================== SEARCH & MATCH ROUTES ====================
-    /* POST-MVP: Analytics - Not required for graduation project demo flows
-    **
+    /**
      * Get patient statistics
      * GET /api/v1/patients/statistics
-     *
-    router.get(
-      '/statistics',
-      asyncHandler(controller.getStatistics.bind(controller)),
-    );
-    END POST-MVP: Analytics */
+     */
+    router.get("/statistics", asyncHandler(controller.getStatistics.bind(controller)));
     /**
      * Search patients
      * GET /api/v1/patients/search?searchTerm=...
      */
-    router.get('/search', ValidationMiddleware_1.validateSearchPatients, asyncHandler(controller.searchPatients.bind(controller)));
+    router.get("/search", ValidationMiddleware_1.validateSearchPatients, asyncHandler(controller.searchPatients.bind(controller)));
     /**
      * Get patient list with pagination
      * GET /api/v1/patients?page=1&limit=20
      */
-    router.get('/', ValidationMiddleware_1.validateGetPatientList, asyncHandler(controller.getPatientList.bind(controller)));
+    router.get("/", ValidationMiddleware_1.validateGetPatientList, asyncHandler(controller.getPatientList.bind(controller)));
     /* POST-MVP: PMI Features (Patient Master Index) - Not required for graduation project
     **
      * Match patients (PMI)
@@ -81,17 +76,17 @@ function createPatientRoutes(controller, authorizationMiddleware) {
      * GET /api/v1/patients/user/:userId
      * Authorization: Patient can access own data, Admin/Doctor need patient:read permission
      */
-    router.get('/user/:userId', ValidationMiddleware_1.validateUserId, authorizationMiddleware.canAccessPatientData('userId'), asyncHandler(controller.getPatientByUserId.bind(controller)));
+    router.get("/user/:userId", ValidationMiddleware_1.validateUserId, authorizationMiddleware.canAccessPatientData("userId"), asyncHandler(controller.getPatientByUserId.bind(controller)));
     /**
      * Get patient by national ID
      * GET /api/v1/patients/national-id/:nationalId
      */
-    router.get('/national-id/:nationalId', ValidationMiddleware_1.validateNationalId, asyncHandler(controller.getPatientByNationalId.bind(controller)));
+    router.get("/national-id/:nationalId", ValidationMiddleware_1.validateNationalId, asyncHandler(controller.getPatientByNationalId.bind(controller)));
     /**
      * Get patient by BHYT number
      * GET /api/v1/patients/bhyt/:bhytNumber
      */
-    router.get('/bhyt/:bhytNumber', ValidationMiddleware_1.validateBHYTNumber, asyncHandler(controller.getPatientByBHYTNumber.bind(controller)));
+    router.get("/bhyt/:bhytNumber", ValidationMiddleware_1.validateBHYTNumber, asyncHandler(controller.getPatientByBHYTNumber.bind(controller)));
     /* POST-MVP: Audit Trail - Advanced analytics not required for graduation project
     **
      * Get patient history (audit logs and access logs)
@@ -107,13 +102,13 @@ function createPatientRoutes(controller, authorizationMiddleware) {
      * Get patient by ID
      * GET /api/v1/patients/:patientId
      */
-    router.get('/:patientId', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getPatientById.bind(controller)));
+    router.get("/:patientId", ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getPatientById.bind(controller)));
     // ==================== UPDATE PATIENT ROUTES ====================
     /**
      * Update patient information
      * PUT /api/v1/patients/:patientId
      */
-    router.put('/:patientId', ValidationMiddleware_1.validateUpdatePatient, authorizationMiddleware.canAccessPatientData('patientId'), asyncHandler(controller.updatePatient.bind(controller)));
+    router.put("/:patientId", ValidationMiddleware_1.validateUpdatePatient, authorizationMiddleware.canAccessPatientData("patientId"), asyncHandler(controller.updatePatient.bind(controller)));
     /* POST-MVP: FHIR Advanced - Patient Linking not required for graduation project
     **
      * Link patients
@@ -140,17 +135,17 @@ function createPatientRoutes(controller, authorizationMiddleware) {
      * Add emergency contact
      * POST /api/v1/patients/:patientId/emergency-contacts
      */
-    router.post('/:patientId/emergency-contacts', ValidationMiddleware_1.validateAddEmergencyContact, asyncHandler(controller.addEmergencyContact.bind(controller)));
+    router.post("/:patientId/emergency-contacts", ValidationMiddleware_1.validateAddEmergencyContact, asyncHandler(controller.addEmergencyContact.bind(controller)));
     /**
      * Get emergency contacts
      * GET /api/v1/patients/:patientId/emergency-contacts
      */
-    router.get('/:patientId/emergency-contacts', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getEmergencyContacts.bind(controller)));
+    router.get("/:patientId/emergency-contacts", ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getEmergencyContacts.bind(controller)));
     /**
      * Update emergency contact
      * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
      */
-    router.put('/:patientId/emergency-contacts/:contactId', ValidationMiddleware_1.validateUpdateEmergencyContact, asyncHandler(controller.updateEmergencyContact.bind(controller)));
+    router.put("/:patientId/emergency-contacts/:contactId", ValidationMiddleware_1.validateUpdateEmergencyContact, asyncHandler(controller.updateEmergencyContact.bind(controller)));
     /* POST-MVP: Advanced Emergency Contact Management - Not required for graduation project
     **
      * Remove emergency contact
@@ -283,22 +278,22 @@ function createPatientRoutes(controller, authorizationMiddleware) {
      * Get insurance info
      * GET /api/v1/patients/:patientId/insurance
      */
-    router.get('/:patientId/insurance', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getInsuranceInfo.bind(controller)));
+    router.get("/:patientId/insurance", ValidationMiddleware_1.validatePatientId, asyncHandler(controller.getInsuranceInfo.bind(controller)));
     /**
      * Add insurance info
      * POST /api/v1/patients/:patientId/insurance
      */
-    router.post('/:patientId/insurance', ValidationMiddleware_1.validatePatientId, ValidationMiddleware_1.validateAddInsuranceInfo, asyncHandler(controller.addInsuranceInfo.bind(controller)));
+    router.post("/:patientId/insurance", ValidationMiddleware_1.validatePatientId, ValidationMiddleware_1.validateAddInsuranceInfo, asyncHandler(controller.addInsuranceInfo.bind(controller)));
     /**
      * Update insurance info
      * PUT /api/v1/patients/:patientId/insurance
      */
-    router.put('/:patientId/insurance', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.updateInsuranceInfo.bind(controller)));
+    router.put("/:patientId/insurance", ValidationMiddleware_1.validatePatientId, asyncHandler(controller.updateInsuranceInfo.bind(controller)));
     /**
      * Verify insurance
      * POST /api/v1/patients/:patientId/insurance/verify
      */
-    router.post('/:patientId/insurance/verify', ValidationMiddleware_1.validatePatientId, asyncHandler(controller.verifyInsurance.bind(controller)));
+    router.post("/:patientId/insurance/verify", ValidationMiddleware_1.validatePatientId, asyncHandler(controller.verifyInsurance.bind(controller)));
     /* POST-MVP: Patient Lifecycle - Deceased/Reactivation not required for graduation project
     /**
      * Mark patient as deceased

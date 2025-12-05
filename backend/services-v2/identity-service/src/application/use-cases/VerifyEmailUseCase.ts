@@ -30,20 +30,20 @@ import { OutboxService } from "../../infrastructure/outbox/OutboxService";
 /**
  * Convert HealthcareRoleType to shared role type
  */
-function convertToSharedRoleType(roleType: string): 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist' {
-  const roleMapping: Record<string, 'admin' | 'doctor' | 'nurse' | 'patient' | 'receptionist'> = {
-    'ADMIN': 'admin',
-    'DOCTOR': 'doctor', 
-    'NURSE': 'nurse',
-    'RECEPTIONIST': 'receptionist',
-    'PATIENT': 'patient'
+function convertToSharedRoleType(
+  roleType: string,
+): "admin" | "doctor" | "patient" {
+  const roleMapping: Record<string, "admin" | "doctor" | "patient"> = {
+    ADMIN: "admin",
+    DOCTOR: "doctor",
+    PATIENT: "patient",
   };
-  
+
   const converted = roleMapping[roleType.toUpperCase()];
   if (!converted) {
     throw new Error(`Unsupported role type: ${roleType}`);
   }
-  
+
   return converted;
 }
 
@@ -275,10 +275,10 @@ export class VerifyEmailUseCase
           const userCreatedEvent = new UserCreatedEvent(
             user.id,
             user.email.value,
-            user.personalInfo?.fullName || '',
-            convertToSharedRoleType(user.healthcareRoles[0]?.type || 'PATIENT'),
+            user.personalInfo?.fullName || "",
+            convertToSharedRoleType(user.healthcareRoles[0]?.type || "PATIENT"),
             user.personalInfo?.citizenId,
-            user.personalInfo?.phoneNumber
+            user.personalInfo?.phoneNumber,
           );
 
           // Create UserActivated event
@@ -312,10 +312,16 @@ export class VerifyEmailUseCase
                 eventCount: events.length,
               });
             } catch (publishError) {
-              this.logger.warn("Failed to publish events immediately, outbox will retry", {
-                userId: user.id,
-                error: publishError instanceof Error ? publishError.message : String(publishError),
-              });
+              this.logger.warn(
+                "Failed to publish events immediately, outbox will retry",
+                {
+                  userId: user.id,
+                  error:
+                    publishError instanceof Error
+                      ? publishError.message
+                      : String(publishError),
+                },
+              );
               // Don't throw - outbox will handle retry
             }
           }

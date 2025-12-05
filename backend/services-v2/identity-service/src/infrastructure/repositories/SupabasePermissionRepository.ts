@@ -1,9 +1,9 @@
 /**
  * SupabasePermissionRepository
- * 
+ *
  * Implementation of IPermissionRepository using Supabase.
  * Queries Pure RBAC tables for permission management.
- * 
+ *
  * Tables used:
  * - auth_schema.permissions (master permissions)
  * - auth_schema.healthcare_roles (role metadata)
@@ -11,21 +11,21 @@
  * - auth_schema.user_roles (user → role assignments)
  * - auth_schema.user_permissions (user-specific overrides)
  * - auth_schema.permission_inheritance (permission hierarchy)
- * 
+ *
  * @author Hospital Management Team
  * @version 3.0.0 - Pure RBAC
  */
 
-import { SupabaseClient } from '@supabase/supabase-js';
-import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
-import { UserId } from '../../domain/value-objects/UserId';
-import { Permission } from '../../domain/value-objects/Permission';
-import { PermissionCache } from '../cache/PermissionCache';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { IPermissionRepository } from "../../domain/repositories/IPermissionRepository";
+import { UserId } from "../../domain/value-objects/UserId";
+import { Permission } from "../../domain/value-objects/Permission";
+import { PermissionCache } from "../cache/PermissionCache";
 
 export class SupabasePermissionRepository implements IPermissionRepository {
   constructor(
     private readonly supabaseClient: SupabaseClient,
-    private readonly cache: PermissionCache
+    private readonly cache: PermissionCache,
   ) {}
 
   /**
@@ -34,10 +34,10 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async getUserRoles(userId: UserId): Promise<string[]> {
     try {
       const { data, error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_roles')
-        .select('role_name')
-        .eq('user_id', userId.value);
+        .schema("auth_schema")
+        .from("user_roles")
+        .select("role_name")
+        .eq("user_id", userId.value);
 
       if (error) {
         throw new Error(`Failed to get user roles: ${error.message}`);
@@ -45,14 +45,17 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
       return data?.map((row) => row.role_name) || [];
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error getting user roles', error);
+      console.error(
+        "[SupabasePermissionRepository] Error getting user roles",
+        error,
+      );
       throw error;
     }
   }
 
   /**
    * Get effective permissions for a user
-   * 
+   *
    * Combines:
    * 1. Role permissions
    * 2. User-specific overrides
@@ -63,21 +66,33 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       // Check cache first
       const cached = await this.cache.get(userId);
       if (cached) {
-        return cached;
+        const normalizedCached = this.normalizePermissions(cached);
+
+        // If normalization changed the permission set (e.g. new mapping logic),
+        // persist the updated version so downstream services stay consistent.
+        if (!this.arePermissionSetsEqual(cached, normalizedCached)) {
+          await this.cache.set(userId, normalizedCached);
+        }
+
+        return normalizedCached;
       }
 
       // Query from database
       const permissions = await this.queryUserPermissions(userId);
 
-      // Expand with hierarchy
+      // Expand with hierarchy and normalize keys
       const expanded = await this.expandPermissions(permissions);
+      const normalized = this.normalizePermissions(expanded);
 
       // Cache result
-      await this.cache.set(userId, expanded);
+      await this.cache.set(userId, normalized);
 
-      return expanded;
+      return normalized;
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error getting user permissions', error);
+      console.error(
+        "[SupabasePermissionRepository] Error getting user permissions",
+        error,
+      );
       throw error;
     }
   }
@@ -89,24 +104,27 @@ export class SupabasePermissionRepository implements IPermissionRepository {
     try {
       // Step 1: Get role ID with proper error handling
       const { data: roleData, error: roleError } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('healthcare_roles')
-        .select('id')
-        .eq('role_name', roleType.toLowerCase())
+        .schema("auth_schema")
+        .from("healthcare_roles")
+        .select("id")
+        .eq("role_name", roleType.toLowerCase())
         .single();
 
       if (roleError || !roleData) {
-        console.warn(`[SupabasePermissionRepository] Role not found: ${roleType}`, roleError);
+        console.warn(
+          `[SupabasePermissionRepository] Role not found: ${roleType}`,
+          roleError,
+        );
         return []; // Return empty array if role doesn't exist
       }
 
       // Step 2: Get permissions for the role
       const { data, error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('role_permissions')
-        .select('permission_name')
-        .eq('role_id', roleData.id)
-        .eq('is_active', true);
+        .schema("auth_schema")
+        .from("role_permissions")
+        .select("permission_name")
+        .eq("role_id", roleData.id)
+        .eq("is_active", true);
 
       if (error) {
         throw new Error(`Failed to get role permissions: ${error.message}`);
@@ -114,7 +132,10 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
       return data?.map((row) => row.permission_name) || [];
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error getting role permissions', error);
+      console.error(
+        "[SupabasePermissionRepository] Error getting role permissions",
+        error,
+      );
       throw error;
     }
   }
@@ -122,7 +143,11 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Check if user has a specific permission
    */
-  async hasPermission(userId: UserId, resource: string, action: string): Promise<boolean> {
+  async hasPermission(
+    userId: UserId,
+    resource: string,
+    action: string,
+  ): Promise<boolean> {
     const permission = `${resource}:${action}`;
     return this.hasPermissionString(userId, permission);
   }
@@ -130,19 +155,25 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Check if user has a specific permission (by string)
    */
-  async hasPermissionString(userId: UserId, permission: string): Promise<boolean> {
+  async hasPermissionString(
+    userId: UserId,
+    permission: string,
+  ): Promise<boolean> {
     try {
       const permissions = await this.getUserPermissions(userId);
 
       // Check wildcard
-      if (permissions.includes('*')) {
+      if (permissions.includes("*")) {
         return true;
       }
 
       // Check exact match
       return permissions.includes(permission);
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error checking permission', error);
+      console.error(
+        "[SupabasePermissionRepository] Error checking permission",
+        error,
+      );
       return false;
     }
   }
@@ -150,14 +181,18 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Assign a role to a user
    */
-  async assignRole(userId: UserId, roleType: string, assignedBy: string): Promise<void> {
+  async assignRole(
+    userId: UserId,
+    roleType: string,
+    assignedBy: string,
+  ): Promise<void> {
     try {
       // Verify role exists in healthcare_roles table
       const { data: roleData, error: roleError } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('healthcare_roles')
-        .select('id, role_name')
-        .eq('role_name', roleType.toLowerCase())
+        .schema("auth_schema")
+        .from("healthcare_roles")
+        .select("id, role_name")
+        .eq("role_name", roleType.toLowerCase())
         .single();
 
       if (roleError || !roleData) {
@@ -168,8 +203,8 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       // Note: user_roles table schema has: id, user_id, role_name, assigned_at, assigned_by
       // It does NOT have role_id column
       const { error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_roles')
+        .schema("auth_schema")
+        .from("user_roles")
         .insert({
           user_id: userId.value,
           role_name: roleType.toLowerCase(),
@@ -178,7 +213,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
         });
 
       if (error) {
-        if (error.code === '23505') {
+        if (error.code === "23505") {
           // Unique constraint violation
           throw new Error(`User already has role: ${roleType}`);
         }
@@ -189,12 +224,15 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       await this.invalidateCache(userId);
 
       // Audit log
-      await this.logAudit('role_assigned', userId.value, {
+      await this.logAudit("role_assigned", userId.value, {
         roleType,
         assignedBy,
       });
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error assigning role', error);
+      console.error(
+        "[SupabasePermissionRepository] Error assigning role",
+        error,
+      );
       throw error;
     }
   }
@@ -202,21 +240,27 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Remove a role from a user
    */
-  async removeRole(userId: UserId, roleType: string, removedBy: string): Promise<void> {
+  async removeRole(
+    userId: UserId,
+    roleType: string,
+    removedBy: string,
+  ): Promise<void> {
     try {
       // Check if user has only one role
       const roles = await this.getUserRoles(userId);
       if (roles.length === 1) {
-        throw new Error('Cannot remove last role. User must have at least one role.');
+        throw new Error(
+          "Cannot remove last role. User must have at least one role.",
+        );
       }
 
       // Delete user_role
       const { error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_roles')
+        .schema("auth_schema")
+        .from("user_roles")
         .delete()
-        .eq('user_id', userId.value)
-        .eq('role_name', roleType.toLowerCase());
+        .eq("user_id", userId.value)
+        .eq("role_name", roleType.toLowerCase());
 
       if (error) {
         throw new Error(`Failed to remove role: ${error.message}`);
@@ -226,12 +270,15 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       await this.invalidateCache(userId);
 
       // Audit log
-      await this.logAudit('role_removed', userId.value, {
+      await this.logAudit("role_removed", userId.value, {
         roleType,
         removedBy,
       });
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error removing role', error);
+      console.error(
+        "[SupabasePermissionRepository] Error removing role",
+        error,
+      );
       throw error;
     }
   }
@@ -239,15 +286,19 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Add user-specific permission override
    */
-  async addUserPermission(userId: UserId, permission: string, grantedBy: string): Promise<void> {
+  async addUserPermission(
+    userId: UserId,
+    permission: string,
+    grantedBy: string,
+  ): Promise<void> {
     try {
       // Validate permission format
       Permission.fromString(permission);
 
       // Insert user_permission
       const { error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_permissions')
+        .schema("auth_schema")
+        .from("user_permissions")
         .insert({
           user_id: userId.value,
           permission_name: permission,
@@ -256,7 +307,7 @@ export class SupabasePermissionRepository implements IPermissionRepository {
         });
 
       if (error) {
-        if (error.code === '23505') {
+        if (error.code === "23505") {
           throw new Error(`User already has permission: ${permission}`);
         }
         throw new Error(`Failed to add user permission: ${error.message}`);
@@ -266,12 +317,15 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       await this.invalidateCache(userId);
 
       // Audit log
-      await this.logAudit('permission_granted', userId.value, {
+      await this.logAudit("permission_granted", userId.value, {
         permission,
         grantedBy,
       });
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error adding user permission', error);
+      console.error(
+        "[SupabasePermissionRepository] Error adding user permission",
+        error,
+      );
       throw error;
     }
   }
@@ -279,15 +333,19 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Remove user-specific permission override
    */
-  async removeUserPermission(userId: UserId, permission: string, revokedBy: string): Promise<void> {
+  async removeUserPermission(
+    userId: UserId,
+    permission: string,
+    revokedBy: string,
+  ): Promise<void> {
     try {
       // Delete user_permission
       const { error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_permissions')
+        .schema("auth_schema")
+        .from("user_permissions")
         .delete()
-        .eq('user_id', userId.value)
-        .eq('permission_name', permission);
+        .eq("user_id", userId.value)
+        .eq("permission_name", permission);
 
       if (error) {
         throw new Error(`Failed to remove user permission: ${error.message}`);
@@ -297,12 +355,15 @@ export class SupabasePermissionRepository implements IPermissionRepository {
       await this.invalidateCache(userId);
 
       // Audit log
-      await this.logAudit('permission_revoked', userId.value, {
+      await this.logAudit("permission_revoked", userId.value, {
         permission,
         revokedBy,
       });
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error removing user permission', error);
+      console.error(
+        "[SupabasePermissionRepository] Error removing user permission",
+        error,
+      );
       throw error;
     }
   }
@@ -313,19 +374,28 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async getAllPermissions(): Promise<Permission[]> {
     try {
       const { data, error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('permissions')
-        .select('permission_name')
-        .eq('is_active', true)
-        .order('permission_name');
+        .schema("auth_schema")
+        .from("permissions")
+        .select("permission_name")
+        .eq("is_active", true)
+        .order("permission_name");
 
       if (error) {
         throw new Error(`Failed to get all permissions: ${error.message}`);
       }
 
-      return data?.map((row) => Permission.fromString(row.permission_name)) || [];
+      return (
+        data?.map((row) =>
+          Permission.fromString(
+            this.normalizePermissionKey(row.permission_name),
+          ),
+        ) || []
+      );
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error getting all permissions', error);
+      console.error(
+        "[SupabasePermissionRepository] Error getting all permissions",
+        error,
+      );
       throw error;
     }
   }
@@ -336,11 +406,11 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async getAllRoles(): Promise<string[]> {
     try {
       const { data, error } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('healthcare_roles')
-        .select('role_name')
-        .eq('is_active', true)
-        .order('role_name');
+        .schema("auth_schema")
+        .from("healthcare_roles")
+        .select("role_name")
+        .eq("is_active", true)
+        .order("role_name");
 
       if (error) {
         throw new Error(`Failed to get all roles: ${error.message}`);
@@ -348,7 +418,10 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
       return data?.map((row) => row.role_name) || [];
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error getting all roles', error);
+      console.error(
+        "[SupabasePermissionRepository] Error getting all roles",
+        error,
+      );
       throw error;
     }
   }
@@ -366,18 +439,27 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   async expandPermissions(permissions: string[]): Promise<string[]> {
     try {
       // Call database function
-      const { data, error } = await this.supabaseClient.rpc('expand_permissions', {
-        input_permissions: permissions,
-      });
+      const { data, error } = await this.supabaseClient.rpc(
+        "expand_permissions",
+        {
+          input_permissions: permissions,
+        },
+      );
 
       if (error) {
-        console.error('[SupabasePermissionRepository] Error expanding permissions', error);
+        console.error(
+          "[SupabasePermissionRepository] Error expanding permissions",
+          error,
+        );
         return permissions; // Fallback to original permissions
       }
 
       return data || permissions;
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error expanding permissions', error);
+      console.error(
+        "[SupabasePermissionRepository] Error expanding permissions",
+        error,
+      );
       return permissions; // Fallback to original permissions
     }
   }
@@ -401,59 +483,77 @@ export class SupabasePermissionRepository implements IPermissionRepository {
 
     try {
       // Step 1: Get user-specific permissions
-      const { data: userPerms, error: userPermsError } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_permissions')
-        .select('permission_name')
-        .eq('user_id', userId.value);
+      const { data: userPerms, error: userPermsError } =
+        await this.supabaseClient
+          .schema("auth_schema")
+          .from("user_permissions")
+          .select("permission_name")
+          .eq("user_id", userId.value);
 
       if (userPermsError) {
-        console.warn('[SupabasePermissionRepository] Failed to query user_permissions', userPermsError);
+        console.warn(
+          "[SupabasePermissionRepository] Failed to query user_permissions",
+          userPermsError,
+        );
       } else if (userPerms) {
-        userPerms.forEach(p => permissions.add(p.permission_name));
+        userPerms.forEach((p) => permissions.add(p.permission_name));
       }
 
       // Step 2: Get role-based permissions
       // First get user's role names from user_roles table
       const { data: userRoles, error: rolesError } = await this.supabaseClient
-        .schema('auth_schema')
-        .from('user_roles')
-        .select('role_name')
-        .eq('user_id', userId.value);
+        .schema("auth_schema")
+        .from("user_roles")
+        .select("role_name")
+        .eq("user_id", userId.value);
 
       if (rolesError) {
-        console.warn('[SupabasePermissionRepository] Failed to query user_roles', rolesError);
+        console.warn(
+          "[SupabasePermissionRepository] Failed to query user_roles",
+          rolesError,
+        );
       } else if (userRoles && userRoles.length > 0) {
         // Get role IDs from healthcare_roles table
-        const roleNames = userRoles.map(r => r.role_name);
-        const { data: roles, error: rolesLookupError } = await this.supabaseClient
-          .schema('auth_schema')
-          .from('healthcare_roles')
-          .select('id')
-          .in('role_name', roleNames);
+        const roleNames = userRoles.map((r) => r.role_name);
+        const { data: roles, error: rolesLookupError } =
+          await this.supabaseClient
+            .schema("auth_schema")
+            .from("healthcare_roles")
+            .select("id")
+            .in("role_name", roleNames);
 
         if (rolesLookupError) {
-          console.warn('[SupabasePermissionRepository] Failed to lookup role IDs', rolesLookupError);
+          console.warn(
+            "[SupabasePermissionRepository] Failed to lookup role IDs",
+            rolesLookupError,
+          );
         } else if (roles && roles.length > 0) {
           // Then get permissions for those role IDs
-          const roleIds = roles.map(r => r.id);
-          const { data: rolePerms, error: rolePermsError } = await this.supabaseClient
-            .schema('auth_schema')
-            .from('role_permissions')
-            .select('permission_name')
-            .in('role_id', roleIds);
+          const roleIds = roles.map((r) => r.id);
+          const { data: rolePerms, error: rolePermsError } =
+            await this.supabaseClient
+              .schema("auth_schema")
+              .from("role_permissions")
+              .select("permission_name")
+              .in("role_id", roleIds);
 
           if (rolePermsError) {
-            console.warn('[SupabasePermissionRepository] Failed to query role_permissions', rolePermsError);
+            console.warn(
+              "[SupabasePermissionRepository] Failed to query role_permissions",
+              rolePermsError,
+            );
           } else if (rolePerms) {
-            rolePerms.forEach(p => permissions.add(p.permission_name));
+            rolePerms.forEach((p) => permissions.add(p.permission_name));
           }
         }
       }
 
-      return Array.from(permissions);
+      return this.normalizePermissions(Array.from(permissions));
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error querying user permissions', error);
+      console.error(
+        "[SupabasePermissionRepository] Error querying user permissions",
+        error,
+      );
       return []; // Return empty array on error
     }
   }
@@ -461,22 +561,72 @@ export class SupabasePermissionRepository implements IPermissionRepository {
   /**
    * Log audit event
    */
-  private async logAudit(action: string, userId: string, details: Record<string, unknown>): Promise<void> {
+  private async logAudit(
+    action: string,
+    userId: string,
+    details: Record<string, unknown>,
+  ): Promise<void> {
     try {
       await this.supabaseClient
-        .schema('auth_schema')
-        .from('audit_logs')
+        .schema("auth_schema")
+        .from("audit_logs")
         .insert({
           action,
           user_id: userId,
           details,
-          severity: 'info',
+          severity: "info",
           created_at: new Date().toISOString(),
         });
     } catch (error) {
-      console.error('[SupabasePermissionRepository] Error logging audit', error);
+      console.error(
+        "[SupabasePermissionRepository] Error logging audit",
+        error,
+      );
       // Don't throw - audit logging failure shouldn't break the operation
     }
   }
-}
 
+  /**
+   * Normalize permission list for downstream services.
+   */
+  private normalizePermissions(permissions: string[]): string[] {
+    const normalized = new Set<string>();
+    for (const permission of permissions) {
+      normalized.add(this.normalizePermissionKey(permission));
+    }
+
+    // Grant explicit patient permissions for admin/wildcard tokens
+    if (normalized.has("*") || normalized.has("system:admin")) {
+      normalized.add("patient:*");
+      normalized.add("patient:read");
+      normalized.add("patient:write");
+    }
+
+    return Array.from(normalized);
+  }
+
+  private normalizePermissionKey(permission: string): string {
+    if (permission.startsWith("patients:")) {
+      return permission.replace("patients:", "patient:");
+    }
+    return permission;
+  }
+
+  private arePermissionSetsEqual(
+    original: string[],
+    normalized: string[],
+  ): boolean {
+    if (original.length !== normalized.length) {
+      return false;
+    }
+
+    const originalSet = new Set(original);
+    for (const permission of normalized) {
+      if (!originalSet.has(permission)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}

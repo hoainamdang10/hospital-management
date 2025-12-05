@@ -3,16 +3,16 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Hospital Management System V2',
-  description: 'Hệ thống quản lý bệnh viện hiện đại và toàn diện',
-  keywords: ['hospital', 'healthcare', 'management', 'bệnh viện', 'y tế'],
-  authors: [{ name: 'Hospital Management Team' }],
+  title: 'Medigo - Healthcare Platform',
+  description: 'Nền tảng chăm sóc sức khỏe thông minh - Đặt lịch khám, tư vấn trực tuyến, quản lý hồ sơ y tế',
+  keywords: ['medigo', 'healthcare', 'đặt lịch khám', 'bệnh viện', 'y tế', 'bác sĩ', 'sức khỏe'],
+  authors: [{ name: 'Medigo Team' }],
 };
 
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0066CC',
+  themeColor: '#0891B2',
 };
 
 export default function RootLayout({

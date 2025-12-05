@@ -49,20 +49,242 @@ export interface CommunicationPreferences {
   language: string;
 }
 
+export type AccountStatus =
+  | 'active'
+  | 'deactivated'
+  | 'locked'
+  | 'pending_verification'
+  | 'suspended';
+
 export interface Patient {
   id: string;
   patientId: string;
   userId: string;
   firstName: string;
   lastName: string;
-  dateOfBirth: string;
-  gender: string;
-  phoneNumber: string;
-  email: string;
+  fullName?: string;
+  dateOfBirth?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  gender?: string;
+  phoneNumber?: string;
+  email?: string;
   address?: string;
   bloodType?: string;
+  accountStatus?: AccountStatus;
   emergencyContacts?: EmergencyContact[];
   insurance?: Insurance[];
+  personalInfo?: {
+    fullName?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    nationalId?: string;
+    nationality?: string;
+    ethnicity?: string;
+    occupation?: string;
+    maritalStatus?: string;
+  };
+  contactInfo?: {
+    primaryPhone?: string;
+    secondaryPhone?: string;
+    email?: string;
+    preferredContactMethod?: string;
+    address?: {
+      street?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      postalCode?: string;
+      country?: string;
+    };
+  };
+  basicMedicalInfo?: {
+    bloodType?: string;
+    knownAllergies?: string[];
+    emergencyMedicalInfo?: string;
+  };
+}
+
+export interface PatientStatistics {
+  total: number;
+  byGender: {
+    male: number;
+    female: number;
+    other: number;
+    unknown: number;
+  };
+  byAgeRange: {
+    '0-18': number;
+    '19-40': number;
+    '41-60': number;
+    '60+': number;
+  };
+  byInsuranceType: {
+    bhyt: number;
+    bhtn: number;
+    private: number;
+    selfPay: number;
+  };
+  byStatus: {
+    active: number;
+    inactive: number;
+    deceased: number;
+    merged: number;
+  };
+  registrationTrend: Array<{ month: string; count: number }>;
+}
+
+function buildAddressString(address?: any): string {
+  if (!address || typeof address !== 'object') {
+    return '';
+  }
+
+  const parts = [
+    address.street,
+    address.ward || address.wardName,
+    address.district || address.districtName,
+    address.city || address.cityName,
+    address.province || address.state,
+    address.postalCode,
+    address.country,
+  ]
+    .map((part) => (typeof part === 'string' ? part.trim() : ''))
+    .filter(Boolean);
+
+  return parts.join(', ');
+}
+
+function normalizeAddress(address?: any) {
+  if (!address || typeof address !== 'object') {
+    return undefined;
+  }
+
+  return {
+    street: address.street || address.streetName,
+    ward: address.ward || address.wardName,
+    district: address.district || address.districtName,
+    city: address.city || address.cityName,
+    province: address.province || address.state,
+    postalCode: address.postalCode || address.zip,
+    country: address.country,
+  };
+}
+
+function normalizePatient(raw: any): Patient {
+  if (!raw) {
+    return {
+      id: '',
+      patientId: '',
+      userId: '',
+      firstName: 'Bệnh nhân',
+      lastName: '',
+    };
+  }
+
+  const personalInfoRaw = raw.personalInfo || raw.personal_info || {};
+  const contactInfoRaw = raw.contactInfo || raw.contact_info || {};
+  const basicMedicalInfoRaw = raw.basicMedicalInfo || raw.basic_medical_info || {};
+  const addressRaw =
+    contactInfoRaw.address ||
+    contactInfoRaw.addressInfo ||
+    contactInfoRaw.address_info ||
+    raw.addressInfo ||
+    raw.address_info;
+
+  const patientId = raw.patientId || raw.patient_id || raw.id || '';
+  const userId = raw.userId || raw.user_id || '';
+  const fullName =
+    raw.fullName ||
+    personalInfoRaw.fullName ||
+    raw.full_name ||
+    `${raw.firstName || raw.first_name || ''} ${raw.lastName || raw.last_name || ''}`.trim();
+
+  let firstName = raw.firstName || personalInfoRaw.firstName || raw.first_name;
+  let lastName = raw.lastName || personalInfoRaw.lastName || raw.last_name;
+
+  if (!firstName && !lastName && typeof fullName === 'string' && fullName.length > 0) {
+    const parts = fullName.trim().split(' ');
+    lastName = parts.pop() || '';
+    firstName = parts.join(' ');
+  }
+
+  const phoneNumber =
+    raw.primaryPhone ||
+    contactInfoRaw.primaryPhone ||
+    contactInfoRaw.primary_phone ||
+    raw.primary_phone ||
+    raw.phoneNumber ||
+    raw.phone_number ||
+    raw.phone ||
+    raw.contactPhone ||
+    contactInfoRaw.phoneNumber ||
+    '';
+
+  const email =
+    raw.email || raw.contactEmail || contactInfoRaw.email || contactInfoRaw.primaryEmail || '';
+
+  const gender = (raw.gender || raw.personal_info?.gender || personalInfoRaw.gender || '')
+    .toString()
+    .toUpperCase();
+
+  const dateOfBirth =
+    raw.dateOfBirth || raw.date_of_birth || personalInfoRaw.dateOfBirth || undefined;
+
+  const bloodType =
+    raw.bloodType ||
+    raw.blood_type ||
+    basicMedicalInfoRaw.bloodType ||
+    basicMedicalInfoRaw.blood_type;
+
+  // Normalize account status
+  const accountStatusRaw = raw.accountStatus || raw.account_status || raw.status || 'active';
+  const accountStatus = accountStatusRaw.toLowerCase() as AccountStatus;
+  const createdAt = raw.createdAt || raw.created_at;
+  const updatedAt = raw.updatedAt || raw.updated_at;
+
+  return {
+    id: raw.id || patientId,
+    patientId,
+    userId,
+    firstName: firstName || fullName || 'Bệnh nhân',
+    lastName: lastName || '',
+    fullName: fullName || `${firstName || ''} ${lastName || ''}`.trim(),
+    dateOfBirth,
+    createdAt,
+    updatedAt,
+    gender,
+    phoneNumber,
+    email,
+    address:
+      raw.address || buildAddressString(addressRaw) || contactInfoRaw.address || raw.city || '',
+    bloodType,
+    accountStatus,
+    emergencyContacts: raw.emergencyContacts || raw.emergency_contacts,
+    insurance: raw.insurance || raw.insuranceInfo || raw.insurance_info,
+    personalInfo: {
+      fullName: personalInfoRaw.fullName,
+      dateOfBirth: personalInfoRaw.dateOfBirth,
+      gender: personalInfoRaw.gender,
+      nationalId: personalInfoRaw.nationalId,
+      nationality: personalInfoRaw.nationality,
+      ethnicity: personalInfoRaw.ethnicity,
+      occupation: personalInfoRaw.occupation,
+      maritalStatus: personalInfoRaw.maritalStatus,
+    },
+    contactInfo: {
+      primaryPhone: contactInfoRaw.primaryPhone || contactInfoRaw.primary_phone,
+      secondaryPhone: contactInfoRaw.secondaryPhone || contactInfoRaw.secondary_phone,
+      email: contactInfoRaw.email,
+      preferredContactMethod: contactInfoRaw.preferredContactMethod,
+      address: normalizeAddress(addressRaw),
+    },
+    basicMedicalInfo: {
+      bloodType: basicMedicalInfoRaw.bloodType,
+      knownAllergies: basicMedicalInfoRaw.knownAllergies,
+      emergencyMedicalInfo: basicMedicalInfoRaw.emergencyMedicalInfo,
+    },
+  };
 }
 
 class PatientService {
@@ -140,7 +362,24 @@ class PatientService {
   // Emergency Contacts
   async getEmergencyContacts(patientId: string): Promise<{ contacts: EmergencyContact[] }> {
     const resolvedId = await this.resolvePatientId(patientId);
-    return await this.request(`/${resolvedId}/emergency-contacts`);
+    const res = await this.request<{ contacts?: any[] }>(`/${resolvedId}/emergency-contacts`);
+    const contactsArray = Array.isArray(res)
+      ? res
+      : Array.isArray(res?.contacts)
+        ? res.contacts
+        : [];
+
+    const mapped = contactsArray.map((contact: any) => ({
+      contactId: contact.contactId || contact.id,
+      name: contact.name,
+      relationship: contact.relationship,
+      phoneNumber: contact.phoneNumber || contact.primaryPhone || contact.primary_phone || '',
+      email: contact.email,
+      address: contact.address,
+      isPrimary: contact.isPrimary ?? contact.is_primary ?? false,
+    }));
+
+    return { contacts: mapped };
   }
 
   async addEmergencyContact(
@@ -322,10 +561,20 @@ class PatientService {
       });
     }
 
+    const mappedPatients = (response.data.data || []).map((p) => normalizePatient(p));
+
     return {
-      patients: response.data.data,
+      patients: mappedPatients,
       total: response.data.pagination?.total || 0,
     };
+  }
+
+  async getStatistics(): Promise<PatientStatistics> {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: PatientStatistics;
+    }>(`${this.baseUrl}/statistics`);
+    return response.data.data;
   }
 }
 
@@ -336,7 +585,7 @@ export async function getPatientById(patientId: string): Promise<Patient> {
   const response = await apiClient.get<{ success: boolean; data: Patient }>(
     `/v1/patients/${patientId}`
   );
-  return response.data.data;
+  return normalizePatient(response.data.data);
 }
 
 /**
@@ -347,7 +596,7 @@ export async function getPatientByUserId(userId: string): Promise<Patient> {
   const response = await apiClient.get<{ success: boolean; data: Patient }>(
     `/v1/patients/user/${userId}`
   );
-  return response.data.data;
+  return normalizePatient(response.data.data);
 }
 
 export const patientService = new PatientService();

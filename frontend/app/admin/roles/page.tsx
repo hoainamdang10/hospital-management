@@ -21,12 +21,6 @@ export default function AdminRolesPage() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <RoleCard
-            name="Super Admin"
-            description="Toàn quyền quản trị hệ thống"
-            userCount={2}
-            permissions={['Tất cả quyền']}
-          />
-          <RoleCard
             name="Admin"
             description="Quản trị viên"
             userCount={5}
@@ -39,22 +33,10 @@ export default function AdminRolesPage() {
             permissions={['Khám bệnh', 'Kê đơn', 'Xem hồ sơ bệnh án']}
           />
           <RoleCard
-            name="Nurse"
-            description="Y tá"
-            userCount={78}
-            permissions={['Check-in bệnh nhân', 'Đo sinh hiệu', 'Xem lịch hẹn']}
-          />
-          <RoleCard
             name="Patient"
             description="Bệnh nhân"
             userCount={1234}
             permissions={['Đặt lịch khám', 'Xem hồ sơ cá nhân', 'Thanh toán']}
-          />
-          <RoleCard
-            name="Receptionist"
-            description="Lễ tân"
-            userCount={12}
-            permissions={['Đăng ký bệnh nhân', 'Quản lý lịch hẹn']}
           />
         </div>
       </div>
@@ -66,8 +48,8 @@ function RoleCard({ name, description, userCount, permissions }: any) {
   return (
     <div className="rounded-lg border bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-start justify-between">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100">
-          <Shield className="h-6 w-6 text-primary-600" />
+        <div className="bg-primary-100 flex h-12 w-12 items-center justify-center rounded-full">
+          <Shield className="text-primary-600 h-6 w-6" />
         </div>
         <button className="text-gray-400 hover:text-gray-600">
           <Edit className="h-5 w-5" />
@@ -83,10 +65,12 @@ function RoleCard({ name, description, userCount, permissions }: any) {
         <p className="mb-2 text-sm font-medium text-gray-700">Quyền hạn:</p>
         <ul className="space-y-1">
           {permissions.slice(0, 3).map((perm: string, i: number) => (
-            <li key={i} className="text-sm text-gray-600">• {perm}</li>
+            <li key={i} className="text-sm text-gray-600">
+              • {perm}
+            </li>
           ))}
           {permissions.length > 3 && (
-            <li className="text-sm text-primary">+{permissions.length - 3} quyền khác</li>
+            <li className="text-primary text-sm">+{permissions.length - 3} quyền khác</li>
           )}
         </ul>
       </div>

@@ -21,7 +21,7 @@ function getUserContext(req) {
  * Helper to get user ID from request
  */
 function getUserId(req) {
-    return getUserContext(req)?.userId || 'system';
+    return getUserContext(req)?.userId || "system";
 }
 function getUserRoles(req) {
     const user = getUserContext(req);
@@ -36,11 +36,12 @@ function getUserRoles(req) {
 }
 function getUserRole(req) {
     const [primaryRole] = getUserRoles(req);
-    return primaryRole ? primaryRole.toLowerCase() : 'system';
+    return primaryRole ? primaryRole.toLowerCase() : "system";
 }
 function userHasAnyRole(req, allowedRoles) {
-    const roles = getUserRoles(req);
-    return roles.some((role) => allowedRoles.includes(role));
+    const normalizedAllowed = allowedRoles.map((role) => role.toUpperCase());
+    const roles = getUserRoles(req).map((role) => role.toUpperCase());
+    return roles.some((role) => normalizedAllowed.includes(role));
 }
 /**
  * Patient Controller
@@ -58,7 +59,9 @@ class PatientController {
     // Insurance Management (4) - Required for Demo Flow 4
     validateInsuranceUseCase, getInsuranceInfoUseCase, addInsuranceInfoUseCase, updateInsuranceInfoUseCase, verifyInsuranceUseCase, 
     // Emergency Contacts (3) - Required for Demo Flow 1
-    addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase) {
+    addEmergencyContactUseCase, getEmergencyContactsUseCase, updateEmergencyContactUseCase, 
+    // Analytics (1) - Dashboard gender/age stats
+    getPatientStatisticsUseCase) {
         this.logger = logger;
         this.registerPatientUseCase = registerPatientUseCase;
         this.updatePatientInfoUseCase = updatePatientInfoUseCase;
@@ -71,6 +74,7 @@ class PatientController {
         this.addEmergencyContactUseCase = addEmergencyContactUseCase;
         this.getEmergencyContactsUseCase = getEmergencyContactsUseCase;
         this.updateEmergencyContactUseCase = updateEmergencyContactUseCase;
+        this.getPatientStatisticsUseCase = getPatientStatisticsUseCase;
     }
     /**
      * Register new patient
@@ -80,7 +84,7 @@ class PatientController {
         try {
             const request = req.body;
             // Do NOT log PHI/PII - only log operation type
-            this.logger.info('Registering new patient', {
+            this.logger.info("Registering new patient", {
                 userId: request.userId,
             });
             const result = await this.registerPatientUseCase.execute({
@@ -102,7 +106,7 @@ class PatientController {
                     address: request.address
                         ? {
                             ...request.address,
-                            country: request.address.country || 'Vietnam',
+                            country: request.address.country || "Vietnam",
                         }
                         : undefined,
                     preferredContactMethod: request.preferredContactMethod,
@@ -120,8 +124,8 @@ class PatientController {
                         validFrom: request.insurance.validFrom,
                         validTo: request.insurance.validTo,
                         coverageType: request.insurance.coverageType,
-                        isVietnameseInsurance: request.insurance.coverageType === 'BHYT' ||
-                            request.insurance.coverageType === 'BHTN',
+                        isVietnameseInsurance: request.insurance.coverageType === "BHYT" ||
+                            request.insurance.coverageType === "BHTN",
                         bhytNumber: request.insurance.bhytNumber,
                         isPrimary: true,
                     }
@@ -133,13 +137,13 @@ class PatientController {
                 requestedBy: getUserId(req),
             });
             if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to register patient');
+                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || "Failed to register patient");
             }
-            ErrorHandlingMiddleware_1.ResponseHelper.created(res, { patientId: result.patientId }, 'Đăng ký bệnh nhân thành công');
+            ErrorHandlingMiddleware_1.ResponseHelper.created(res, { patientId: result.patientId }, "Đăng ký bệnh nhân thành công");
         }
         catch (error) {
-            this.logger.error('Error registering patient', {
-                error: error instanceof Error ? error.message : 'Unknown error',
+            this.logger.error("Error registering patient", {
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -153,12 +157,12 @@ class PatientController {
             const { patientId } = req.params;
             const requestedBy = getUserId(req);
             // Redact patient ID for HIPAA compliance
-            this.logger.info('Getting patient by ID', {
-                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+            this.logger.info("Getting patient by ID", {
+                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, "PAT-***-***"),
             });
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
-                queryType: 'GetPatientProfile',
+                queryType: "GetPatientProfile",
                 timestamp: new Date(),
                 requestedBy,
                 data: {
@@ -168,14 +172,14 @@ class PatientController {
             };
             const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
             if (!result.success || !result.data) {
-                throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân', patientId);
+                throw new ErrorHandlingMiddleware_1.NotFoundError("Bệnh nhân", patientId);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
         }
         catch (error) {
-            this.logger.error('Error getting patient', {
+            this.logger.error("Error getting patient", {
                 patientId: req.params.patientId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -189,10 +193,10 @@ class PatientController {
             const { userId } = req.params;
             const requestedBy = getUserId(req);
             // Do NOT log userId - it's PII
-            this.logger.info('Getting patient by user ID');
+            this.logger.info("Getting patient by user ID");
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
-                queryType: 'GetPatientProfile',
+                queryType: "GetPatientProfile",
                 timestamp: new Date(),
                 requestedBy,
                 data: {
@@ -202,14 +206,14 @@ class PatientController {
             };
             const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
             if (!result.success || !result.data) {
-                throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân với User ID', userId);
+                throw new ErrorHandlingMiddleware_1.NotFoundError("Bệnh nhân với User ID", userId);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
         }
         catch (error) {
-            this.logger.error('Error getting patient by user ID', {
+            this.logger.error("Error getting patient by user ID", {
                 userId: req.params.userId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -223,10 +227,10 @@ class PatientController {
             const { nationalId } = req.params;
             const requestedBy = getUserId(req);
             // Do NOT log nationalId - it's PHI/PII
-            this.logger.info('Getting patient by national ID');
+            this.logger.info("Getting patient by national ID");
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
-                queryType: 'GetPatientProfile',
+                queryType: "GetPatientProfile",
                 timestamp: new Date(),
                 requestedBy,
                 data: {
@@ -236,14 +240,14 @@ class PatientController {
             };
             const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
             if (!result.success || !result.data) {
-                throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân với CMND/CCCD', nationalId);
+                throw new ErrorHandlingMiddleware_1.NotFoundError("Bệnh nhân với CMND/CCCD", nationalId);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
         }
         catch (error) {
-            this.logger.error('Error getting patient by national ID', {
+            this.logger.error("Error getting patient by national ID", {
                 nationalId: req.params.nationalId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -257,10 +261,10 @@ class PatientController {
             const { bhytNumber } = req.params;
             const requestedBy = getUserId(req);
             // Do NOT log bhytNumber - it's PHI/PII
-            this.logger.info('Getting patient by BHYT number');
+            this.logger.info("Getting patient by BHYT number");
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
-                queryType: 'GetPatientProfile',
+                queryType: "GetPatientProfile",
                 timestamp: new Date(),
                 requestedBy,
                 data: {
@@ -270,14 +274,14 @@ class PatientController {
             };
             const result = await this.patientQueryHandlers.handleGetPatientProfile(query);
             if (!result.success || !result.data) {
-                throw new ErrorHandlingMiddleware_1.NotFoundError('Bệnh nhân với số BHYT', bhytNumber);
+                throw new ErrorHandlingMiddleware_1.NotFoundError("Bệnh nhân với số BHYT", bhytNumber);
             }
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data);
         }
         catch (error) {
-            this.logger.error('Error getting patient by BHYT number', {
+            this.logger.error("Error getting patient by BHYT number", {
                 bhytNumber: req.params.bhytNumber,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -297,10 +301,10 @@ class PatientController {
             // Get existing patient
             const existingPatient = await this.patientQueryHandlers.handleGetPatientProfile({
                 queryId: `query-${Date.now()}`,
-                queryType: 'GetPatientProfile',
+                queryType: "GetPatientProfile",
                 timestamp: new Date(),
                 requestedBy: getUserId(req),
-                data: { patientId, requestedBy: getUserId(req) }
+                data: { patientId, requestedBy: getUserId(req) },
             });
             if (!existingPatient.success) {
                 throw new ErrorHandlingMiddleware_1.NotFoundError(`Patient with ID ${patientId} not found`);
@@ -309,7 +313,7 @@ class PatientController {
             const existingPersonalInfo = {
                 fullName: existingPatient.data?.personalInfo?.fullName || PatientConstants_1.UNUPDATED,
                 dateOfBirth: existingPatient.data?.personalInfo?.dateOfBirth || PatientConstants_1.UNUPDATED,
-                gender: existingPatient.data?.personalInfo?.gender || 'other',
+                gender: existingPatient.data?.personalInfo?.gender || "other",
                 nationalId: existingPatient.data?.personalInfo?.nationalId || PatientConstants_1.UNUPDATED,
                 nationality: existingPatient.data?.personalInfo?.nationality || PatientConstants_1.UNUPDATED,
                 ethnicity: existingPatient.data?.personalInfo?.ethnicity || PatientConstants_1.UNUPDATED,
@@ -320,15 +324,17 @@ class PatientController {
                 primaryPhone: existingPatient.data?.contactInfo?.primaryPhone || PatientConstants_1.UNUPDATED,
                 secondaryPhone: existingPatient.data?.contactInfo?.secondaryPhone,
                 email: existingPatient.data?.contactInfo?.email || PatientConstants_1.UNUPDATED,
-                preferredContactMethod: existingPatient.data?.contactInfo?.preferredContactMethod || 'phone',
+                preferredContactMethod: existingPatient.data?.contactInfo?.preferredContactMethod || "phone",
                 address: {
                     street: existingPatient.data?.contactInfo?.address?.street || PatientConstants_1.UNUPDATED,
                     ward: existingPatient.data?.contactInfo?.address?.ward || PatientConstants_1.UNUPDATED,
                     district: existingPatient.data?.contactInfo?.address?.district || PatientConstants_1.UNUPDATED,
                     city: existingPatient.data?.contactInfo?.address?.city || PatientConstants_1.UNUPDATED,
-                    province: existingPatient.data?.contactInfo?.address?.province || PatientConstants_1.UNUPDATED,
-                    postalCode: existingPatient.data?.contactInfo?.address?.postalCode,
-                    country: existingPatient.data?.contactInfo?.address?.country || 'Vietnam',
+                    province: existingPatient.data?.contactInfo?.address?.province ||
+                        PatientConstants_1.UNUPDATED,
+                    postalCode: existingPatient.data?.contactInfo?.address
+                        ?.postalCode,
+                    country: existingPatient.data?.contactInfo?.address?.country || "Vietnam",
                 },
             };
             // Merge with new data using proper update logic
@@ -337,9 +343,12 @@ class PatientController {
             // Check if anything actually changed
             const personalInfoChanged = (0, PatientDataHelper_1.hasPersonalInfoChanged)(existingPersonalInfo, updatedPersonalInfo);
             const contactInfoChanged = (0, PatientDataHelper_1.hasContactInfoChanged)(existingContactInfo, updatedContactInfo);
-            if (!personalInfoChanged && !contactInfoChanged && !updateRequest.basicMedicalInfo && !updateRequest.insuranceInfo) {
+            if (!personalInfoChanged &&
+                !contactInfoChanged &&
+                !updateRequest.basicMedicalInfo &&
+                !updateRequest.insuranceInfo) {
                 // No actual changes - return existing patient
-                ErrorHandlingMiddleware_1.ResponseHelper.success(res, existingPatient.data, 'Không có thay đổi nào được thực hiện');
+                ErrorHandlingMiddleware_1.ResponseHelper.success(res, existingPatient.data, "Không có thay đổi nào được thực hiện");
                 return;
             }
             // Build normalized request for use case
@@ -355,7 +364,11 @@ class PatientController {
                 normalizedRequest.basicMedicalInfo = updateRequest.basicMedicalInfo;
             }
             else {
-                const basicFields = ['bloodType', 'knownAllergies', 'emergencyMedicalInfo'];
+                const basicFields = [
+                    "bloodType",
+                    "knownAllergies",
+                    "emergencyMedicalInfo",
+                ];
                 const hasBasicField = basicFields.some((field) => updateRequest[field] !== undefined);
                 if (hasBasicField) {
                     normalizedRequest.basicMedicalInfo = {
@@ -370,8 +383,8 @@ class PatientController {
                 normalizedRequest.insuranceInfo = updateRequest.insuranceInfo;
             }
             // Log the update (HIPAA compliant)
-            this.logger.info('Updating patient with smart defaults', {
-                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, 'PAT-***-***'),
+            this.logger.info("Updating patient with smart defaults", {
+                patientId: patientId.replace(/PAT-\d{6}-\d{3}/g, "PAT-***-***"),
                 fieldsUpdated: Object.keys(normalizedRequest),
                 hasPersonalInfoChanges: personalInfoChanged,
                 hasContactInfoChanges: contactInfoChanged,
@@ -384,27 +397,30 @@ class PatientController {
             };
             const result = await this.updatePatientInfoUseCase.execute(payload);
             if (!result.success) {
-                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || 'Failed to update patient');
+                throw new ErrorHandlingMiddleware_1.DomainError(result.errors?.[0] || "Failed to update patient");
             }
             // Get updated patient for response
             const updatedPatientResult = await this.patientQueryHandlers.handleGetPatientProfile({
                 queryId: `query-${Date.now()}`,
-                queryType: 'GetPatientProfile',
+                queryType: "GetPatientProfile",
                 timestamp: new Date(),
                 requestedBy: getUserId(req),
-                data: { patientId, requestedBy: getUserId(req) }
+                data: { patientId, requestedBy: getUserId(req) },
             });
             ErrorHandlingMiddleware_1.ResponseHelper.success(res, {
                 patient: updatedPatientResult.data,
                 fieldsUpdated: Object.keys(normalizedRequest),
-                completionPercentage: updatedPersonalInfo ?
-                    Math.round((Object.values(updatedPersonalInfo).filter(v => v !== PatientConstants_1.UNUPDATED).length / Object.keys(updatedPersonalInfo).length) * 100) : 0
-            }, 'Cập nhật thông tin bệnh nhân thành công');
+                completionPercentage: updatedPersonalInfo
+                    ? Math.round((Object.values(updatedPersonalInfo).filter((v) => v !== PatientConstants_1.UNUPDATED).length /
+                        Object.keys(updatedPersonalInfo).length) *
+                        100)
+                    : 0,
+            }, "Cập nhật thông tin bệnh nhân thành công");
         }
         catch (error) {
-            this.logger.error('Error updating patient', {
+            this.logger.error("Error updating patient", {
                 patientId: req.params.patientId,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -415,29 +431,29 @@ class PatientController {
      */
     async getPatientList(req, res) {
         try {
-            const { page = '1', limit = '20', isActive, hasInsurance, city, province, sortField = 'created_at', sortDirection = 'desc', } = req.query;
+            const { page = "1", limit = "20", isActive, hasInsurance, city, province, sortField = "created_at", sortDirection = "desc", } = req.query;
             const requestedBy = getUserId(req);
             const requestedByRole = getUserRole(req);
-            this.logger.info('Getting patient list', { page, limit });
+            this.logger.info("Getting patient list", { page, limit });
             const parsedPage = Number(page);
             const parsedLimit = Number(limit);
-            const parsedIsActive = typeof isActive === 'string'
-                ? isActive === 'true'
+            const parsedIsActive = typeof isActive === "string"
+                ? isActive === "true"
                     ? true
-                    : isActive === 'false'
+                    : isActive === "false"
                         ? false
                         : undefined
                 : undefined;
-            const parsedHasInsurance = typeof hasInsurance === 'string'
-                ? hasInsurance === 'true'
+            const parsedHasInsurance = typeof hasInsurance === "string"
+                ? hasInsurance === "true"
                     ? true
-                    : hasInsurance === 'false'
+                    : hasInsurance === "false"
                         ? false
                         : undefined
                 : undefined;
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
-                queryType: 'GetPatientList',
+                queryType: "GetPatientList",
                 timestamp: new Date(),
                 requestedBy,
                 data: {
@@ -466,8 +482,8 @@ class PatientController {
             ErrorHandlingMiddleware_1.ResponseHelper.paginated(res, result.data.patients, result.data.pagination.page, result.data.pagination.limit, result.data.pagination.total);
         }
         catch (error) {
-            this.logger.error('Error getting patient list', {
-                error: error instanceof Error ? error.message : 'Unknown error',
+            this.logger.error("Error getting patient list", {
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -478,33 +494,33 @@ class PatientController {
      */
     async searchPatients(req, res) {
         try {
-            const { searchTerm, isActive, hasInsurance, page = '1', limit = '20', } = req.query;
+            const { searchTerm, isActive, hasInsurance, page = "1", limit = "20", } = req.query;
             const requestedBy = getUserId(req);
             const requestedByRole = getUserRole(req);
-            this.logger.info('Searching patients', { searchTerm, page, limit });
+            this.logger.info("Searching patients", { searchTerm, page, limit });
             const parsedPage = Number(page);
             const parsedLimit = Number(limit);
-            const parsedIsActive = typeof isActive === 'string'
-                ? isActive === 'true'
+            const parsedIsActive = typeof isActive === "string"
+                ? isActive === "true"
                     ? true
-                    : isActive === 'false'
+                    : isActive === "false"
                         ? false
                         : undefined
                 : undefined;
-            const parsedHasInsurance = typeof hasInsurance === 'string'
-                ? hasInsurance === 'true'
+            const parsedHasInsurance = typeof hasInsurance === "string"
+                ? hasInsurance === "true"
                     ? true
-                    : hasInsurance === 'false'
+                    : hasInsurance === "false"
                         ? false
                         : undefined
                 : undefined;
             const query = {
                 queryId: (0, crypto_1.randomUUID)(),
-                queryType: 'SearchPatients',
+                queryType: "SearchPatients",
                 timestamp: new Date(),
                 requestedBy,
                 data: {
-                    searchTerm: searchTerm || '',
+                    searchTerm: searchTerm || "",
                     filters: {
                         isActive: parsedIsActive,
                         hasInsurance: parsedHasInsurance,
@@ -524,8 +540,8 @@ class PatientController {
             ErrorHandlingMiddleware_1.ResponseHelper.paginated(res, result.data.patients, result.data.pagination.page, result.data.pagination.limit, result.data.pagination.total);
         }
         catch (error) {
-            this.logger.error('Error searching patients', {
-                error: error instanceof Error ? error.message : 'Unknown error',
+            this.logger.error("Error searching patients", {
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -751,16 +767,16 @@ class PatientController {
     async validateInsurance(req, res) {
         try {
             const { patientId } = req.body;
-            this.logger.info('Validating insurance', { patientId });
+            this.logger.info("Validating insurance", { patientId });
             const result = await this.validateInsuranceUseCase.execute({
                 patientId,
                 requestedBy: getUserId(req),
             });
-            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, 'Kiểm tra bảo hiểm thành công');
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, result, "Kiểm tra bảo hiểm thành công");
         }
         catch (error) {
-            this.logger.error('Error validating insurance', {
-                error: error instanceof Error ? error.message : 'Unknown error',
+            this.logger.error("Error validating insurance", {
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }
@@ -773,7 +789,7 @@ class PatientController {
         const { patientId } = req.params;
         const request = req.body;
         const performedBy = getUserId(req);
-        this.logger.info('Adding emergency contact', { patientId });
+        this.logger.info("Adding emergency contact", { patientId });
         const result = await this.addEmergencyContactUseCase.execute({
             patientId,
             ...request,
@@ -788,7 +804,7 @@ class PatientController {
     async getEmergencyContacts(req, res) {
         const { patientId } = req.params;
         const requestedBy = getUserId(req);
-        this.logger.info('Getting emergency contacts', { patientId });
+        this.logger.info("Getting emergency contacts", { patientId });
         const result = await this.getEmergencyContactsUseCase.execute({
             patientId,
             requestedBy,
@@ -811,7 +827,7 @@ class PatientController {
         const { patientId, contactId } = req.params;
         const request = req.body;
         const performedBy = getUserId(req);
-        this.logger.info('Updating emergency contact', { patientId, contactId });
+        this.logger.info("Updating emergency contact", { patientId, contactId });
         const result = await this.updateEmergencyContactUseCase.execute({
             patientId,
             contactId,
@@ -1150,6 +1166,35 @@ class PatientController {
             return;
         }
         ErrorHandlingMiddleware_1.ResponseHelper.success(res, result.data, result.message);
+    }
+    /**
+     * Get patient statistics for admin dashboards
+     * GET /api/v1/patients/statistics
+     */
+    async getStatistics(req, res) {
+        try {
+            const allowedRoles = ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE"];
+            if (!userHasAnyRole(req, allowedRoles)) {
+                res.status(403).json({
+                    success: false,
+                    message: "Bạn không có quyền xem thống kê bệnh nhân",
+                });
+                return;
+            }
+            this.logger.info("Getting patient statistics");
+            const statistics = await this.getPatientStatisticsUseCase.execute();
+            ErrorHandlingMiddleware_1.ResponseHelper.success(res, statistics, "Thống kê bệnh nhân thành công");
+        }
+        catch (error) {
+            this.logger.error("Failed to get patient statistics", {
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+            res.status(500).json({
+                success: false,
+                message: "Lỗi khi lấy thống kê bệnh nhân",
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
     }
 }
 exports.PatientController = PatientController;

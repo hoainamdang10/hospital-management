@@ -1,6 +1,7 @@
-import { IPatientRepository } from '../../src/domain/repositories/IPatientRepository';
-import { Patient } from '../../src/domain/aggregates/Patient';
-import { PatientId } from '../../src/domain/value-objects/PatientId';
+import { IPatientRepository } from "../../src/domain/repositories/IPatientRepository";
+import { Patient } from "../../src/domain/aggregates/Patient";
+import { PatientId } from "../../src/domain/value-objects/PatientId";
+import { PatientStatus } from "../../src/domain/value-objects/PatientStatus";
 export declare class InMemoryPatientRepository implements IPatientRepository {
     private patients;
     findById(patientId: PatientId): Promise<Patient | null>;
@@ -8,6 +9,11 @@ export declare class InMemoryPatientRepository implements IPatientRepository {
     findByNationalId(nationalId: string): Promise<Patient | null>;
     save(patient: Patient): Promise<void>;
     delete(patientId: PatientId): Promise<void>;
+    updateStatusByUserId(userId: string, newStatus: PatientStatus): Promise<{
+        updated: boolean;
+        patientId?: string;
+        previousStatus?: PatientStatus;
+    }>;
     findWithFilters(): Promise<{
         patients: Patient[];
         total: number;
@@ -24,7 +30,7 @@ export declare class InMemoryPatientRepository implements IPatientRepository {
     }>;
     matchPatients(): Promise<Array<{
         patient: Patient;
-        matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
+        matchGrade: "certain" | "probable" | "possible" | "certainly-not";
         score: number;
     }>>;
     findByBHYTNumber(bhytNumber: string): Promise<Patient | null>;
@@ -41,10 +47,10 @@ export declare class InMemoryPatientRepository implements IPatientRepository {
             unknown: number;
         };
         byAgeRange: {
-            '0-18': number;
-            '19-40': number;
-            '41-60': number;
-            '60+': number;
+            "0-18": number;
+            "19-40": number;
+            "41-60": number;
+            "60+": number;
         };
         byInsuranceType: {
             bhyt: number;
@@ -95,7 +101,7 @@ export declare class InMemoryPatientRepository implements IPatientRepository {
         city?: string;
         province?: string;
         dateOfBirth?: Date;
-        gender?: 'male' | 'female' | 'other';
+        gender?: "male" | "female" | "other";
         citizenId?: string;
     }): Promise<Patient>;
     /**

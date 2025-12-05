@@ -5,9 +5,9 @@
  * @version 2.0.0
  * @compliance HIPAA, Clean Architecture
  */
-import { SupabaseClient } from '@supabase/supabase-js';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
-import { IAuditService, AuditLogEntry as SharedAuditLogEntry } from '../../../../shared/application/services/audit.service.interface';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { IAuditService, AuditLogEntry as SharedAuditLogEntry } from "../../../../shared/application/services/audit.service.interface";
 export interface AuditLogEntry {
     eventId: string;
     eventType: string;
@@ -31,7 +31,7 @@ export interface PHIAccessLogEntry {
     patientId: string;
     userId: string;
     userRole?: string;
-    accessType: 'READ' | 'WRITE' | 'EXPORT' | 'PRINT' | 'DELETE' | 'SEARCH';
+    accessType: "READ" | "WRITE" | "EXPORT" | "PRINT" | "DELETE" | "SEARCH";
     accessedFields?: string[];
     reason?: string;
     ipAddress?: string;
@@ -41,6 +41,7 @@ export interface PHIAccessLogEntry {
 export declare class AuditService implements IAuditService {
     private supabase;
     private logger;
+    private eventFunctionsAvailable;
     constructor(supabase: SupabaseClient, logger: ILogger);
     /**
      * Log audit event
@@ -69,7 +70,7 @@ export declare class AuditService implements IAuditService {
     /**
      * IAuditService implementation - Log audit entry
      */
-    log(entry: Omit<SharedAuditLogEntry, 'id' | 'timestamp'>): Promise<void>;
+    log(entry: Omit<SharedAuditLogEntry, "id" | "timestamp">): Promise<void>;
     /**
      * IAuditService implementation - Get logs for resource
      */
@@ -78,5 +79,7 @@ export declare class AuditService implements IAuditService {
      * IAuditService implementation - Get logs for user
      */
     getLogsForUser(userId: string, limit?: number): Promise<SharedAuditLogEntry[]>;
+    private isMissingEventFunctionError;
+    private handleMissingEventFunction;
 }
 //# sourceMappingURL=AuditService.d.ts.map

@@ -160,5 +160,101 @@ export function createAdminRoutes(deps: RouteDependencies): Router {
     }
   });
 
+  // Permanently deactivate account (PROTECTED - admin only)
+  router.post(
+    "/accounts/deactivate",
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const { userId, reason, terminateSessions } = req.body;
+        const adminUserId = req.user?.userId || "";
+
+        if (!userId) {
+          return res.status(400).json({
+            success: false,
+            error: "User ID is required",
+          });
+        }
+
+        if (!reason) {
+          return res.status(400).json({
+            success: false,
+            error: "Reason is required",
+          });
+        }
+
+        const result = await deps.deactivateUserUseCase.execute({
+          userId,
+          deactivatedBy: adminUserId,
+          reason,
+          terminateSessions,
+        });
+
+        if (!result.success) {
+          const status = result.error === "USER_NOT_FOUND" ? 404 : 400;
+          return res.status(status).json(result);
+        }
+
+        logger.warn("Account permanently deactivated", {
+          userId,
+          adminUserId,
+        });
+        return res.json(result);
+      } catch (error) {
+        logger.error("Deactivate account endpoint error", {
+          userId: req.body.userId,
+          error: getErrorMessage(error),
+        });
+        return res.status(500).json({
+          success: false,
+          error: "Lỗi hệ thống, vui lòng thử lại sau",
+        });
+      }
+    },
+  );
+
+  // Reactivate patient account (PROTECTED - admin only)
+  router.post(
+    "/accounts/reactivate",
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const { userId, reason } = req.body;
+        const adminUserId = req.user?.userId || "";
+
+        if (!userId) {
+          return res.status(400).json({
+            success: false,
+            error: "User ID is required",
+          });
+        }
+
+        const result = await deps.reactivatePatientAccountUseCase.execute({
+          userId,
+          reactivatedBy: adminUserId,
+          reason,
+        });
+
+        if (!result.success) {
+          const status = result.error === "USER_NOT_FOUND" ? 404 : 400;
+          return res.status(status).json(result);
+        }
+
+        logger.info("Patient account reactivated", {
+          userId,
+          adminUserId,
+        });
+        return res.json(result);
+      } catch (error) {
+        logger.error("Reactivate account endpoint error", {
+          userId: req.body.userId,
+          error: getErrorMessage(error),
+        });
+        return res.status(500).json({
+          success: false,
+          error: "Lỗi hệ thống, vui lòng thử lại sau",
+        });
+      }
+    },
+  );
+
   return router;
 }

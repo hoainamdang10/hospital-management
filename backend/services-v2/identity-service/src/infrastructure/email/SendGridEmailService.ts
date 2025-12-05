@@ -1,21 +1,21 @@
 /**
  * SendGridEmailService - Infrastructure Email Service
  * Implements IEmailService using SendGrid API
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
 
-import sgMail from '@sendgrid/mail';
+import sgMail from "@sendgrid/mail";
 import {
   IEmailService,
   EmailVerificationData,
   EmailSuccessData,
-  StaffInvitationData
-} from '../../application/services/IEmailService';
-import { ILogger } from '../../application/services/ILogger';
-import { getErrorMessage } from '../../utils/error-helper';
+  StaffInvitationData,
+} from "../../application/services/IEmailService";
+import { ILogger } from "../../application/services/ILogger";
+import { getErrorMessage } from "../../utils/error-helper";
 
 export interface SendGridEmailServiceConfig {
   apiKey: string;
@@ -31,18 +31,18 @@ export class SendGridEmailService implements IEmailService {
 
   constructor(
     config: SendGridEmailServiceConfig,
-    private logger: ILogger
+    private logger: ILogger,
   ) {
     // Initialize SendGrid with API key
     sgMail.setApiKey(config.apiKey);
-    
+
     this.fromEmail = config.fromEmail;
     this.fromName = config.fromName;
     this.frontendUrl = config.frontendUrl;
 
-    this.logger.info('SendGridEmailService initialized', {
+    this.logger.info("SendGridEmailService initialized", {
       fromEmail: this.fromEmail,
-      fromName: this.fromName
+      fromName: this.fromName,
     });
   }
 
@@ -51,37 +51,37 @@ export class SendGridEmailService implements IEmailService {
    */
   async sendVerificationEmail(data: EmailVerificationData): Promise<void> {
     try {
-      this.logger.info('Sending verification email', {
+      this.logger.info("Sending verification email", {
         email: data.email,
-        userName: data.userName
+        userName: data.userName,
       });
 
       const htmlContent = this.getVerificationEmailTemplate(
         data.userName,
-        data.verificationUrl
+        data.verificationUrl,
       );
 
       const msg = {
         to: data.email,
         from: {
           email: this.fromEmail,
-          name: this.fromName
+          name: this.fromName,
         },
-        subject: 'Xác thực email - Hospital Management System',
-        html: htmlContent
+        subject: "Xác thực email - Hospital Management System",
+        html: htmlContent,
       };
 
       const result = await sgMail.send(msg);
 
-      this.logger.info('Verification email sent successfully', {
+      this.logger.info("Verification email sent successfully", {
         email: data.email,
         statusCode: result[0].statusCode,
-        messageId: result[0].headers['x-message-id']
+        messageId: result[0].headers["x-message-id"],
       });
     } catch (error) {
-      this.logger.error('Failed to send verification email', {
+      this.logger.error("Failed to send verification email", {
         email: data.email,
-        error: getErrorMessage(error)
+        error: getErrorMessage(error),
       });
       throw new Error(`Gửi email xác thực thất bại: ${getErrorMessage(error)}`);
     }
@@ -92,9 +92,9 @@ export class SendGridEmailService implements IEmailService {
    */
   async sendVerificationSuccessEmail(data: EmailSuccessData): Promise<void> {
     try {
-      this.logger.info('Sending verification success email', {
+      this.logger.info("Sending verification success email", {
         email: data.email,
-        userName: data.userName
+        userName: data.userName,
       });
 
       const htmlContent = this.getVerificationSuccessTemplate(data.userName);
@@ -103,22 +103,23 @@ export class SendGridEmailService implements IEmailService {
         to: data.email,
         from: {
           email: this.fromEmail,
-          name: this.fromName
+          name: this.fromName,
         },
-        subject: 'Email đã được xác thực thành công - Hospital Management System',
-        html: htmlContent
+        subject:
+          "Email đã được xác thực thành công - Hospital Management System",
+        html: htmlContent,
       };
 
       const result = await sgMail.send(msg);
 
-      this.logger.info('Verification success email sent successfully', {
+      this.logger.info("Verification success email sent successfully", {
         email: data.email,
-        statusCode: result[0].statusCode
+        statusCode: result[0].statusCode,
       });
     } catch (error) {
-      this.logger.error('Failed to send verification success email', {
+      this.logger.error("Failed to send verification success email", {
         email: data.email,
-        error: getErrorMessage(error)
+        error: getErrorMessage(error),
       });
       // Don't throw error for success notification
       // This is not critical
@@ -131,12 +132,12 @@ export class SendGridEmailService implements IEmailService {
   async sendPasswordResetEmail(
     email: string,
     resetUrl: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     try {
-      this.logger.info('Sending password reset email', {
+      this.logger.info("Sending password reset email", {
         email,
-        userName
+        userName,
       });
 
       const htmlContent = this.getPasswordResetTemplate(userName, resetUrl);
@@ -145,23 +146,25 @@ export class SendGridEmailService implements IEmailService {
         to: email,
         from: {
           email: this.fromEmail,
-          name: this.fromName
+          name: this.fromName,
         },
-        subject: 'Đặt lại mật khẩu - Hospital Management System',
-        html: htmlContent
+        subject: "Đặt lại mật khẩu - Hospital Management System",
+        html: htmlContent,
       };
 
       await sgMail.send(msg);
 
-      this.logger.info('Password reset email sent successfully', {
-        email
+      this.logger.info("Password reset email sent successfully", {
+        email,
       });
     } catch (error) {
-      this.logger.error('Failed to send password reset email', {
+      this.logger.error("Failed to send password reset email", {
         email,
-        error: getErrorMessage(error)
+        error: getErrorMessage(error),
       });
-      throw new Error(`Gửi email đặt lại mật khẩu thất bại: ${getErrorMessage(error)}`);
+      throw new Error(
+        `Gửi email đặt lại mật khẩu thất bại: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -170,9 +173,9 @@ export class SendGridEmailService implements IEmailService {
    */
   async sendWelcomeEmail(email: string, userName: string): Promise<void> {
     try {
-      this.logger.info('Sending welcome email', {
+      this.logger.info("Sending welcome email", {
         email,
-        userName
+        userName,
       });
 
       const htmlContent = this.getWelcomeEmailTemplate(userName);
@@ -181,21 +184,21 @@ export class SendGridEmailService implements IEmailService {
         to: email,
         from: {
           email: this.fromEmail,
-          name: this.fromName
+          name: this.fromName,
         },
-        subject: 'Chào mừng đến với Hospital Management System',
-        html: htmlContent
+        subject: "Chào mừng đến với Hospital Management System",
+        html: htmlContent,
       };
 
       await sgMail.send(msg);
 
-      this.logger.info('Welcome email sent successfully', {
-        email
+      this.logger.info("Welcome email sent successfully", {
+        email,
       });
     } catch (error) {
-      this.logger.error('Failed to send welcome email', {
+      this.logger.error("Failed to send welcome email", {
         email,
-        error: getErrorMessage(error)
+        error: getErrorMessage(error),
       });
       // Don't throw error for welcome email
       // This is not critical
@@ -207,38 +210,38 @@ export class SendGridEmailService implements IEmailService {
    */
   async sendStaffInvitationEmail(data: StaffInvitationData): Promise<void> {
     try {
-      this.logger.info('Sending staff invitation email', {
+      this.logger.info("Sending staff invitation email", {
         email: data.email,
         userName: data.userName,
-        role: data.role
+        role: data.role,
       });
 
       const htmlContent = this.getStaffInvitationTemplate(
         data.userName,
         data.role,
         data.invitationUrl,
-        data.expiresAt
+        data.expiresAt,
       );
 
       const msg = {
         to: data.email,
         from: {
           email: this.fromEmail,
-          name: this.fromName
+          name: this.fromName,
         },
-        subject: 'Lời mời kích hoạt tài khoản - Hospital Management System',
-        html: htmlContent
+        subject: "Lời mời kích hoạt tài khoản - Hospital Management System",
+        html: htmlContent,
       };
 
       await sgMail.send(msg);
 
-      this.logger.info('Staff invitation email sent successfully', {
-        email: data.email
+      this.logger.info("Staff invitation email sent successfully", {
+        email: data.email,
       });
     } catch (error) {
-      this.logger.error('Failed to send staff invitation email', {
+      this.logger.error("Failed to send staff invitation email", {
         email: data.email,
-        error: getErrorMessage(error)
+        error: getErrorMessage(error),
       });
       throw new Error(`Gửi email lời mời thất bại: ${getErrorMessage(error)}`);
     }
@@ -247,7 +250,10 @@ export class SendGridEmailService implements IEmailService {
   /**
    * Email verification template
    */
-  private getVerificationEmailTemplate(userName: string, verificationUrl: string): string {
+  private getVerificationEmailTemplate(
+    userName: string,
+    verificationUrl: string,
+  ): string {
     return `
 <!DOCTYPE html>
 <html lang="vi">
@@ -259,38 +265,38 @@ export class SendGridEmailService implements IEmailService {
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f4f4f4; padding: 20px; border-radius: 10px;">
     <h1 style="color: #2c3e50; text-align: center;">🏥 Hospital Management System</h1>
-    
+
     <div style="background-color: white; padding: 30px; border-radius: 10px; margin-top: 20px;">
       <h2 style="color: #3498db;">Xác thực Email</h2>
-      
+
       <p>Xin chào <strong>${userName}</strong>,</p>
-      
+
       <p>Cảm ơn bạn đã đăng ký tài khoản tại Hospital Management System. Để hoàn tất quá trình đăng ký, vui lòng xác thực địa chỉ email của bạn bằng cách nhấp vào nút bên dưới:</p>
-      
+
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${verificationUrl}" 
+        <a href="${verificationUrl}"
            style="background-color: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
           Xác thực Email
         </a>
       </div>
-      
+
       <p style="color: #7f8c8d; font-size: 14px;">
         Hoặc copy link sau vào trình duyệt:<br>
         <a href="${verificationUrl}" style="color: #3498db; word-break: break-all;">${verificationUrl}</a>
       </p>
-      
+
       <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 20px;">
         <p style="margin: 0; color: #856404;">
           <strong>⚠️ Lưu ý:</strong> Link xác thực này sẽ hết hạn sau 24 giờ. Nếu bạn không yêu cầu xác thực email này, vui lòng bỏ qua email này.
         </p>
       </div>
-      
+
       <p style="margin-top: 30px; color: #7f8c8d; font-size: 14px;">
         Trân trọng,<br>
         <strong>Hospital Management Team</strong>
       </p>
     </div>
-    
+
     <div style="text-align: center; margin-top: 20px; color: #7f8c8d; font-size: 12px;">
       <p>© 2025 Hospital Management System. All rights reserved.</p>
     </div>
@@ -519,21 +525,20 @@ export class SendGridEmailService implements IEmailService {
     userName: string,
     role: string,
     invitationUrl: string,
-    expiresAt: Date
+    expiresAt: Date,
   ): string {
     // Format expiry date in Vietnamese
-    const expiryDate = new Intl.DateTimeFormat('vi-VN', {
-      dateStyle: 'full',
-      timeStyle: 'short',
-      timeZone: 'Asia/Ho_Chi_Minh'
+    const expiryDate = new Intl.DateTimeFormat("vi-VN", {
+      dateStyle: "full",
+      timeStyle: "short",
+      timeZone: "Asia/Ho_Chi_Minh",
     }).format(expiresAt);
 
     // Role display names in Vietnamese
     const roleNames: Record<string, string> = {
-      'ADMIN': 'Quản trị viên',
-      'DOCTOR': 'Bác sĩ',
-      'NURSE': 'Y tá',
-      'RECEPTIONIST': 'Lễ tân'
+      ADMIN: "Quản trị viên",
+      DOCTOR: "Bác sĩ",
+      PATIENT: "Bệnh nhân",
     };
 
     const roleDisplay = roleNames[role] || role;
@@ -577,7 +582,7 @@ export class SendGridEmailService implements IEmailService {
         </p>
         <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #2e7d32;">
           <li>Vai trò: <strong>${roleDisplay}</strong></li>
-          <li>Email đăng nhập: <strong>${userName.split(' ')[0].toLowerCase()}@hospital.vn</strong></li>
+          <li>Email đăng nhập: <strong>${userName.split(" ")[0].toLowerCase()}@hospital.vn</strong></li>
           <li>Link kích hoạt hết hạn vào: <strong>${expiryDate}</strong></li>
         </ul>
       </div>

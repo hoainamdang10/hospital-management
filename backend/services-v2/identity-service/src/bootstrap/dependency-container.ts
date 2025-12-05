@@ -72,6 +72,8 @@ import { ListUsersUseCase } from "../application/use-cases/ListUsersUseCase";
 import { ChangePasswordUseCase } from "../application/use-cases/ChangePasswordUseCase";
 import { AssignRoleUseCase } from "../application/use-cases/AssignRoleUseCase";
 import { UnlockAccountUseCase } from "../application/use-cases/UnlockAccountUseCase";
+import { ReactivatePatientAccountUseCase } from "../application/use-cases/ReactivatePatientAccountUseCase";
+import { DeactivateUserUseCase } from "../application/use-cases/DeactivateUserUseCase";
 
 // Use Cases - Staff Management
 import { ProvisionStaffUseCase } from "../application/use-cases/ProvisionStaffUseCase";
@@ -149,6 +151,8 @@ export class DependencyContainer {
   private changePasswordUseCase!: ChangePasswordUseCase;
   private assignRoleUseCase!: AssignRoleUseCase;
   private unlockAccountUseCase!: UnlockAccountUseCase;
+  private deactivateUserUseCase!: DeactivateUserUseCase;
+  private reactivatePatientAccountUseCase!: ReactivatePatientAccountUseCase;
 
   // Use Cases - Staff Management
   private provisionStaffUseCase!: ProvisionStaffUseCase;
@@ -586,6 +590,19 @@ export class DependencyContainer {
       this.eventPublisher,
     );
 
+    this.deactivateUserUseCase = new DeactivateUserUseCase(
+      this.userRepository,
+      this.sessionRepository,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("deactivate-user-use-case"),
+    );
+
+    this.reactivatePatientAccountUseCase = new ReactivatePatientAccountUseCase(
+      this.userRepository,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("reactivate-patient-use-case"),
+    );
+
     // Staff management use cases
     this.provisionStaffUseCase = new ProvisionStaffUseCase(
       this.userRepository,
@@ -626,6 +643,8 @@ export class DependencyContainer {
       ["ListUsersUseCase", this.listUsersUseCase],
       ["ChangePasswordUseCase", this.changePasswordUseCase],
       ["AssignRoleUseCase", this.assignRoleUseCase],
+      ["DeactivateUserUseCase", this.deactivateUserUseCase],
+      ["ReactivatePatientAccountUseCase", this.reactivatePatientAccountUseCase],
       ["ProvisionStaffUseCase", this.provisionStaffUseCase],
       ["AcceptStaffInvitationUseCase", this.acceptStaffInvitationUseCase],
       ["ValidateStaffInvitationUseCase", this.validateStaffInvitationUseCase],
@@ -704,7 +723,7 @@ export class DependencyContainer {
       // Keep only PatientLifecycleEventHandler (handles patient.deceased event)
       // Note: deactivateUserUseCase removed - this handler is disabled for now
       this.patientLifecycleHandler = new PatientLifecycleEventHandler(
-        null as any, // deactivateUserUseCase removed
+        this.deactivateUserUseCase,
         this.inboxService,
         this.logger,
       );
@@ -868,6 +887,8 @@ export class DependencyContainer {
       changePasswordUseCase: this.changePasswordUseCase,
       assignRoleUseCase: this.assignRoleUseCase,
       unlockAccountUseCase: this.unlockAccountUseCase,
+      deactivateUserUseCase: this.deactivateUserUseCase,
+      reactivatePatientAccountUseCase: this.reactivatePatientAccountUseCase,
 
       // Staff Management Use Cases
       provisionStaffUseCase: this.provisionStaffUseCase,

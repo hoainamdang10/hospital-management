@@ -7,11 +7,11 @@
  * @compliance RESTful API, Clean Architecture
  */
 
-import { Router } from 'express';
-import { PatientController } from '../controllers/PatientController';
-import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
-import { AuthorizationMiddleware } from '../middleware/AuthorizationMiddleware';
-import { upload } from '../middleware/UploadMiddleware';
+import { Router } from "express";
+import { PatientController } from "../controllers/PatientController";
+import { ErrorHandlingMiddleware } from "../middleware/ErrorHandlingMiddleware";
+import { AuthorizationMiddleware } from "../middleware/AuthorizationMiddleware";
+import { upload } from "../middleware/UploadMiddleware";
 import {
   validateRegisterPatient,
   validateUpdatePatient,
@@ -30,7 +30,7 @@ import {
   validateUpdateEmergencyContact,
   validateRemoveEmergencyContact,
   validateAddInsuranceInfo,
-} from '../middleware/ValidationMiddleware';
+} from "../middleware/ValidationMiddleware";
 
 /**
  * Create patient routes
@@ -39,7 +39,7 @@ import {
  */
 export function createPatientRoutes(
   controller: PatientController,
-  authorizationMiddleware: AuthorizationMiddleware
+  authorizationMiddleware: AuthorizationMiddleware,
 ): Router {
   const router = Router();
   const asyncHandler = ErrorHandlingMiddleware.asyncHandler;
@@ -51,7 +51,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients
    */
   router.post(
-    '/',
+    "/",
     validateRegisterPatient,
     asyncHandler(controller.registerPatient.bind(controller)),
   );
@@ -61,29 +61,27 @@ export function createPatientRoutes(
    * POST /api/v1/patients/validate-insurance
    */
   router.post(
-    '/validate-insurance',
+    "/validate-insurance",
     asyncHandler(controller.validateInsurance.bind(controller)),
   );
 
   // ==================== SEARCH & MATCH ROUTES ====================
 
-  /* POST-MVP: Analytics - Not required for graduation project demo flows
-  **
+  /**
    * Get patient statistics
    * GET /api/v1/patients/statistics
-   *
+   */
   router.get(
-    '/statistics',
+    "/statistics",
     asyncHandler(controller.getStatistics.bind(controller)),
   );
-  END POST-MVP: Analytics */
 
   /**
    * Search patients
    * GET /api/v1/patients/search?searchTerm=...
    */
   router.get(
-    '/search',
+    "/search",
     validateSearchPatients,
     asyncHandler(controller.searchPatients.bind(controller)),
   );
@@ -93,7 +91,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients?page=1&limit=20
    */
   router.get(
-    '/',
+    "/",
     validateGetPatientList,
     asyncHandler(controller.getPatientList.bind(controller)),
   );
@@ -132,9 +130,9 @@ export function createPatientRoutes(
    * Authorization: Patient can access own data, Admin/Doctor need patient:read permission
    */
   router.get(
-    '/user/:userId',
+    "/user/:userId",
     validateUserId,
-    authorizationMiddleware.canAccessPatientData('userId'),
+    authorizationMiddleware.canAccessPatientData("userId"),
     asyncHandler(controller.getPatientByUserId.bind(controller)),
   );
 
@@ -143,7 +141,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/national-id/:nationalId
    */
   router.get(
-    '/national-id/:nationalId',
+    "/national-id/:nationalId",
     validateNationalId,
     asyncHandler(controller.getPatientByNationalId.bind(controller)),
   );
@@ -153,7 +151,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/bhyt/:bhytNumber
    */
   router.get(
-    '/bhyt/:bhytNumber',
+    "/bhyt/:bhytNumber",
     validateBHYTNumber,
     asyncHandler(controller.getPatientByBHYTNumber.bind(controller)),
   );
@@ -175,7 +173,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId
    */
   router.get(
-    '/:patientId',
+    "/:patientId",
     validatePatientId,
     asyncHandler(controller.getPatientById.bind(controller)),
   );
@@ -187,9 +185,9 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId
    */
   router.put(
-    '/:patientId',
+    "/:patientId",
     validateUpdatePatient,
-    authorizationMiddleware.canAccessPatientData('patientId'),
+    authorizationMiddleware.canAccessPatientData("patientId"),
     asyncHandler(controller.updatePatient.bind(controller)),
   );
 
@@ -222,7 +220,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/emergency-contacts
    */
   router.post(
-    '/:patientId/emergency-contacts',
+    "/:patientId/emergency-contacts",
     validateAddEmergencyContact,
     asyncHandler(controller.addEmergencyContact.bind(controller)),
   );
@@ -232,7 +230,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/emergency-contacts
    */
   router.get(
-    '/:patientId/emergency-contacts',
+    "/:patientId/emergency-contacts",
     validatePatientId,
     asyncHandler(controller.getEmergencyContacts.bind(controller)),
   );
@@ -242,7 +240,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId/emergency-contacts/:contactId
    */
   router.put(
-    '/:patientId/emergency-contacts/:contactId',
+    "/:patientId/emergency-contacts/:contactId",
     validateUpdateEmergencyContact,
     asyncHandler(controller.updateEmergencyContact.bind(controller)),
   );
@@ -387,7 +385,7 @@ export function createPatientRoutes(
    * GET /api/v1/patients/:patientId/insurance
    */
   router.get(
-    '/:patientId/insurance',
+    "/:patientId/insurance",
     validatePatientId,
     asyncHandler(controller.getInsuranceInfo.bind(controller)),
   );
@@ -397,7 +395,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/insurance
    */
   router.post(
-    '/:patientId/insurance',
+    "/:patientId/insurance",
     validatePatientId,
     validateAddInsuranceInfo,
     asyncHandler(controller.addInsuranceInfo.bind(controller)),
@@ -408,7 +406,7 @@ export function createPatientRoutes(
    * PUT /api/v1/patients/:patientId/insurance
    */
   router.put(
-    '/:patientId/insurance',
+    "/:patientId/insurance",
     validatePatientId,
     asyncHandler(controller.updateInsuranceInfo.bind(controller)),
   );
@@ -418,7 +416,7 @@ export function createPatientRoutes(
    * POST /api/v1/patients/:patientId/insurance/verify
    */
   router.post(
-    '/:patientId/insurance/verify',
+    "/:patientId/insurance/verify",
     validatePatientId,
     asyncHandler(controller.verifyInsurance.bind(controller)),
   );

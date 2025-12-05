@@ -77,7 +77,7 @@ export class RegisterUserUseCase
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
     // DEV: Disable circuit breaker for development
     return await this.executeImpl(request);
-    
+
     // PROD: Enable circuit breaker for production
     // return await this.circuitBreaker.execute(
     //   async () => this.executeImpl(request),
@@ -99,7 +99,7 @@ export class RegisterUserUseCase
     try {
       // SECURITY: Hardcode roleType = 'PATIENT' for public registration
       // This prevents privilege escalation attacks where users try to register as ADMIN/DOCTOR
-      // Staff accounts (DOCTOR, NURSE, ADMIN) must be created by admins via separate endpoint
+      // Staff accounts (DOCTOR, ADMIN) must be created by admins via separate endpoint
       const roleType = "PATIENT";
 
       this.logger.info("Starting user registration (Verify-First)", {
@@ -290,9 +290,12 @@ export class RegisterUserUseCase
           // Store in outbox first (guaranteed persistence)
           if (this.outboxService) {
             await this.outboxService.storeEvent(event);
-            this.logger.info("PendingRegistrationCreated event stored in outbox", {
-              pendingRegistrationId: pendingRegistration.id,
-            });
+            this.logger.info(
+              "PendingRegistrationCreated event stored in outbox",
+              {
+                pendingRegistrationId: pendingRegistration.id,
+              },
+            );
           }
 
           // Publish immediately
@@ -301,15 +304,21 @@ export class RegisterUserUseCase
             pendingRegistrationId: pendingRegistration.id,
           });
 
-          this.logger.info("PendingRegistrationCreated event processed successfully", {
-            pendingRegistrationId: pendingRegistration.id,
-            publishedImmediately: !!this.eventPublisher,
-          });
+          this.logger.info(
+            "PendingRegistrationCreated event processed successfully",
+            {
+              pendingRegistrationId: pendingRegistration.id,
+              publishedImmediately: !!this.eventPublisher,
+            },
+          );
         } catch (error) {
-          this.logger.error("Failed to process PendingRegistrationCreated event", {
-            pendingRegistrationId: pendingRegistration.id,
-            error: getErrorMessage(error),
-          });
+          this.logger.error(
+            "Failed to process PendingRegistrationCreated event",
+            {
+              pendingRegistrationId: pendingRegistration.id,
+              error: getErrorMessage(error),
+            },
+          );
           // Don't fail registration if event processing fails
         }
       }
@@ -327,8 +336,9 @@ export class RegisterUserUseCase
       this.logger.error("User registration failed", {
         email: request.email,
         error: getErrorMessage(error),
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorStack: error instanceof Error ? error.stack : 'No stack',
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        errorStack: error instanceof Error ? error.stack : "No stack",
         fullError: JSON.stringify(error),
       });
 

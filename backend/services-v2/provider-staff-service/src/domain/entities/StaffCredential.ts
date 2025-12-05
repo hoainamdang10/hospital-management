@@ -1,13 +1,14 @@
 /**
  * StaffCredential Entity
  * Vietnamese Healthcare Staff Credential
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from "@shared/domain/base/entity";
+import { safeOptionalISOString, safeToISOString } from "../utils/date-utils";
 
 interface StaffCredentialProps {
   credentialNumber: string;
@@ -27,32 +28,37 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
     super(props, id);
   }
 
-  public static create(props: Omit<StaffCredentialProps, 'createdAt' | 'updatedAt' | 'isValid'>): StaffCredential {
+  public static create(
+    props: Omit<StaffCredentialProps, "createdAt" | "updatedAt" | "isValid">,
+  ): StaffCredential {
     const now = new Date();
-    
+
     return new StaffCredential({
       ...props,
       credentialNumber: props.credentialNumber.trim().toUpperCase(),
       issuingAuthority: props.issuingAuthority.trim(),
       isValid: true,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     });
   }
 
   public static fromPersistenceData(data: any): StaffCredential {
-    return new StaffCredential({
-      credentialNumber: data.credential_number,
-      credentialType: data.credential_type,
-      issuingAuthority: data.issuing_authority,
-      issueDate: new Date(data.issue_date),
-      expiryDate: data.expiry_date ? new Date(data.expiry_date) : undefined,
-      isValid: data.is_valid,
-      verifiedAt: data.verified_at ? new Date(data.verified_at) : undefined,
-      verifiedBy: data.verified_by,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
-    }, data.id);
+    return new StaffCredential(
+      {
+        credentialNumber: data.credential_number,
+        credentialType: data.credential_type,
+        issuingAuthority: data.issuing_authority,
+        issueDate: new Date(data.issue_date),
+        expiryDate: data.expiry_date ? new Date(data.expiry_date) : undefined,
+        isValid: data.is_valid,
+        verifiedAt: data.verified_at ? new Date(data.verified_at) : undefined,
+        verifiedBy: data.verified_by,
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+      },
+      data.id,
+    );
   }
 
   // Getters
@@ -104,15 +110,15 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
    */
   public renew(newExpiryDate: Date, renewedBy: string): void {
     if (!this.props.isValid) {
-      throw new Error('Không thể gia hạn chứng chỉ đã bị thu hồi');
+      throw new Error("Không thể gia hạn chứng chỉ đã bị thu hồi");
     }
 
     if (newExpiryDate <= new Date()) {
-      throw new Error('Ngày hết hạn mới phải trong tương lai');
+      throw new Error("Ngày hết hạn mới phải trong tương lai");
     }
 
     if (this.props.expiryDate && newExpiryDate <= this.props.expiryDate) {
-      throw new Error('Ngày hết hạn mới phải sau ngày hết hạn hiện tại');
+      throw new Error("Ngày hết hạn mới phải sau ngày hết hạn hiện tại");
     }
 
     this.props.expiryDate = newExpiryDate;
@@ -126,12 +132,14 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
    */
   public isExpiringSoon(daysThreshold: number = 30): boolean {
     if (!this.props.expiryDate) return false;
-    
+
     const now = new Date();
     const thresholdDate = new Date();
     thresholdDate.setDate(now.getDate() + daysThreshold);
-    
-    return this.props.expiryDate <= thresholdDate && this.props.expiryDate > now;
+
+    return (
+      this.props.expiryDate <= thresholdDate && this.props.expiryDate > now
+    );
   }
 
   public isHIPAACompliant(): boolean {
@@ -139,20 +147,29 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
   }
 
   public validate(): void {
-    if (!this.props.credentialNumber || this.props.credentialNumber.trim().length === 0) {
-      throw new Error('Số chứng chỉ không được để trống');
+    if (
+      !this.props.credentialNumber ||
+      this.props.credentialNumber.trim().length === 0
+    ) {
+      throw new Error("Số chứng chỉ không được để trống");
     }
 
-    if (!this.props.issuingAuthority || this.props.issuingAuthority.trim().length === 0) {
-      throw new Error('Cơ quan cấp không được để trống');
+    if (
+      !this.props.issuingAuthority ||
+      this.props.issuingAuthority.trim().length === 0
+    ) {
+      throw new Error("Cơ quan cấp không được để trống");
     }
 
     if (this.props.issueDate > new Date()) {
-      throw new Error('Ngày cấp không thể trong tương lai');
+      throw new Error("Ngày cấp không thể trong tương lai");
     }
 
-    if (this.props.expiryDate && this.props.expiryDate <= this.props.issueDate) {
-      throw new Error('Ngày hết hạn phải sau ngày cấp');
+    if (
+      this.props.expiryDate &&
+      this.props.expiryDate <= this.props.issueDate
+    ) {
+      throw new Error("Ngày hết hạn phải sau ngày cấp");
     }
   }
 
@@ -162,14 +179,13 @@ export class StaffCredential extends Entity<StaffCredentialProps> {
       credential_number: this.props.credentialNumber,
       credential_type: this.props.credentialType,
       issuing_authority: this.props.issuingAuthority,
-      issue_date: this.props.issueDate.toISOString(),
-      expiry_date: this.props.expiryDate?.toISOString(),
+      issue_date: safeToISOString(this.props.issueDate),
+      expiry_date: safeOptionalISOString(this.props.expiryDate),
       is_valid: this.props.isValid,
-      verified_at: this.props.verifiedAt?.toISOString(),
+      verified_at: safeOptionalISOString(this.props.verifiedAt),
       verified_by: this.props.verifiedBy,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString()
+      created_at: safeToISOString(this.props.createdAt),
+      updated_at: safeToISOString(this.props.updatedAt),
     };
   }
 }
-

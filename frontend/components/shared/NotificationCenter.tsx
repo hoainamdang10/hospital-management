@@ -213,9 +213,6 @@ function buildNotificationLink(notification: UserNotification, role?: string): s
     if (normalizedRole === 'DOCTOR') {
       return `/doctor/appointments/${context.appointmentId}`;
     }
-    if (normalizedRole === 'NURSE') {
-      return `/nurse/appointments/${context.appointmentId}`;
-    }
     return `/admin/appointments/${context.appointmentId}`;
   }
   if (context?.invoiceId) {

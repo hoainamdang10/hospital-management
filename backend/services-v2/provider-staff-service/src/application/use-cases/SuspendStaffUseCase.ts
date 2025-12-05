@@ -16,7 +16,7 @@ import { StaffId } from "../../domain/value-objects/StaffId";
 
 export interface SuspendStaffRequest {
   staffId: string;
-  reason: string;
+  reason?: string;
   suspensionStartDate?: string;
   suspensionEndDate?: string;
   requestedBy: string;
@@ -58,15 +58,8 @@ export class SuspendStaffUseCase extends BaseHealthcareUseCase<
     // Validate staffId
     if (!request.staffId || request.staffId.trim().length === 0) {
       errors.push("ID nhân viên không được để trống");
-    } else if (!request.staffId.match(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)) {
+    } else if (!request.staffId.match(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)) {
       errors.push("ID nhân viên không hợp lệ");
-    }
-
-    // Validate reason
-    if (!request.reason || request.reason.trim().length === 0) {
-      errors.push("Lý do tạm ngưng không được để trống");
-    } else if (request.reason.trim().length < 10) {
-      errors.push("Lý do tạm ngưng phải có ít nhất 10 ký tự");
     }
 
     // Validate requestedBy
@@ -109,7 +102,12 @@ export class SuspendStaffUseCase extends BaseHealthcareUseCase<
     }
 
     // Suspend staff (domain logic will validate business rules)
-    staff.suspend(reason, requestedBy);
+    const normalizedReason =
+      reason && reason.trim().length > 0
+        ? reason.trim()
+        : "Suspended by administrator";
+
+    staff.suspend(normalizedReason, requestedBy);
 
     // Save staff (will publish domain events)
     await this.staffRepository.update(staff);
@@ -119,7 +117,7 @@ export class SuspendStaffUseCase extends BaseHealthcareUseCase<
       staffId: staff.staffIdValue,
       oldStatus: "active",
       newStatus: "suspended",
-      reason,
+      reason: normalizedReason,
       suspendedBy: requestedBy,
       timestamp: new Date().toISOString(),
       metadata: request.requestMetadata,
@@ -129,7 +127,7 @@ export class SuspendStaffUseCase extends BaseHealthcareUseCase<
       staffId: staff.staffIdValue,
       status: staff.status,
       isActive: staff.isActive,
-      reason,
+      reason: normalizedReason,
       suspendedAt: new Date(),
     };
   }

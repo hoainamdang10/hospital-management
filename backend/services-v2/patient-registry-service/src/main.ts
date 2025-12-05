@@ -8,57 +8,57 @@
  */
 
 // Load environment variables FIRST
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './infrastructure/swagger/swagger.config';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./infrastructure/swagger/swagger.config";
 
 // Infrastructure imports
-import { SupabasePatientRepository } from './infrastructure/repositories/SupabasePatientRepository';
-import { PatientRegistryHealthCheck } from './infrastructure/monitoring/HealthChecks';
-import { prometheusMetrics } from './infrastructure/monitoring/PrometheusMetrics';
-import { RedisCacheService } from './infrastructure/cache/RedisCacheService';
-import { PatientCache } from './infrastructure/cache/PatientCache';
-import { PatientRegistryDegradation } from './infrastructure/resilience/GracefulDegradation';
-import { createOptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
-import type { OptimizedSupabaseClient } from '@shared/infrastructure/database/optimized-supabase-client';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { SupabaseOutboxRepository } from './infrastructure/outbox/SupabaseOutboxRepository';
-import { OutboxPublisherWorker } from './infrastructure/outbox/OutboxPublisherWorker';
+import { SupabasePatientRepository } from "./infrastructure/repositories/SupabasePatientRepository";
+import { PatientRegistryHealthCheck } from "./infrastructure/monitoring/HealthChecks";
+import { prometheusMetrics } from "./infrastructure/monitoring/PrometheusMetrics";
+import { RedisCacheService } from "./infrastructure/cache/RedisCacheService";
+import { PatientCache } from "./infrastructure/cache/PatientCache";
+import { PatientRegistryDegradation } from "./infrastructure/resilience/GracefulDegradation";
+import { createOptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
+import type { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseOutboxRepository } from "./infrastructure/outbox/SupabaseOutboxRepository";
+import { OutboxPublisherWorker } from "./infrastructure/outbox/OutboxPublisherWorker";
 
 // Application Services imports
-import { PatientMatchingService } from './application/services/PatientMatchingService';
-import { InsuranceValidationService } from './application/services/InsuranceValidationService';
-import { RabbitMQEventPublisher } from './infrastructure/events/RabbitMQEventPublisher';
-import { ILogger } from '@shared/application/services/logger.interface';
-import { IEventBus } from '@shared/application/services/event-bus.interface';
+import { PatientMatchingService } from "./application/services/PatientMatchingService";
+import { InsuranceValidationService } from "./application/services/InsuranceValidationService";
+import { RabbitMQEventPublisher } from "./infrastructure/events/RabbitMQEventPublisher";
+import { ILogger } from "@shared/application/services/logger.interface";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
 import {
   InMemoryEventBus,
   RabbitMQEventBus,
-} from '@shared/infrastructure/event-bus/EventBus';
-import { validateAndLog } from './infrastructure/config/validator';
-import { createProductionLogger } from './infrastructure/logging/PinoLogger';
+} from "@shared/infrastructure/event-bus/EventBus";
+import { validateAndLog } from "./infrastructure/config/validator";
+import { createProductionLogger } from "./infrastructure/logging/PinoLogger";
 
 // Application imports
-import { RegisterPatientUseCase } from './application/use-cases/RegisterPatientUseCase';
-import { UpdatePatientInfoUseCase } from './application/use-cases/UpdatePatientInfoUseCase';
-import { GetPatientProfileUseCase } from './application/use-cases/GetPatientProfileUseCase';
-import { SearchPatientsUseCase } from './application/use-cases/SearchPatientsUseCase';
+import { RegisterPatientUseCase } from "./application/use-cases/RegisterPatientUseCase";
+import { UpdatePatientInfoUseCase } from "./application/use-cases/UpdatePatientInfoUseCase";
+import { GetPatientProfileUseCase } from "./application/use-cases/GetPatientProfileUseCase";
+import { SearchPatientsUseCase } from "./application/use-cases/SearchPatientsUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
 import { MatchPatientsUseCase } from './application/use-cases/MatchPatientsUseCase';
 import { MergePatientsUseCase } from './application/use-cases/MergePatientsUseCase';
 import { LinkPatientsUseCase } from './application/use-cases/LinkPatientsUseCase';
 import { DeactivatePatientUseCase } from './application/use-cases/DeactivatePatientUseCase';
 END POST-MVP: Archived use case imports */
-import { ValidateInsuranceUseCase } from './application/use-cases/ValidateInsuranceUseCase';
-import { AddEmergencyContactUseCase } from './application/use-cases/AddEmergencyContactUseCase';
-import { GetEmergencyContactsUseCase } from './application/use-cases/GetEmergencyContactsUseCase';
-import { UpdateEmergencyContactUseCase } from './application/use-cases/UpdateEmergencyContactUseCase';
+import { ValidateInsuranceUseCase } from "./application/use-cases/ValidateInsuranceUseCase";
+import { AddEmergencyContactUseCase } from "./application/use-cases/AddEmergencyContactUseCase";
+import { GetEmergencyContactsUseCase } from "./application/use-cases/GetEmergencyContactsUseCase";
+import { UpdateEmergencyContactUseCase } from "./application/use-cases/UpdateEmergencyContactUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
 import { RemoveEmergencyContactUseCase } from './application/use-cases/RemoveEmergencyContactUseCase';
 import { SetPrimaryEmergencyContactUseCase } from './application/use-cases/SetPrimaryEmergencyContactUseCase';
@@ -68,14 +68,14 @@ import { GetConsentDetailsUseCase } from './application/use-cases/GetConsentDeta
 import { RevokeConsentUseCase } from './application/use-cases/RevokeConsentUseCase';
 import { GetActiveConsentsUseCase } from './application/use-cases/GetActiveConsentsUseCase';
 END POST-MVP: Archived use case imports */
-import { GetInsuranceInfoUseCase } from './application/use-cases/GetInsuranceInfoUseCase';
-import { AddInsuranceInfoUseCase } from './application/use-cases/AddInsuranceInfoUseCase';
-import { UpdateInsuranceInfoUseCase } from './application/use-cases/UpdateInsuranceInfoUseCase';
-import { VerifyInsuranceUseCase } from './application/use-cases/VerifyInsuranceUseCase';
+import { GetInsuranceInfoUseCase } from "./application/use-cases/GetInsuranceInfoUseCase";
+import { AddInsuranceInfoUseCase } from "./application/use-cases/AddInsuranceInfoUseCase";
+import { UpdateInsuranceInfoUseCase } from "./application/use-cases/UpdateInsuranceInfoUseCase";
+import { VerifyInsuranceUseCase } from "./application/use-cases/VerifyInsuranceUseCase";
+import { GetPatientStatisticsUseCase } from "./application/use-cases/GetPatientStatisticsUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
 import { MarkAsDeceasedUseCase } from './application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from './application/use-cases/ReactivatePatientUseCase';
-import { GetPatientStatisticsUseCase } from './application/use-cases/GetPatientStatisticsUseCase';
 import { UploadPatientPhotoUseCase } from './application/use-cases/UploadPatientPhotoUseCase';
 import { GetPatientPhotoUseCase } from './application/use-cases/GetPatientPhotoUseCase';
 import { DeletePatientPhotoUseCase } from './application/use-cases/DeletePatientPhotoUseCase';
@@ -83,46 +83,47 @@ import { UpdateCommunicationPreferencesUseCase } from './application/use-cases/U
 import { GetCommunicationPreferencesUseCase } from './application/use-cases/GetCommunicationPreferencesUseCase';
 import { GetPatientHistoryUseCase } from './application/use-cases/GetPatientHistoryUseCase';
 END POST-MVP: Archived use case imports */
-import { PatientCommandHandlers } from './application/handlers/PatientCommandHandlers';
-import { PatientQueryHandlers } from './application/handlers/PatientQueryHandlers';
+import { PatientCommandHandlers } from "./application/handlers/PatientCommandHandlers";
+import { PatientQueryHandlers } from "./application/handlers/PatientQueryHandlers";
 
 // Infrastructure imports
-import { SupabaseStorageService } from './infrastructure/storage/SupabaseStorageService';
-import { AuditService } from './infrastructure/audit/AuditService';
+import { SupabaseStorageService } from "./infrastructure/storage/SupabaseStorageService";
+import { AuditService } from "./infrastructure/audit/AuditService";
 import {
   IdentityEventConsumer,
   IdentityUserCreatedEventHandler,
   IdentityUserDeletedEventHandler,
   IdentityUserUpdatedEventHandler,
   UserActivatedEventHandler,
-} from './infrastructure';
+  UserDeactivatedEventHandler,
+} from "./infrastructure";
 
 // Presentation imports
-import { PatientController } from './presentation/controllers/PatientController';
-import { CommandController } from './presentation/controllers/CommandController';
-import { createPatientRoutes } from './presentation/routes/patientRoutes';
-import { createCommandRoutes } from './presentation/routes/commandRoutes';
-import { createHealthRoutes } from './presentation/routes/healthRoutes';
-import { ErrorHandlingMiddleware } from './presentation/middleware/ErrorHandlingMiddleware';
-import { AuthenticationMiddleware } from './presentation/middleware/AuthenticationMiddleware';
-import { AuthorizationMiddleware } from './presentation/middleware/AuthorizationMiddleware';
+import { PatientController } from "./presentation/controllers/PatientController";
+import { CommandController } from "./presentation/controllers/CommandController";
+import { createPatientRoutes } from "./presentation/routes/patientRoutes";
+import { createCommandRoutes } from "./presentation/routes/commandRoutes";
+import { createHealthRoutes } from "./presentation/routes/healthRoutes";
+import { ErrorHandlingMiddleware } from "./presentation/middleware/ErrorHandlingMiddleware";
+import { AuthenticationMiddleware } from "./presentation/middleware/AuthenticationMiddleware";
+import { AuthorizationMiddleware } from "./presentation/middleware/AuthorizationMiddleware";
 
 // Configuration
 const config = {
   port: process.env.PORT || 3002,
-  supabaseUrl: process.env.SUPABASE_URL || '',
-  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5673',
-  rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || 'hospital.events',
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6380',
-  nodeEnv: process.env.NODE_ENV || 'development',
-  serviceName: 'patient-registry-service',
-  version: '2.0.0',
+  supabaseUrl: process.env.SUPABASE_URL || "",
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5673",
+  rabbitmqExchange: process.env.RABBITMQ_EXCHANGE || "hospital.events",
+  redisUrl: process.env.REDIS_URL || "redis://localhost:6380",
+  nodeEnv: process.env.NODE_ENV || "development",
+  serviceName: "patient-registry-service",
+  version: "2.0.0",
   allowedOrigins: (
-    process.env.ALLOWED_ORIGINS || 'http://localhost:3000'
-  ).split(','),
+    process.env.ALLOWED_ORIGINS || "http://localhost:3000"
+  ).split(","),
   identityServiceUrl:
-    process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001',
+    process.env.IDENTITY_SERVICE_URL || "http://localhost:3001",
 };
 
 const rabbitmqConnectionRetries = Number(
@@ -184,10 +185,10 @@ class PatientRegistryServiceApp {
   private addInsuranceInfoUseCase!: AddInsuranceInfoUseCase;
   private updateInsuranceInfoUseCase!: UpdateInsuranceInfoUseCase;
   private verifyInsuranceUseCase!: VerifyInsuranceUseCase;
+  private getPatientStatisticsUseCase!: GetPatientStatisticsUseCase;
   /* POST-MVP: Archived use case type declarations - Not required for graduation project
   private markAsDeceasedUseCase!: MarkAsDeceasedUseCase;
   private reactivatePatientUseCase!: ReactivatePatientUseCase;
-  private getPatientStatisticsUseCase!: GetPatientStatisticsUseCase;
   private uploadPatientPhotoUseCase!: UploadPatientPhotoUseCase;
   private getPatientPhotoUseCase!: GetPatientPhotoUseCase;
   private deletePatientPhotoUseCase!: DeletePatientPhotoUseCase;
@@ -222,7 +223,7 @@ class PatientRegistryServiceApp {
    * Initialize all dependencies
    */
   private async initializeDependencies(): Promise<void> {
-    logger.info('Initializing dependencies...');
+    logger.info("Initializing dependencies...");
 
     try {
       // Validate environment configuration (fail-fast)
@@ -238,10 +239,10 @@ class PatientRegistryServiceApp {
         {
           url: config.rabbitmqUrl,
           exchange: exchangeName,
-          exchangeType: 'topic',
+          exchangeType: "topic",
           durable: true,
           autoDelete: false,
-          serviceName: 'patient-registry',
+          serviceName: "patient-registry",
           connectionRetries: rabbitmqConnectionRetries,
           connectionRetryDelayMs: rabbitmqConnectionRetryDelayMs,
         },
@@ -258,10 +259,10 @@ class PatientRegistryServiceApp {
       await this.eventPublisher.connect();
 
       // Initialize EventBus (RabbitMQEventBus for production, InMemoryEventBus for test)
-      if (config.nodeEnv === 'test') {
+      if (config.nodeEnv === "test") {
         this.eventBus = new InMemoryEventBus();
         await this.eventBus.connect();
-        logger.info('EventBus initialized (InMemoryEventBus for testing)', {});
+        logger.info("EventBus initialized (InMemoryEventBus for testing)", {});
       } else {
         this.eventBus = new RabbitMQEventBus({
           rabbitmqUrl: config.rabbitmqUrl,
@@ -269,8 +270,8 @@ class PatientRegistryServiceApp {
           serviceName: config.serviceName,
         });
         await this.eventBus.connect();
-        logger.info('EventBus initialized (RabbitMQEventBus)', {
-          url: config.rabbitmqUrl.replace(/:[^:@]+@/, ':****@'), // Hide password
+        logger.info("EventBus initialized (RabbitMQEventBus)", {
+          url: config.rabbitmqUrl.replace(/:[^:@]+@/, ":****@"), // Hide password
           exchange: exchangeName,
         });
       }
@@ -279,9 +280,9 @@ class PatientRegistryServiceApp {
       try {
         this.cacheService = new RedisCacheService(config.redisUrl, logger);
         await this.cacheService.connect();
-        logger.info('Redis cache service initialized and connected', {});
+        logger.info("Redis cache service initialized and connected", {});
       } catch (error) {
-        logger.warn('Redis cache not available, running without cache', {
+        logger.warn("Redis cache not available, running without cache", {
           error,
         });
         this.cacheService = null;
@@ -291,13 +292,13 @@ class PatientRegistryServiceApp {
       this.patientCache = new PatientCache(config.redisUrl);
       try {
         await this.patientCache.connect();
-        logger.info('Patient cache connected successfully', {});
+        logger.info("Patient cache connected successfully", {});
       } catch (error) {
-        logger.error('Failed to connect Patient Cache', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+        logger.error("Failed to connect Patient Cache", {
+          error: error instanceof Error ? error.message : "Unknown error",
         });
         logger.warn(
-          'Continuing without patient caching - patients will be fetched from database',
+          "Continuing without patient caching - patients will be fetched from database",
           {},
         );
       }
@@ -310,26 +311,27 @@ class PatientRegistryServiceApp {
         supabaseUrl: config.supabaseUrl,
         supabaseServiceKey: config.supabaseKey,
         serviceName: config.serviceName,
-        schemaName: 'patient_schema',
-        enableOptimizations: config.nodeEnv !== 'test',
+        schemaName: "patient_schema",
+        enableOptimizations: config.nodeEnv !== "test",
       });
 
       // Store raw Supabase client for PatientId generation
-      this.supabaseClient = this.optimizedSupabase.getConnection() as unknown as SupabaseClient;
+      this.supabaseClient =
+        this.optimizedSupabase.getConnection() as unknown as SupabaseClient;
 
       // Initialize Audit Service
       this.auditService = new AuditService(
         this.optimizedSupabase.getConnection() as unknown as SupabaseClient,
         logger,
       );
-      logger.info('Audit service initialized', {});
+      logger.info("Audit service initialized", {});
 
       // Initialize Outbox Repository
       this.outboxRepository = new SupabaseOutboxRepository(
         this.optimizedSupabase.getConnection() as unknown as SupabaseClient,
         logger,
       );
-      logger.info('Outbox repository initialized', {});
+      logger.info("Outbox repository initialized", {});
 
       // Initialize Infrastructure Layer (inject services + event publisher + outbox)
       this.patientRepository = new SupabasePatientRepository(
@@ -356,7 +358,7 @@ class PatientRegistryServiceApp {
         logger,
         this.patientRepository, // ✅ Inject real repository
       );
-      logger.info('Degradation service initialized with real repository', {});
+      logger.info("Degradation service initialized with real repository", {});
 
       // Initialize Health Check Service (AFTER degradation service)
       this.healthCheck = new PatientRegistryHealthCheck(
@@ -364,7 +366,7 @@ class PatientRegistryServiceApp {
         config.supabaseKey,
         this.degradationService,
       );
-      logger.info('Health check service initialized', {});
+      logger.info("Health check service initialized", {});
 
       // Initialize Application Layer (Use Cases)
       this.registerPatientUseCase = new RegisterPatientUseCase(
@@ -510,6 +512,10 @@ class PatientRegistryServiceApp {
         logger,
       );
 
+      this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(
+        this.patientRepository,
+      );
+
       /* POST-MVP: Patient Lifecycle & Analytics - Not required for graduation project
       this.markAsDeceasedUseCase = new MarkAsDeceasedUseCase(
         this.patientRepository,
@@ -519,9 +525,6 @@ class PatientRegistryServiceApp {
         this.patientRepository,
       );
 
-      this.getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(
-        this.patientRepository,
-      );
       END POST-MVP: Patient Lifecycle & Analytics */
 
       /* POST-MVP: FHIR Photo Management - Patient.photo field not needed for graduation project
@@ -602,6 +605,7 @@ class PatientRegistryServiceApp {
         this.addEmergencyContactUseCase,
         this.getEmergencyContactsUseCase,
         this.updateEmergencyContactUseCase,
+        this.getPatientStatisticsUseCase,
         /* POST-MVP: Archived use case constructor parameters - Not required for graduation project
         this.removeEmergencyContactUseCase,
         this.setPrimaryEmergencyContactUseCase,
@@ -633,7 +637,7 @@ class PatientRegistryServiceApp {
       this.authMiddleware = new AuthenticationMiddleware({
         identityServiceUrl: config.identityServiceUrl,
         logger,
-        skipPaths: ['/health', '/degradation'],
+        skipPaths: ["/health", "/degradation"],
       });
 
       // Initialize Authorization Middleware (Smart Ownership-based)
@@ -663,20 +667,26 @@ class PatientRegistryServiceApp {
         this.patientRepository,
       );
 
+      const userDeactivatedHandler = new UserDeactivatedEventHandler(
+        logger,
+        this.patientRepository,
+      );
+
       // Initialize Identity Event Consumer with DLQ support
       this.identityEventConsumer = new IdentityEventConsumer(
         {
           rabbitmqUrl: config.rabbitmqUrl,
-          queueName: 'patient.identity.queue',
-          exchangeName: 'hospital.events',
+          queueName: "patient.identity.queue",
+          exchangeName: "hospital.events",
           routingKeys: [
-            'user.created.event',      // UserCreatedEvent
-            'user.deleted.event',      // UserDeletedEvent
-            'user.updated.event',      // UserUpdatedEvent
-            'user.activated.event',    // UserActivatedEvent (bonus)
+            "user.created.event", // UserCreatedEvent
+            "user.deleted.event", // UserDeletedEvent
+            "user.updated.event", // UserUpdatedEvent
+            "user.activated.event", // UserActivatedEvent (bonus)
+            "user.deactivated.event", // UserDeactivatedEvent
           ],
-          deadLetterExchange: 'hospital.events.dlx',
-          deadLetterQueue: 'patient.identity.queue.dlq',
+          deadLetterExchange: "hospital.events.dlx",
+          deadLetterQueue: "patient.identity.queue.dlq",
           maxRetries: 3,
           connectionRetries: rabbitmqConnectionRetries,
           connectionRetryDelayMs: rabbitmqConnectionRetryDelayMs,
@@ -686,17 +696,18 @@ class PatientRegistryServiceApp {
         userDeletedHandler,
         userUpdatedHandler,
         userActivatedHandler,
+        userDeactivatedHandler,
         this.auditService, // ✅ Inject audit service for idempotent event handling
       );
 
       // Connect Identity Event Consumer
       await this.identityEventConsumer.connect();
-      logger.info('Identity event consumer connected');
+      logger.info("Identity event consumer connected");
 
-      logger.info('Dependencies initialized successfully');
+      logger.info("Dependencies initialized successfully");
     } catch (error) {
-      logger.fatal('Failed to initialize dependencies', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      logger.fatal("Failed to initialize dependencies", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -706,7 +717,7 @@ class PatientRegistryServiceApp {
    * Validate configuration
    */
   private validateConfiguration(): void {
-    const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const requiredEnvVars = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
 
     const missingVars = requiredEnvVars.filter(
       (varName) => !process.env[varName],
@@ -714,18 +725,18 @@ class PatientRegistryServiceApp {
 
     if (missingVars.length > 0) {
       throw new Error(
-        `Missing required environment variables: ${missingVars.join(', ')}`,
+        `Missing required environment variables: ${missingVars.join(", ")}`,
       );
     }
 
-    logger.info('Configuration validated successfully');
+    logger.info("Configuration validated successfully");
   }
 
   /**
    * Setup Express middleware
    */
   private setupMiddleware(): void {
-    logger.info('Setting up middleware...');
+    logger.info("Setting up middleware...");
 
     // Security middleware
     this.app.use(
@@ -735,7 +746,7 @@ class PatientRegistryServiceApp {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'"],
-            imgSrc: ["'self'", 'data:', 'https:'],
+            imgSrc: ["'self'", "data:", "https:"],
           },
         },
         hsts: {
@@ -751,8 +762,8 @@ class PatientRegistryServiceApp {
       cors({
         origin: config.allowedOrigins,
         credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
       }),
     );
 
@@ -760,8 +771,8 @@ class PatientRegistryServiceApp {
     this.app.use(compression());
 
     // Body parsing
-    this.app.use(express.json({ limit: '10mb' }));
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    this.app.use(express.json({ limit: "10mb" }));
+    this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
     // Rate limiting (DISABLED FOR DEVELOPMENT)
     // if (process.env.NODE_ENV !== "test") {
@@ -778,12 +789,12 @@ class PatientRegistryServiceApp {
     //     maxRequests: 100,
     //   });
     // } else {
-    logger.info('Rate limiting DISABLED for development');
+    logger.info("Rate limiting DISABLED for development");
     // }
 
     // Request logging
     this.app.use((req, _res, next) => {
-      logger.info('Incoming request', {
+      logger.info("Incoming request", {
         method: req.method,
         path: req.path,
         ip: req.ip,
@@ -791,43 +802,43 @@ class PatientRegistryServiceApp {
       next();
     });
 
-    logger.info('Middleware setup complete');
+    logger.info("Middleware setup complete");
   }
 
   /**
    * Setup routes
    */
   private setupRoutes(): void {
-    logger.info('Setting up routes...');
+    logger.info("Setting up routes...");
 
     // Health & Metrics routes
     const healthRoutes = createHealthRoutes({
       healthCheck: this.healthCheck,
       logger,
     });
-    this.app.use('/', healthRoutes);
+    this.app.use("/", healthRoutes);
 
     // Prometheus metrics endpoint
-    this.app.get('/metrics', async (_req, res) => {
+    this.app.get("/metrics", async (_req, res) => {
       try {
-        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
         const metrics = await prometheusMetrics.getMetrics();
         res.send(metrics);
       } catch (error) {
-        logger.error('Failed to generate metrics', { error });
-        res.status(500).send('Failed to generate metrics');
+        logger.error("Failed to generate metrics", { error });
+        res.status(500).send("Failed to generate metrics");
       }
     });
-    logger.info('Prometheus metrics endpoint registered at /metrics');
+    logger.info("Prometheus metrics endpoint registered at /metrics");
 
     // Swagger API Documentation
     // Accessible at: http://localhost:3023/api-docs
-    this.app.use('/api-docs', swaggerUi.serve);
+    this.app.use("/api-docs", swaggerUi.serve);
     this.app.get(
-      '/api-docs',
+      "/api-docs",
       swaggerUi.setup(swaggerSpec, {
-        customSiteTitle: 'Patient Registry Service API',
-        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: "Patient Registry Service API",
+        customCss: ".swagger-ui .topbar { display: none }",
         swaggerOptions: {
           persistAuthorization: true,
           displayRequestDuration: true,
@@ -838,17 +849,17 @@ class PatientRegistryServiceApp {
     );
 
     // OpenAPI JSON spec
-    this.app.get('/api-docs/json', (_req, res) => {
-      res.setHeader('Content-Type', 'application/json');
+    this.app.get("/api-docs/json", (_req, res) => {
+      res.setHeader("Content-Type", "application/json");
       res.send(swaggerSpec);
     });
 
     logger.info(
-      'Swagger UI available at http://localhost:' + config.port + '/api-docs',
+      "Swagger UI available at http://localhost:" + config.port + "/api-docs",
     );
 
     // Degradation status endpoint
-    this.app.get('/degradation', (_req, res) => {
+    this.app.get("/degradation", (_req, res) => {
       try {
         const status = this.degradationService.getStatus();
         res.status(200).json({
@@ -856,11 +867,11 @@ class PatientRegistryServiceApp {
           timestamp: new Date(),
         });
       } catch (error) {
-        logger.error('Degradation status check failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+        logger.error("Degradation status check failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
         });
         res.status(500).json({
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
           timestamp: new Date(),
         });
       }
@@ -872,7 +883,7 @@ class PatientRegistryServiceApp {
       this.authorizationMiddleware,
     );
     this.app.use(
-      '/api/v1/patients',
+      "/api/v1/patients",
       this.authMiddleware.authenticate(),
       patientRoutes,
     );
@@ -880,7 +891,7 @@ class PatientRegistryServiceApp {
     // CQRS Command routes with authentication
     const commandRoutes = createCommandRoutes(this.commandController);
     this.app.use(
-      '/api/v1/commands',
+      "/api/v1/commands",
       this.authMiddleware.authenticate(),
       commandRoutes,
     );
@@ -891,7 +902,7 @@ class PatientRegistryServiceApp {
     // Error handling middleware (must be last)
     this.app.use(this.errorHandlingMiddleware.handle());
 
-    logger.info('Routes setup complete');
+    logger.info("Routes setup complete");
   }
 
   /**
@@ -922,8 +933,8 @@ class PatientRegistryServiceApp {
         });
       });
     } catch (error) {
-      logger.fatal('Failed to start service', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      logger.fatal("Failed to start service", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       process.exit(1);
     }
@@ -943,20 +954,20 @@ class PatientRegistryServiceApp {
           await this.eventPublisher.publish(event);
         },
         {
-          enabled: config.nodeEnv !== 'test', // Disable in test environment
+          enabled: config.nodeEnv !== "test", // Disable in test environment
           pollingIntervalMs: 5000, // Poll every 5 seconds
           batchSize: 50, // Process 50 events per batch
         },
       );
 
       await this.outboxWorker.start();
-      logger.info('Outbox publisher worker started', {
+      logger.info("Outbox publisher worker started", {
         pollingIntervalMs: 5000,
         batchSize: 50,
       });
     } catch (error) {
-      logger.error('Failed to start outbox worker', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      logger.error("Failed to start outbox worker", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       // Don't fail service startup if outbox worker fails
       // Events will accumulate in outbox table and can be processed later
@@ -967,48 +978,48 @@ class PatientRegistryServiceApp {
    * Graceful shutdown
    */
   async shutdown(): Promise<void> {
-    logger.info('Shutting down gracefully...');
+    logger.info("Shutting down gracefully...");
 
     try {
       // Stop Outbox Worker
       if (this.outboxWorker) {
         await this.outboxWorker.stop();
-        logger.info('Outbox worker stopped');
+        logger.info("Outbox worker stopped");
       }
 
       // Close RabbitMQ connection
       if (this.eventPublisher) {
         await this.eventPublisher.close();
-        logger.info('Event Publisher closed');
+        logger.info("Event Publisher closed");
       }
 
       // Disconnect Identity Event Consumer
       if (this.identityEventConsumer) {
         await this.identityEventConsumer.disconnect();
-        logger.info('Identity event consumer disconnected');
+        logger.info("Identity event consumer disconnected");
       }
 
       // Close Redis connections
       if (this.cacheService) {
         await this.cacheService.disconnect();
-        logger.info('Redis Cache Service disconnected');
+        logger.info("Redis Cache Service disconnected");
       }
 
       if (this.patientCache) {
         await this.patientCache.disconnect();
-        logger.info('Patient Cache disconnected');
+        logger.info("Patient Cache disconnected");
       }
 
       if (this.optimizedSupabase) {
         await this.optimizedSupabase.close();
-        logger.info('Supabase client closed');
+        logger.info("Supabase client closed");
       }
 
-      logger.info('Graceful shutdown complete');
+      logger.info("Graceful shutdown complete");
       process.exit(0);
     } catch (error) {
-      logger.error('Error during shutdown', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      logger.error("Error during shutdown", {
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       process.exit(1);
     }
@@ -1019,13 +1030,13 @@ class PatientRegistryServiceApp {
 const app = new PatientRegistryServiceApp();
 
 // Handle shutdown signals
-process.on('SIGTERM', () => app.shutdown());
-process.on('SIGINT', () => app.shutdown());
+process.on("SIGTERM", () => app.shutdown());
+process.on("SIGINT", () => app.shutdown());
 
 // Start the service
 app.start().catch((error) => {
-  logger.fatal('Unhandled error during startup', {
-    error: error instanceof Error ? error.message : 'Unknown error',
+  logger.fatal("Unhandled error during startup", {
+    error: error instanceof Error ? error.message : "Unknown error",
   });
   process.exit(1);
 });

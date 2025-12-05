@@ -1,19 +1,19 @@
 /**
  * Swagger/OpenAPI Configuration
  * Auto-generates API documentation from JSDoc comments
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
-import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerJsdoc from "swagger-jsdoc";
 
 const options: swaggerJsdoc.Options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Identity Service API',
-      version: '2.0.0',
+      title: "Identity Service API",
+      version: "2.0.0",
       description: `
 # Hospital Management System - Identity Service
 
@@ -58,205 +58,210 @@ Public endpoints (no authentication required):
 - 1000 requests per hour per authenticated user
 
 ## Roles
-- SUPER_ADMIN: Full system access
 - ADMIN: Administrative access
 - DOCTOR: Medical staff access
-- NURSE: Nursing staff access
 - PATIENT: Patient portal access
       `,
       contact: {
-        name: 'Hospital Management Team',
-        email: 'api@hospital.vn',
-        url: 'https://hospital.vn'
+        name: "Hospital Management Team",
+        email: "api@hospital.vn",
+        url: "https://hospital.vn",
       },
       license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
-      }
+        name: "MIT",
+        url: "https://opensource.org/licenses/MIT",
+      },
     },
     servers: [
       {
-        url: 'http://localhost:3021',
-        description: 'Development server'
+        url: "http://localhost:3021",
+        description: "Development server",
       },
       {
-        url: 'https://api.hospital.vn',
-        description: 'Production server'
+        url: "https://api.hospital.vn",
+        description: "Production server",
       },
       {
-        url: 'https://staging-api.hospital.vn',
-        description: 'Staging server'
-      }
+        url: "https://staging-api.hospital.vn",
+        description: "Staging server",
+      },
     ],
     tags: [
       {
-        name: 'Authentication',
-        description: 'User authentication operations (login, register, logout)'
+        name: "Authentication",
+        description: "User authentication operations (login, register, logout)",
       },
       {
-        name: 'MFA',
-        description: 'Multi-factor authentication operations'
+        name: "MFA",
+        description: "Multi-factor authentication operations",
       },
       {
-        name: 'Users',
-        description: 'User management operations'
+        name: "Users",
+        description: "User management operations",
       },
       {
-        name: 'Admin',
-        description: 'Administrative operations (SUPER_ADMIN, ADMIN only)'
+        name: "Admin",
+        description: "Administrative operations (ADMIN only)",
       },
       {
-        name: 'Sessions',
-        description: 'Session management operations'
+        name: "Sessions",
+        description: "Session management operations",
       },
       {
-        name: 'Permissions',
-        description: 'Permission and role management'
+        name: "Permissions",
+        description: "Permission and role management",
       },
       {
-        name: 'Password Policy',
-        description: 'Password policy configuration'
+        name: "Password Policy",
+        description: "Password policy configuration",
       },
       {
-        name: 'Account Recovery',
-        description: 'Account recovery operations'
+        name: "Account Recovery",
+        description: "Account recovery operations",
       },
       {
-        name: 'Health',
-        description: 'Service health checks'
+        name: "Health",
+        description: "Service health checks",
       },
       {
-        name: 'Metrics',
-        description: 'Service metrics and monitoring'
-      }
+        name: "Metrics",
+        description: "Service metrics and monitoring",
+      },
     ],
     components: {
       securitySchemes: {
         BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'JWT authentication token'
-        }
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "JWT authentication token",
+        },
       },
       schemas: {
         // User Roles
         UserRole: {
-          type: 'string',
-          enum: ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'NURSE', 'PATIENT'],
-          description: 'User role in the system'
+          type: "string",
+          enum: ["ADMIN", "DOCTOR", "PATIENT"],
+          description: "User role in the system",
         },
 
         // Request/Response schemas
         LoginRequest: {
-          type: 'object',
-          required: ['email', 'password'],
+          type: "object",
+          required: ["email", "password"],
           properties: {
             email: {
-              type: 'string',
-              format: 'email',
-              example: 'doctor@hospital.vn'
+              type: "string",
+              format: "email",
+              example: "doctor@hospital.vn",
             },
             password: {
-              type: 'string',
-              format: 'password',
+              type: "string",
+              format: "password",
               minLength: 8,
-              example: 'SecurePassword123!'
+              example: "SecurePassword123!",
             },
             mfaCode: {
-              type: 'string',
-              pattern: '^\\d{6}$',
-              example: '123456',
-              description: 'Required if MFA is enabled'
-            }
-          }
+              type: "string",
+              pattern: "^\\d{6}$",
+              example: "123456",
+              description: "Required if MFA is enabled",
+            },
+          },
         },
 
         LoginResponse: {
-          type: 'object',
+          type: "object",
           properties: {
-            success: { type: 'boolean', example: true },
+            success: { type: "boolean", example: true },
             data: {
-              type: 'object',
+              type: "object",
               properties: {
-                accessToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-                refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                accessToken: {
+                  type: "string",
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                },
+                refreshToken: {
+                  type: "string",
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                },
                 user: {
-                  type: 'object',
+                  type: "object",
                   properties: {
-                    id: { type: 'string', example: 'usr_123456' },
-                    email: { type: 'string', example: 'doctor@hospital.vn' },
-                    fullName: { type: 'string', example: 'Dr. Nguyen Van A' },
-                    role: { $ref: '#/components/schemas/UserRole' },
-                    isEmailVerified: { type: 'boolean', example: true },
-                    isMfaEnabled: { type: 'boolean', example: false }
-                  }
-                }
-              }
+                    id: { type: "string", example: "usr_123456" },
+                    email: { type: "string", example: "doctor@hospital.vn" },
+                    fullName: { type: "string", example: "Dr. Nguyen Van A" },
+                    role: { $ref: "#/components/schemas/UserRole" },
+                    isEmailVerified: { type: "boolean", example: true },
+                    isMfaEnabled: { type: "boolean", example: false },
+                  },
+                },
+              },
             },
-            message: { type: 'string', example: 'Login successful' }
-          }
+            message: { type: "string", example: "Login successful" },
+          },
         },
 
         RegisterRequest: {
-          type: 'object',
-          required: ['email', 'password', 'fullName'],
+          type: "object",
+          required: ["email", "password", "fullName"],
           properties: {
             email: {
-              type: 'string',
-              format: 'email',
-              example: 'patient@example.com'
+              type: "string",
+              format: "email",
+              example: "patient@example.com",
             },
             password: {
-              type: 'string',
-              format: 'password',
+              type: "string",
+              format: "password",
               minLength: 8,
-              example: 'SecurePassword123!'
+              example: "SecurePassword123!",
             },
             fullName: {
-              type: 'string',
+              type: "string",
               minLength: 3,
               maxLength: 100,
-              example: 'Nguyen Van B'
+              example: "Nguyen Van B",
             },
             phoneNumber: {
-              type: 'string',
-              pattern: '^(\\+84|0)[0-9]{9,10}$',
-              example: '+84901234567'
-            }
-          }
+              type: "string",
+              pattern: "^(\\+84|0)[0-9]{9,10}$",
+              example: "+84901234567",
+            },
+          },
         },
 
         ErrorResponse: {
-          type: 'object',
+          type: "object",
           properties: {
-            success: { type: 'boolean', example: false },
-            message: { type: 'string', example: 'Validation failed' },
+            success: { type: "boolean", example: false },
+            message: { type: "string", example: "Validation failed" },
             errors: {
-              type: 'array',
-              items: { type: 'string' },
-              example: ['Email is required', 'Password must be at least 8 characters']
+              type: "array",
+              items: { type: "string" },
+              example: [
+                "Email is required",
+                "Password must be at least 8 characters",
+              ],
             },
             code: {
-              type: 'string',
-              example: 'VALIDATION_ERROR'
-            }
-          }
-        }
-      }
+              type: "string",
+              example: "VALIDATION_ERROR",
+            },
+          },
+        },
+      },
     },
     security: [
       {
-        BearerAuth: []
-      }
-    ]
+        BearerAuth: [],
+      },
+    ],
   },
   apis: [
-    './src/presentation/routes/*.ts',
-    './src/presentation/controllers/*.ts'
-  ]
+    "./src/presentation/routes/*.ts",
+    "./src/presentation/controllers/*.ts",
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
-
-

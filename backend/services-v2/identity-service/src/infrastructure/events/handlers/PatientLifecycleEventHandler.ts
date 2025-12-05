@@ -13,6 +13,7 @@
 
 import { ILogger } from "../../../application/services/ILogger";
 import { InboxService } from "../../inbox/InboxService";
+import { DeactivateUserUseCase } from "../../../application/use-cases/DeactivateUserUseCase";
 
 export interface PatientDeceasedEvent {
   eventId: string;
@@ -26,7 +27,7 @@ export interface PatientDeceasedEvent {
 
 export class PatientLifecycleEventHandler {
   constructor(
-    private deactivateUserUseCase: any, // DISABLED: DeactivateUserUseCase removed
+    private deactivateUserUseCase: DeactivateUserUseCase,
     private inboxService: InboxService,
     private logger: ILogger,
   ) {}
@@ -66,16 +67,24 @@ export class PatientLifecycleEventHandler {
         dateOfDeath: event.dateOfDeath,
       });
 
-      // DISABLED: DeactivateUserUseCase removed for graduation project scope
-      this.logger.warn(
-        "Patient deceased event received but handler is disabled - DeactivateUserUseCase removed",
-        {
-          userId: event.userId,
-          patientId: event.patientId,
-          dateOfDeath: event.dateOfDeath,
-          deathCertificateNumber: event.deathCertificateNumber,
-        },
-      );
+      const deactivateResult = await this.deactivateUserUseCase.execute({
+        userId: event.userId,
+        deactivatedBy: event.reportedBy || "patient-registry-service",
+        reason: `Patient marked as deceased on ${event.dateOfDeath.toISOString()}${event.deathCertificateNumber ? ` (#${event.deathCertificateNumber})` : ""}`,
+        terminateSessions: true,
+      });
+
+      if (!deactivateResult.success) {
+        throw new Error(
+          `Failed to deactivate user for patient ${event.patientId}: ${deactivateResult.message}`,
+        );
+      }
+
+      this.logger.warn("Patient account permanently deactivated", {
+        userId: event.userId,
+        patientId: event.patientId,
+        reportedBy: event.reportedBy,
+      });
 
       // Mark as processed
       await this.inboxService.markProcessed(event.eventId);

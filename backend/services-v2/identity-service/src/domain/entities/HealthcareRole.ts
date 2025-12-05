@@ -11,29 +11,17 @@
  * @version 3.0.0 - Pure RBAC
  */
 
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from "@shared/domain/base/entity";
 
 /**
  * Healthcare Role Types - Simplified for Graduation Project
  *
- * 5 Core Roles:
+ * 3 Core Roles (current implementation scope):
  * - ADMIN: System administrator
- * - DOCTOR: Medical doctor (includes pharmacy & lab orders)
- * - NURSE: Registered nurse (includes pharmacy dispensing & lab specimen collection)
- * - RECEPTIONIST: Front desk (includes billing & payment processing)
+ * - DOCTOR: Medical doctor (includes all clinical staff actions)
  * - PATIENT: Patient user
- *
- * Merged Roles:
- * - PHARMACIST → NURSE + DOCTOR (pharmacy permissions distributed)
- * - LAB_TECHNICIAN → NURSE + DOCTOR (lab permissions distributed)
- * - BILLING_STAFF → RECEPTIONIST + ADMIN (billing permissions distributed)
  */
-export type HealthcareRoleType =
-  | 'ADMIN'
-  | 'DOCTOR'
-  | 'NURSE'
-  | 'RECEPTIONIST'
-  | 'PATIENT';
+export type HealthcareRoleType = "ADMIN" | "DOCTOR" | "PATIENT";
 
 interface HealthcareRoleProps {
   type: HealthcareRoleType;
@@ -69,7 +57,7 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
     name: string,
     nameVietnamese: string,
     description: string,
-    hasHIPAATraining: boolean = false
+    hasHIPAATraining: boolean = false,
   ): HealthcareRole {
     return new HealthcareRole({
       type,
@@ -77,7 +65,7 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
       nameVietnamese,
       description,
       isActive: true,
-      hasHIPAATraining
+      hasHIPAATraining,
     });
   }
 
@@ -98,37 +86,28 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
    * ```
    */
   public static fromRoleType(roleType: string): HealthcareRole {
-    const roleMap: Record<string, { name: string; nameVi: string; desc: string; hipaa: boolean }> = {
-      'ADMIN': {
-        name: 'Administrator',
-        nameVi: 'Quản trị viên',
-        desc: 'System administrator with full access (includes billing management)',
-        hipaa: true
+    const roleMap: Record<
+      string,
+      { name: string; nameVi: string; desc: string; hipaa: boolean }
+    > = {
+      ADMIN: {
+        name: "Administrator",
+        nameVi: "Quản trị viên",
+        desc: "System administrator with full access (includes billing management)",
+        hipaa: true,
       },
-      'DOCTOR': {
-        name: 'Doctor',
-        nameVi: 'Bác sĩ',
-        desc: 'Medical doctor (includes pharmacy orders & lab orders)',
-        hipaa: true
+      DOCTOR: {
+        name: "Doctor",
+        nameVi: "Bác sĩ",
+        desc: "Medical doctor (includes pharmacy orders & lab orders)",
+        hipaa: true,
       },
-      'NURSE': {
-        name: 'Nurse',
-        nameVi: 'Y tá',
-        desc: 'Registered nurse (includes pharmacy dispensing & lab specimen collection)',
-        hipaa: true
+      PATIENT: {
+        name: "Patient",
+        nameVi: "Bệnh nhân",
+        desc: "Patient user",
+        hipaa: false,
       },
-      'RECEPTIONIST': {
-        name: 'Receptionist',
-        nameVi: 'Lễ tân',
-        desc: 'Front desk receptionist (includes billing & payment processing)',
-        hipaa: false
-      },
-      'PATIENT': {
-        name: 'Patient',
-        nameVi: 'Bệnh nhân',
-        desc: 'Patient user',
-        hipaa: false
-      }
     };
 
     const roleData = roleMap[roleType.toUpperCase()];
@@ -142,7 +121,7 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
       nameVietnamese: roleData.nameVi,
       description: roleData.desc,
       isActive: true,
-      hasHIPAATraining: roleData.hipaa
+      hasHIPAATraining: roleData.hipaa,
     });
   }
 
@@ -175,21 +154,24 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
    * Check if role is medical staff
    */
   public isMedicalStaff(): boolean {
-    return ['DOCTOR', 'NURSE'].includes(this.props.type);
+    return this.props.type === "DOCTOR";
   }
 
   /**
    * Check if role is administrative staff
    */
   public isAdministrativeStaff(): boolean {
-    return ['ADMIN', 'RECEPTIONIST'].includes(this.props.type);
+    return this.props.type === "ADMIN";
   }
 
   /**
    * Check if role is Vietnamese healthcare role
    */
   public isVietnameseHealthcareRole(): boolean {
-    return this.props.nameVietnamese !== undefined && this.props.nameVietnamese.length > 0;
+    return (
+      this.props.nameVietnamese !== undefined &&
+      this.props.nameVietnamese.length > 0
+    );
   }
 
   /**
@@ -197,13 +179,16 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
    */
   validate(): void {
     if (!this.props.type) {
-      throw new Error('Role type is required');
+      throw new Error("Role type is required");
     }
     if (!this.props.name || this.props.name.trim().length === 0) {
-      throw new Error('Role name is required');
+      throw new Error("Role name is required");
     }
-    if (!this.props.nameVietnamese || this.props.nameVietnamese.trim().length === 0) {
-      throw new Error('Vietnamese role name is required');
+    if (
+      !this.props.nameVietnamese ||
+      this.props.nameVietnamese.trim().length === 0
+    ) {
+      throw new Error("Vietnamese role name is required");
     }
   }
 
@@ -220,7 +205,7 @@ export class HealthcareRole extends Entity<HealthcareRoleProps> {
       is_active: this.props.isActive,
       has_hipaa_training: this.props.hasHIPAATraining,
       created_at: this.createdAt,
-      updated_at: this.updatedAt
+      updated_at: this.updatedAt,
     };
   }
 }

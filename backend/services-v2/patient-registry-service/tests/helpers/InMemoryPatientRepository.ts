@@ -1,7 +1,7 @@
-import { IPatientRepository } from '../../src/domain/repositories/IPatientRepository';
-import { Patient } from '../../src/domain/aggregates/Patient';
-import { PatientId } from '../../src/domain/value-objects/PatientId';
-import { PatientStatus } from '../../src/domain/value-objects/PatientStatus';
+import { IPatientRepository } from "../../src/domain/repositories/IPatientRepository";
+import { Patient } from "../../src/domain/aggregates/Patient";
+import { PatientId } from "../../src/domain/value-objects/PatientId";
+import { PatientStatus } from "../../src/domain/value-objects/PatientStatus";
 
 interface SavedPatient {
   patient: Patient;
@@ -45,30 +45,72 @@ export class InMemoryPatientRepository implements IPatientRepository {
     }
   }
 
-  async findWithFilters(): Promise<{ patients: Patient[]; total: number; }> {
-    const patients = Array.from(this.patients.values()).map(record => record.patient);
+  async updateStatusByUserId(
+    userId: string,
+    newStatus: PatientStatus,
+  ): Promise<{
+    updated: boolean;
+    patientId?: string;
+    previousStatus?: PatientStatus;
+  }> {
+    const patient = await this.findByUserId(userId);
+    if (!patient) {
+      return { updated: false };
+    }
+
+    const props = patient.getProps();
+    const previousStatus = props.status;
+
+    if (previousStatus === newStatus) {
+      return {
+        updated: false,
+        patientId: patient.getPatientIdObject().getValue(),
+        previousStatus,
+      };
+    }
+
+    props.status = newStatus;
+    return {
+      updated: true,
+      patientId: patient.getPatientIdObject().getValue(),
+      previousStatus,
+    };
+  }
+
+  async findWithFilters(): Promise<{ patients: Patient[]; total: number }> {
+    const patients = Array.from(this.patients.values()).map(
+      (record) => record.patient,
+    );
     return { patients, total: patients.length };
   }
 
   async searchPatients(
     searchTerm: string,
     _filters?: { isActive?: boolean; hasInsurance?: boolean },
-    _pagination?: { page: number; limit: number }
+    _pagination?: { page: number; limit: number },
   ): Promise<{ patients: Patient[]; total: number }> {
     const term = searchTerm.trim().toLowerCase();
     const patients = Array.from(this.patients.values())
-      .map(record => record.patient)
-      .filter(patient => {
+      .map((record) => record.patient)
+      .filter((patient) => {
         const props = patient.getProps();
-        return props.personalInfo.fullName.toLowerCase().includes(term) ||
+        return (
+          props.personalInfo.fullName.toLowerCase().includes(term) ||
           props.personalInfo.nationalId.includes(term) ||
-          (props.contactInfo.email?.toLowerCase().includes(term) ?? false);
+          (props.contactInfo.email?.toLowerCase().includes(term) ?? false)
+        );
       });
 
     return { patients, total: patients.length };
   }
 
-  async matchPatients(): Promise<Array<{ patient: Patient; matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not'; score: number }>> {
+  async matchPatients(): Promise<
+    Array<{
+      patient: Patient;
+      matchGrade: "certain" | "probable" | "possible" | "certainly-not";
+      score: number;
+    }>
+  > {
     return [];
   }
 
@@ -82,25 +124,47 @@ export class InMemoryPatientRepository implements IPatientRepository {
   }
 
   async getHealthStatus(): Promise<{ status: string; message?: string }> {
-    return { status: 'healthy' };
+    return { status: "healthy" };
   }
 
   async getStatistics(): Promise<{
     total: number;
-    byGender: { male: number; female: number; other: number; unknown: number; };
-    byAgeRange: { '0-18': number; '19-40': number; '41-60': number; '60+': number; };
-    byInsuranceType: { bhyt: number; bhtn: number; private: number; selfPay: number; };
-    byStatus: { active: number; inactive: number; deceased: number; merged: number; };
+    byGender: { male: number; female: number; other: number; unknown: number };
+    byAgeRange: {
+      "0-18": number;
+      "19-40": number;
+      "41-60": number;
+      "60+": number;
+    };
+    byInsuranceType: {
+      bhyt: number;
+      bhtn: number;
+      private: number;
+      selfPay: number;
+    };
+    byStatus: {
+      active: number;
+      inactive: number;
+      deceased: number;
+      merged: number;
+    };
     registrationTrend: Array<{ month: string; count: number }>;
   }> {
-    const patients = Array.from(this.patients.values()).map(record => record.patient);
+    const patients = Array.from(this.patients.values()).map(
+      (record) => record.patient,
+    );
     return {
       total: patients.length,
       byGender: { male: 0, female: 0, other: 0, unknown: 0 },
-      byAgeRange: { '0-18': 0, '19-40': 0, '41-60': 0, '60+': 0 },
+      byAgeRange: { "0-18": 0, "19-40": 0, "41-60": 0, "60+": 0 },
       byInsuranceType: { bhyt: 0, bhtn: 0, private: 0, selfPay: 0 },
-      byStatus: { active: patients.length, inactive: 0, deceased: 0, merged: 0 },
-      registrationTrend: []
+      byStatus: {
+        active: patients.length,
+        inactive: 0,
+        deceased: 0,
+        merged: 0,
+      },
+      registrationTrend: [],
     };
   }
 
@@ -112,7 +176,7 @@ export class InMemoryPatientRepository implements IPatientRepository {
       dateFrom?: Date;
       dateTo?: Date;
       eventTypes?: string[];
-    }
+    },
   ): Promise<{
     history: Array<{
       eventId: string;
@@ -143,48 +207,54 @@ export class InMemoryPatientRepository implements IPatientRepository {
     city?: string;
     province?: string;
     dateOfBirth?: Date;
-    gender?: 'male' | 'female' | 'other';
+    gender?: "male" | "female" | "other";
     citizenId?: string;
   }): Promise<Patient> {
     // Create patient using the same logic as SupabasePatientRepository
-    const PersonalInfo = (await import('../../src/domain/value-objects/PersonalInfo')).PersonalInfo;
-    const ContactInfo = (await import('../../src/domain/value-objects/ContactInfo')).ContactInfo;
-    const BasicMedicalInfo = (await import('../../src/domain/value-objects/BasicMedicalInfo')).BasicMedicalInfo;
+    const PersonalInfo = (
+      await import("../../src/domain/value-objects/PersonalInfo")
+    ).PersonalInfo;
+    const ContactInfo = (
+      await import("../../src/domain/value-objects/ContactInfo")
+    ).ContactInfo;
+    const BasicMedicalInfo = (
+      await import("../../src/domain/value-objects/BasicMedicalInfo")
+    ).BasicMedicalInfo;
 
     const patient = Patient.register(
       userData.userId,
       PersonalInfo.create({
         fullName: userData.fullName,
-        dateOfBirth: userData.dateOfBirth || new Date('2000-01-01'),
-        gender: userData.gender || 'other',
-        nationalId: userData.citizenId || '',
-        nationality: 'VN',
+        dateOfBirth: userData.dateOfBirth || new Date("2000-01-01"),
+        gender: userData.gender || "other",
+        nationalId: userData.citizenId || "",
+        nationality: "VN",
         ethnicity: undefined,
         occupation: undefined,
-        maritalStatus: undefined
+        maritalStatus: undefined,
       }),
       ContactInfo.create({
-        primaryPhone: userData.phoneNumber || '',
+        primaryPhone: userData.phoneNumber || "",
         email: userData.email,
         address: {
-          street: userData.address || '',
-          ward: userData.ward || 'Chưa cập nhật',
-          district: userData.district || 'Chưa cập nhật',
-          city: userData.city || 'Chưa cập nhật',
-          province: userData.province || 'Chưa cập nhật',
+          street: userData.address || "",
+          ward: userData.ward || "Chưa cập nhật",
+          district: userData.district || "Chưa cập nhật",
+          city: userData.city || "Chưa cập nhật",
+          province: userData.province || "Chưa cập nhật",
           postalCode: undefined,
-          country: 'Vietnam'
+          country: "Vietnam",
         },
-        preferredContactMethod: 'email'
+        preferredContactMethod: "email",
       }),
       BasicMedicalInfo.create({
         bloodType: undefined,
         knownAllergies: [], // Use correct property name
-        emergencyMedicalInfo: undefined
+        emergencyMedicalInfo: undefined,
       }),
       undefined, // insuranceInfo
       [], // emergencyContacts
-      'system' // Created by system during user activation
+      "system", // Created by system during user activation
     );
 
     // Save to in-memory storage
@@ -204,6 +274,6 @@ export class InMemoryPatientRepository implements IPatientRepository {
   }
 
   getAllPatients(): Patient[] {
-    return Array.from(this.patients.values()).map(record => record.patient);
+    return Array.from(this.patients.values()).map((record) => record.patient);
   }
 }

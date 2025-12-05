@@ -1,98 +1,166 @@
 /**
  * UserActivatedEventHandler
  * Handles user.activated events from Identity Service
- * Creates patient records when users verify their email and get activated
- *
- * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, Event-Driven Architecture
+ * Creates patient records or reactivates existing ones
  */
 
 import { ILogger } from '@shared/application/services/logger.interface';
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
+import { PatientStatus } from '../../../domain/value-objects/PatientStatus';
 
-/**
- * User Activated Event Data
- * Matches payload structure from Identity Service UserActivatedEvent
- */
 export interface UserActivatedEventData {
-  userId: string;
-  email?: string; // Email may be undefined in some cases
-  fullName?: string; // Full name from user registration
-  activatedAt: Date;
+  userId?: string;
+  email?: string;
+  fullName?: string;
+  activatedAt?: Date | string;
+  eventData?: UserActivatedEventData; // Some publishers wrap payload
 }
 
-/**
- * User Activated Event Handler
- * Processes user activation events from Identity Service
- * Creates patient records after email verification
- */
 export class UserActivatedEventHandler {
   constructor(
     private logger: ILogger,
-    private patientRepository: IPatientRepository
+    private patientRepository: IPatientRepository,
   ) {}
 
-  /**
-   * Handle user.activated event
-   */
-  async handle(eventData: UserActivatedEventData): Promise<void> {
+  async handle(rawEventData: UserActivatedEventData): Promise<void> {
     try {
-      this.logger.info('Processing user.activated event', {
-        userId: eventData.userId,
-        email: eventData.email,
-        activatedAt: eventData.activatedAt
-      });
+      const eventData = this.normalizeEventData(rawEventData);
 
-      // Check if patient already exists for this user
-      const existingPatient = await this.patientRepository.findByUserId(eventData.userId);
-
-      if (existingPatient) {
-        this.logger.warn('Patient already exists for activated user', {
-          userId: eventData.userId,
-          patientId: existingPatient.id,
-          note: 'This may indicate a duplicate activation event'
+      if (!eventData) {
+        this.logger.warn('user.activated event missing userId, skipping', {
+          raw: rawEventData,
         });
         return;
       }
 
-      // Create patient record from activated user information
+      this.logger.info('Processing user.activated event', {
+        userId: eventData.userId,
+        email: eventData.email,
+        activatedAt: eventData.activatedAt,
+      });
+
+      const existingPatient = await this.patientRepository.findByUserId(
+        eventData.userId,
+      );
+
+      if (existingPatient) {
+        if (existingPatient.isActive()) {
+          this.logger.warn('Patient already active for activated user', {
+            userId: eventData.userId,
+            patientId: existingPatient.id,
+            note: 'Skipping duplicate activation event',
+          });
+          return;
+        }
+
+        const updateResult = await this.patientRepository.updateStatusByUserId(
+          eventData.userId,
+          PatientStatus.ACTIVE,
+          {
+            updatedBy: eventData.userId,
+            reason: 'Identity user activated',
+            source: 'identity.user.activated',
+          },
+        );
+
+        if (updateResult.updated) {
+          this.logger.info('Patient status reactivated from identity event', {
+            userId: eventData.userId,
+            patientId: updateResult.patientId,
+            previousStatus: updateResult.previousStatus,
+          });
+        } else {
+          this.logger.debug(
+            'Patient status already active when processing identity event',
+            {
+              userId: eventData.userId,
+              patientId: updateResult.patientId,
+              previousStatus: updateResult.previousStatus,
+            },
+          );
+        }
+
+        return;
+      }
+
       this.logger.info('Creating patient record for activated user', {
         userId: eventData.userId,
         email: eventData.email,
         fullName: eventData.fullName,
-        activatedAt: eventData.activatedAt
+        activatedAt: eventData.activatedAt,
       });
 
-      // Create patient using repository - use fullName from event data
       const patient = await this.patientRepository.createFromUserEvent({
         userId: eventData.userId,
         email: eventData.email || '',
-        fullName: eventData.fullName || (eventData.email ? eventData.email.split('@')[0] : `User-${eventData.userId.substring(0, 8)}`), // Use fullName from event, fallback to email
-        phoneNumber: 'Chưa cập nhật',     // Smart default
-        address: 'Chưa cập nhật',         // Smart default
-        ward: 'Chưa cập nhật',            // Smart default
-        district: 'Chưa cập nhật',        // Smart default
-        city: 'Chưa cập nhật',            // Smart default
-        province: 'Chưa cập nhật',        // Smart default
-        dateOfBirth: new Date('2000-01-01'), // Smart default (Date object)
-        gender: 'other',                  // Smart default
-        citizenId: 'Chưa cập nhật'        // Smart default
+        fullName: eventData.fullName,
+        phoneNumber: 'Chưa cập nhật',
+        address: 'Chưa cập nhật',
+        ward: 'Chưa cập nhật',
+        district: 'Chưa cập nhật',
+        city: 'Chưa cập nhật',
+        province: 'Chưa cập nhật',
+        dateOfBirth: new Date('2000-01-01'),
+        gender: 'other',
+        citizenId: 'Chưa cập nhật',
       });
 
-      this.logger.info('Patient record created successfully from user activation', {
-        userId: eventData.userId,
-        patientId: patient.id,
-        email: eventData.email,
-        activatedAt: eventData.activatedAt
-      });
-
+      this.logger.info(
+        'Patient record created successfully from user activation',
+        {
+          userId: eventData.userId,
+          patientId: patient.id,
+          email: eventData.email,
+          activatedAt: eventData.activatedAt,
+        },
+      );
     } catch (error) {
       this.logger.error('Error handling user.activated event', {
-        userId: eventData.userId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        userId:
+          rawEventData.userId ?? rawEventData?.eventData?.userId ?? 'unknown',
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
+  }
+
+  private normalizeEventData(
+    raw: UserActivatedEventData,
+  ): { userId: string; email?: string; fullName: string; activatedAt?: Date } | null {
+    const payload = (raw?.eventData as UserActivatedEventData) ?? raw ?? {};
+    const userId =
+      payload.userId ??
+      (payload as any)?.aggregateId ??
+      (payload as any)?.id ??
+      null;
+
+    if (!userId || typeof userId !== 'string') {
+      return null;
+    }
+
+    const email =
+      payload.email ??
+      (payload as any)?.contactEmail ??
+      (payload as any)?.emailAddress;
+
+    const activatedAtValue = payload.activatedAt;
+    const activatedAt =
+      activatedAtValue instanceof Date
+        ? activatedAtValue
+        : activatedAtValue
+        ? new Date(activatedAtValue)
+        : undefined;
+
+    const fallbackName =
+      email && email.includes('@')
+        ? email.split('@')[0]
+        : `User-${userId.substring(0, 8)}`;
+
+    return {
+      userId,
+      email,
+      fullName: payload.fullName ?? fallbackName,
+      activatedAt,
+    };
   }
 }

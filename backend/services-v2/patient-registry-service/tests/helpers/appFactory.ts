@@ -8,42 +8,42 @@
  * @version 2.0.0
  */
 
-import express, { Application } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import { createClient } from '@supabase/supabase-js';
+import express, { Application } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import { createClient } from "@supabase/supabase-js";
 
 // Infrastructure imports
-import { SupabasePatientRepository } from '../../src/infrastructure/repositories/SupabasePatientRepository';
-import { InMemoryPatientRepository } from './InMemoryPatientRepository';
-import { IPatientRepository } from '../../src/domain/repositories/IPatientRepository';
-import { RabbitMQEventPublisher } from '../../src/infrastructure/events/RabbitMQEventPublisher';
+import { SupabasePatientRepository } from "../../src/infrastructure/repositories/SupabasePatientRepository";
+import { InMemoryPatientRepository } from "./InMemoryPatientRepository";
+import { IPatientRepository } from "../../src/domain/repositories/IPatientRepository";
+import { RabbitMQEventPublisher } from "../../src/infrastructure/events/RabbitMQEventPublisher";
 
 // Application Services
-import { PatientMatchingService } from '../../src/application/services/PatientMatchingService';
-import { InsuranceValidationService } from '../../src/application/services/InsuranceValidationService';
+import { PatientMatchingService } from "../../src/application/services/PatientMatchingService";
+import { InsuranceValidationService } from "../../src/application/services/InsuranceValidationService";
 
 // Use Cases
-import { RegisterPatientUseCase } from '../../src/application/use-cases/RegisterPatientUseCase';
-import { UpdatePatientInfoUseCase } from '../../src/application/use-cases/UpdatePatientInfoUseCase';
-import { GetPatientProfileUseCase } from '../../src/application/use-cases/GetPatientProfileUseCase';
-import { SearchPatientsUseCase } from '../../src/application/use-cases/SearchPatientsUseCase';
+import { RegisterPatientUseCase } from "../../src/application/use-cases/RegisterPatientUseCase";
+import { UpdatePatientInfoUseCase } from "../../src/application/use-cases/UpdatePatientInfoUseCase";
+import { GetPatientProfileUseCase } from "../../src/application/use-cases/GetPatientProfileUseCase";
+import { SearchPatientsUseCase } from "../../src/application/use-cases/SearchPatientsUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
 import { MatchPatientsUseCase } from '../../src/application/use-cases/MatchPatientsUseCase';
 import { MergePatientsUseCase } from '../../src/application/use-cases/MergePatientsUseCase';
 import { LinkPatientsUseCase } from '../../src/application/use-cases/LinkPatientsUseCase';
 import { DeactivatePatientUseCase } from '../../src/application/use-cases/DeactivatePatientUseCase';
 END POST-MVP */
-import { ValidateInsuranceUseCase } from '../../src/application/use-cases/ValidateInsuranceUseCase';
-import { AddEmergencyContactUseCase } from '../../src/application/use-cases/AddEmergencyContactUseCase';
+import { ValidateInsuranceUseCase } from "../../src/application/use-cases/ValidateInsuranceUseCase";
+import { AddEmergencyContactUseCase } from "../../src/application/use-cases/AddEmergencyContactUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
 import { GrantConsentUseCase } from '../../src/application/use-cases/GrantConsentUseCase';
 import { MarkAsDeceasedUseCase } from '../../src/application/use-cases/MarkAsDeceasedUseCase';
 import { ReactivatePatientUseCase } from '../../src/application/use-cases/ReactivatePatientUseCase';
 END POST-MVP */
-import { GetEmergencyContactsUseCase } from '../../src/application/use-cases/GetEmergencyContactsUseCase';
-import { UpdateEmergencyContactUseCase } from '../../src/application/use-cases/UpdateEmergencyContactUseCase';
+import { GetEmergencyContactsUseCase } from "../../src/application/use-cases/GetEmergencyContactsUseCase";
+import { UpdateEmergencyContactUseCase } from "../../src/application/use-cases/UpdateEmergencyContactUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
 import { RemoveEmergencyContactUseCase } from '../../src/application/use-cases/RemoveEmergencyContactUseCase';
 import { SetPrimaryEmergencyContactUseCase } from '../../src/application/use-cases/SetPrimaryEmergencyContactUseCase';
@@ -52,12 +52,12 @@ import { GetConsentDetailsUseCase } from '../../src/application/use-cases/GetCon
 import { RevokeConsentUseCase } from '../../src/application/use-cases/RevokeConsentUseCase';
 import { GetActiveConsentsUseCase } from '../../src/application/use-cases/GetActiveConsentsUseCase';
 END POST-MVP */
-import { GetInsuranceInfoUseCase } from '../../src/application/use-cases/GetInsuranceInfoUseCase';
-import { AddInsuranceInfoUseCase } from '../../src/application/use-cases/AddInsuranceInfoUseCase';
-import { UpdateInsuranceInfoUseCase } from '../../src/application/use-cases/UpdateInsuranceInfoUseCase';
-import { VerifyInsuranceUseCase } from '../../src/application/use-cases/VerifyInsuranceUseCase';
+import { GetInsuranceInfoUseCase } from "../../src/application/use-cases/GetInsuranceInfoUseCase";
+import { AddInsuranceInfoUseCase } from "../../src/application/use-cases/AddInsuranceInfoUseCase";
+import { UpdateInsuranceInfoUseCase } from "../../src/application/use-cases/UpdateInsuranceInfoUseCase";
+import { VerifyInsuranceUseCase } from "../../src/application/use-cases/VerifyInsuranceUseCase";
+import { GetPatientStatisticsUseCase } from "../../src/application/use-cases/GetPatientStatisticsUseCase";
 /* POST-MVP: Archived use case imports - Not required for graduation project
-import { GetPatientStatisticsUseCase } from '../../src/application/use-cases/GetPatientStatisticsUseCase';
 import { UploadPatientPhotoUseCase } from '../../src/application/use-cases/UploadPatientPhotoUseCase';
 import { GetPatientPhotoUseCase } from '../../src/application/use-cases/GetPatientPhotoUseCase';
 import { DeletePatientPhotoUseCase } from '../../src/application/use-cases/DeletePatientPhotoUseCase';
@@ -65,25 +65,28 @@ import { UpdateCommunicationPreferencesUseCase } from '../../src/application/use
 import { GetCommunicationPreferencesUseCase } from '../../src/application/use-cases/GetCommunicationPreferencesUseCase';
 import { GetPatientHistoryUseCase } from '../../src/application/use-cases/GetPatientHistoryUseCase';
 END POST-MVP */
-import { PatientCommandHandlers } from '../../src/application/handlers/PatientCommandHandlers';
-import { PatientQueryHandlers } from '../../src/application/handlers/PatientQueryHandlers';
+import { PatientCommandHandlers } from "../../src/application/handlers/PatientCommandHandlers";
+import { PatientQueryHandlers } from "../../src/application/handlers/PatientQueryHandlers";
 
 // Presentation
-import { PatientController } from '../../src/presentation/controllers/PatientController';
-import { CommandController } from '../../src/presentation/controllers/CommandController';
-import { createPatientRoutes } from '../../src/presentation/routes/patientRoutes';
-import { createCommandRoutes } from '../../src/presentation/routes/commandRoutes';
-import { ErrorHandlingMiddleware } from '../../src/presentation/middleware/ErrorHandlingMiddleware';
-import { AuthenticationMiddleware } from '../../src/presentation/middleware/AuthenticationMiddleware';
-import { ensureIdentityMockServer } from './identityMockServer';
+import { PatientController } from "../../src/presentation/controllers/PatientController";
+import { CommandController } from "../../src/presentation/controllers/CommandController";
+import { createPatientRoutes } from "../../src/presentation/routes/patientRoutes";
+import { createCommandRoutes } from "../../src/presentation/routes/commandRoutes";
+import { ErrorHandlingMiddleware } from "../../src/presentation/middleware/ErrorHandlingMiddleware";
+import { AuthenticationMiddleware } from "../../src/presentation/middleware/AuthenticationMiddleware";
+import { ensureIdentityMockServer } from "./identityMockServer";
 
 // Logger
-import { ILogger, LogMetadata as _LogMetadata } from '@shared/application/services/logger.interface';
-import { IEventBus } from '@shared/application/services/event-bus.interface';
-import { PatientCache } from '../../src/infrastructure/cache/PatientCache';
-import { AuditService } from '../../src/infrastructure/audit/AuditService';
-import { SupabaseOutboxRepository } from '../../src/infrastructure/outbox/SupabaseOutboxRepository';
-import { SupabaseStorageService } from '../../src/infrastructure/storage/SupabaseStorageService';
+import {
+  ILogger,
+  LogMetadata as _LogMetadata,
+} from "@shared/application/services/logger.interface";
+import { IEventBus } from "@shared/application/services/event-bus.interface";
+import { PatientCache } from "../../src/infrastructure/cache/PatientCache";
+import { AuditService } from "../../src/infrastructure/audit/AuditService";
+import { SupabaseOutboxRepository } from "../../src/infrastructure/outbox/SupabaseOutboxRepository";
+import { SupabaseStorageService } from "../../src/infrastructure/storage/SupabaseStorageService";
 
 /**
  * Test Logger - Silent logger for tests
@@ -91,9 +94,9 @@ import { SupabaseStorageService } from '../../src/infrastructure/storage/Supabas
 const createTestLogger = (): ILogger => ({
   debug: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
   info: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Silent for tests
-  warn: (...args: unknown[]) => console.warn('[TestLogger][WARN]', ...args),
-  error: (...args: unknown[]) => console.error('[TestLogger][ERROR]', ...args),
-  fatal: (...args: unknown[]) => console.error('[TestLogger][FATAL]', ...args)
+  warn: (...args: unknown[]) => console.warn("[TestLogger][WARN]", ...args),
+  error: (...args: unknown[]) => console.error("[TestLogger][ERROR]", ...args),
+  fatal: (...args: unknown[]) => console.error("[TestLogger][FATAL]", ...args),
 });
 
 /**
@@ -124,7 +127,9 @@ export interface AppFactoryResult {
 /**
  * Create Express app for testing
  */
-export async function createTestApp(config: AppFactoryConfig): Promise<AppFactoryResult> {
+export async function createTestApp(
+  config: AppFactoryConfig,
+): Promise<AppFactoryResult> {
   const app = express();
   const logger = config.logger || createTestLogger();
   const previousIdentityServiceUrl = process.env.IDENTITY_SERVICE_URL;
@@ -137,25 +142,27 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     eventPublisher = new RabbitMQEventPublisher(
       {
         url: config.rabbitmqUrl,
-        exchange: 'patient-registry-events-test',
-        exchangeType: 'topic',
+        exchange: "patient-registry-events-test",
+        exchangeType: "topic",
         durable: false,
         autoDelete: true,
-        serviceName: 'patient-registry'
+        serviceName: "patient-registry",
       },
       {
         enableRetry: false,
         maxRetries: 1,
         retryDelayMs: 100,
-        enableLogging: false
+        enableLogging: false,
       },
-      logger
+      logger,
     );
 
     try {
       await eventPublisher.connect();
     } catch (error) {
-      console.warn('⚠️  RabbitMQ not available for tests, continuing without event publishing');
+      console.warn(
+        "⚠️  RabbitMQ not available for tests, continuing without event publishing",
+      );
       eventPublisher = undefined;
     }
   }
@@ -165,7 +172,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   const insuranceValidationService = new InsuranceValidationService(logger);
 
   // Initialize Cache (optional for tests)
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6380';
+  const redisUrl = process.env.REDIS_URL || "redis://localhost:6380";
   const patientCache = new PatientCache(redisUrl);
 
   // Initialize Audit Service (optional for tests)
@@ -178,19 +185,21 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     patientRepository = new InMemoryPatientRepository();
   } else {
     // Create OptimizedSupabaseClient for SupabasePatientRepository
-    const { createOptimizedSupabaseClient } = await import('@shared/infrastructure/database/optimized-supabase-client');
+    const { createOptimizedSupabaseClient } = await import(
+      "@shared/infrastructure/database/optimized-supabase-client"
+    );
     const optimizedClient = createOptimizedSupabaseClient({
       supabaseUrl: config.supabaseUrl,
       supabaseServiceKey: config.supabaseKey,
-      serviceName: 'patient-registry-service',
-      schemaName: 'patient_schema',
+      serviceName: "patient-registry-service",
+      schemaName: "patient_schema",
       enableOptimizations: false, // Disable for tests
     });
 
     // Create Outbox Repository for tests
     const outboxRepository = new SupabaseOutboxRepository(
       supabaseClient,
-      logger
+      logger,
     );
 
     patientRepository = new SupabasePatientRepository(
@@ -199,7 +208,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
       matchingService,
       eventPublisher,
       patientCache,
-      outboxRepository // ✅ Inject outbox repository
+      outboxRepository, // ✅ Inject outbox repository
     );
   }
 
@@ -208,13 +217,16 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     connect: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
     disconnect: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
     publish: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
-    subscribe: async () => {} // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
+    subscribe: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function -- Mock for tests
   };
 
   const eventBus = eventPublisher || mockEventBus;
 
   // Mock SupabaseClient for tests
-  const mockSupabaseClient = createClient('https://mock.supabase.co', 'mock-key');
+  const mockSupabaseClient = createClient(
+    "https://mock.supabase.co",
+    "mock-key",
+  );
 
   // Initialize Use Cases
   const registerPatientUseCase = new RegisterPatientUseCase(
@@ -222,15 +234,19 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     eventBus as IEventBus,
     logger,
     auditService,
-    mockSupabaseClient
+    mockSupabaseClient,
   );
   const updatePatientInfoUseCase = new UpdatePatientInfoUseCase(
     patientRepository,
     eventBus as IEventBus,
     logger,
-    auditService
+    auditService,
   );
-  const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, logger, auditService);
+  const getPatientProfileUseCase = new GetPatientProfileUseCase(
+    patientRepository,
+    logger,
+    auditService,
+  );
   const searchPatientsUseCase = new SearchPatientsUseCase(patientRepository);
   /* POST-MVP: Archived use case instantiations - Not required for graduation project
   const matchPatientsUseCase = new MatchPatientsUseCase(patientRepository, matchingService, logger);
@@ -243,12 +259,16 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     auditService
   );
   END POST-MVP */
-  const validateInsuranceUseCase = new ValidateInsuranceUseCase(patientRepository, insuranceValidationService, logger);
+  const validateInsuranceUseCase = new ValidateInsuranceUseCase(
+    patientRepository,
+    insuranceValidationService,
+    logger,
+  );
   const addEmergencyContactUseCase = new AddEmergencyContactUseCase(
     patientRepository,
     eventBus as IEventBus,
     logger,
-    auditService
+    auditService,
   );
   /* POST-MVP: Archived use case instantiations - Not required for graduation project
   const grantConsentUseCase = new GrantConsentUseCase(patientRepository, auditService, logger);
@@ -257,11 +277,14 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   END POST-MVP */
 
   // New use cases
-  const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase(patientRepository, logger);
+  const getEmergencyContactsUseCase = new GetEmergencyContactsUseCase(
+    patientRepository,
+    logger,
+  );
   const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(
     patientRepository,
     eventBus as IEventBus,
-    logger
+    logger,
   );
   /* POST-MVP: Archived use case instantiations - Not required for graduation project
   const removeEmergencyContactUseCase = new RemoveEmergencyContactUseCase(
@@ -285,18 +308,28 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   );
   const getActiveConsentsUseCase = new GetActiveConsentsUseCase(patientRepository, logger);
   END POST-MVP */
-  const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase(patientRepository, logger);
-  const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase(patientRepository, logger);
+  const getInsuranceInfoUseCase = new GetInsuranceInfoUseCase(
+    patientRepository,
+    logger,
+  );
+  const addInsuranceInfoUseCase = new AddInsuranceInfoUseCase(
+    patientRepository,
+    logger,
+  );
   const updateInsuranceInfoUseCase = new UpdateInsuranceInfoUseCase(
     patientRepository,
     eventBus as IEventBus,
-    logger
+    logger,
   );
-  const verifyInsuranceUseCase = new VerifyInsuranceUseCase(patientRepository, logger);
+  const verifyInsuranceUseCase = new VerifyInsuranceUseCase(
+    patientRepository,
+    logger,
+  );
+  const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(
+    patientRepository,
+  );
 
   /* POST-MVP: Archived use case instantiations - Not required for graduation project
-  // Additional use cases for PatientController
-  const getPatientStatisticsUseCase = new GetPatientStatisticsUseCase(patientRepository);
 
   // Mock storage service for photo use cases
   const mockStorageService = {
@@ -322,7 +355,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     getPatientProfileUseCase,
     searchPatientsUseCase,
     patientRepository,
-    logger
+    logger,
   );
 
   // Initialize Command Handlers
@@ -334,7 +367,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     grantConsentUseCase,
     END POST-MVP */
     addEmergencyContactUseCase,
-    logger
+    logger,
   );
 
   // Initialize Controllers
@@ -357,6 +390,7 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     addEmergencyContactUseCase,
     getEmergencyContactsUseCase,
     updateEmergencyContactUseCase,
+    getPatientStatisticsUseCase,
     /* POST-MVP: Archived use case constructor parameters - Not required for graduation project
     removeEmergencyContactUseCase,
     setPrimaryEmergencyContactUseCase,
@@ -377,15 +411,18 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     END POST-MVP */
   );
 
-  const commandController = new CommandController(logger, patientCommandHandlers);
+  const commandController = new CommandController(
+    logger,
+    patientCommandHandlers,
+  );
   const errorHandlingMiddleware = new ErrorHandlingMiddleware(logger);
 
   // Setup Middleware
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors({ origin: '*', credentials: true }));
+  app.use(cors({ origin: "*", credentials: true }));
   app.use(compression());
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
   // Setup Authentication Middleware (if enabled)
   let authMiddleware: AuthenticationMiddleware | undefined;
@@ -397,17 +434,21 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
       const identityMock = await ensureIdentityMockServer();
       identityMockRelease = identityMock.release;
       identityServiceUrl = identityMock.url;
-      process.env.IDENTITY_USE_MOCK = 'true';
+      process.env.IDENTITY_USE_MOCK = "true";
       process.env.IDENTITY_SERVICE_URL = identityServiceUrl;
-      console.log(`[AppFactory] Using mock Identity Service at ${identityServiceUrl}`);
+      console.log(
+        `[AppFactory] Using mock Identity Service at ${identityServiceUrl}`,
+      );
     } else {
-      console.log(`[AppFactory] Using real Identity Service at ${identityServiceUrl}`);
+      console.log(
+        `[AppFactory] Using real Identity Service at ${identityServiceUrl}`,
+      );
     }
 
     authMiddleware = new AuthenticationMiddleware({
       identityServiceUrl,
       logger,
-      skipPaths: ['/health', '/api-docs']
+      skipPaths: ["/health", "/api-docs"],
     });
 
     // Apply authentication to all routes except skipped paths
@@ -415,27 +456,32 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
   }
 
   // Setup Routes
-  app.get('/health', (_req, res) => {
+  app.get("/health", (_req, res) => {
     res.status(200).json({
-      status: 'healthy',
-      service: 'patient-registry-service-test',
-      version: '2.0.0',
-      timestamp: new Date().toISOString()
+      status: "healthy",
+      service: "patient-registry-service-test",
+      version: "2.0.0",
+      timestamp: new Date().toISOString(),
     });
   });
 
   // Create AuthorizationMiddleware for tests
-  const { AuthorizationMiddleware } = await import('../../src/presentation/middleware/AuthorizationMiddleware');
+  const { AuthorizationMiddleware } = await import(
+    "../../src/presentation/middleware/AuthorizationMiddleware"
+  );
   const authorizationMiddleware = new AuthorizationMiddleware({
     logger,
-    patientRepository
+    patientRepository,
   });
 
-  const patientRoutes = createPatientRoutes(patientController, authorizationMiddleware);
-  app.use('/api/v1/patients', patientRoutes);
+  const patientRoutes = createPatientRoutes(
+    patientController,
+    authorizationMiddleware,
+  );
+  app.use("/api/v1/patients", patientRoutes);
 
   const commandRoutes = createCommandRoutes(commandController);
-  app.use('/api/v1/commands', commandRoutes);
+  app.use("/api/v1/commands", commandRoutes);
 
   // Error handling
   app.use(errorHandlingMiddleware.notFound());
@@ -468,9 +514,10 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
     cleanup,
     eventPublisher,
     patientRepository,
-    inMemoryRepository: patientRepository instanceof InMemoryPatientRepository
-      ? patientRepository
-      : undefined
+    inMemoryRepository:
+      patientRepository instanceof InMemoryPatientRepository
+        ? patientRepository
+        : undefined,
   };
 }
 
@@ -479,10 +526,10 @@ export async function createTestApp(config: AppFactoryConfig): Promise<AppFactor
  */
 export async function createMinimalTestApp(): Promise<AppFactoryResult> {
   return createTestApp({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    supabaseUrl: process.env.SUPABASE_URL || "",
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     enableRabbitMQ: false,
-    enableAuthentication: false
+    enableAuthentication: false,
   });
 }
 
@@ -492,16 +539,19 @@ export async function createMinimalTestApp(): Promise<AppFactoryResult> {
  * - If IDENTITY_USE_MOCK=false: Uses REAL Identity Service at IDENTITY_SERVICE_URL
  */
 export async function createAuthenticatedTestApp(): Promise<AppFactoryResult> {
-  const useMock = process.env.IDENTITY_USE_MOCK === 'true' || process.env.NODE_ENV === 'test';
-  const identityServiceUrl = useMock ? undefined : (process.env.IDENTITY_SERVICE_URL || 'http://localhost:3021');
+  const useMock =
+    process.env.IDENTITY_USE_MOCK === "true" || process.env.NODE_ENV === "test";
+  const identityServiceUrl = useMock
+    ? undefined
+    : process.env.IDENTITY_SERVICE_URL || "http://localhost:3021";
 
   return createTestApp({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    supabaseUrl: process.env.SUPABASE_URL || "",
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     enableRabbitMQ: false,
     enableAuthentication: true,
     useInMemoryRepository: true,
-    identityServiceUrl // Pass URL for real service, undefined for mock
+    identityServiceUrl, // Pass URL for real service, undefined for mock
   });
 }
 
@@ -510,10 +560,10 @@ export async function createAuthenticatedTestApp(): Promise<AppFactoryResult> {
  */
 export async function createFullTestApp(): Promise<AppFactoryResult> {
   return createTestApp({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    rabbitmqUrl: process.env.RABBITMQ_URL || 'amqp://admin:admin@localhost:5672',
-    enableRabbitMQ: true
+    supabaseUrl: process.env.SUPABASE_URL || "",
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    rabbitmqUrl:
+      process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5672",
+    enableRabbitMQ: true,
   });
 }
-

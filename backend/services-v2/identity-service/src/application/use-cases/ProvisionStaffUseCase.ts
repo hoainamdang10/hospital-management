@@ -1,6 +1,6 @@
 /**
  * ProvisionStaffUseCase
- * Admin-only endpoint to create staff accounts (DOCTOR, NURSE, RECEPTIONIST, ADMIN)
+ * Admin-only endpoint to create staff accounts (DOCTOR, ADMIN)
  *
  * Flow:
  * 1. Admin creates staff account with email + role
@@ -23,7 +23,7 @@ import { StaffInvitationCreatedEvent } from "../../domain/events/StaffInvitation
 export interface ProvisionStaffRequest {
   email: string;
   fullName: string;
-  roleType: "ADMIN" | "DOCTOR" | "NURSE" | "RECEPTIONIST";
+  roleType: "ADMIN" | "DOCTOR";
   phoneNumber?: string;
   // Optional professional fields (override defaults to avoid fallback profile)
   departmentCode?: string;
@@ -94,19 +94,13 @@ export class ProvisionStaffUseCase {
       // Normalize to uppercase for case-insensitive comparison
       const normalizedRole = request.roleType.toUpperCase() as
         | "ADMIN"
-        | "DOCTOR"
-        | "RECEPTIONIST";
-      const allowedRoles: Array<"ADMIN" | "DOCTOR" | "RECEPTIONIST"> = [
-        "ADMIN",
-        "DOCTOR",
-        "RECEPTIONIST",
-      ];
+        | "DOCTOR";
+      const allowedRoles: Array<"ADMIN" | "DOCTOR"> = ["ADMIN", "DOCTOR"];
 
       if (!allowedRoles.includes(normalizedRole)) {
         return {
           success: false,
-          error:
-            "Invalid role type. Only ADMIN, DOCTOR, RECEPTIONIST roles are allowed.",
+          error: "Invalid role type. Only ADMIN và DOCTOR roles are allowed.",
           errorCode: "INVALID_ROLE",
         };
       }

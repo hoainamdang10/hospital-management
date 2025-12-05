@@ -332,6 +332,23 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
       staffId: staff.staffIdValue, // Business identifier (e.g., 'LABO-DOC-202502-009')
       userId: staff.userId,
       staffType: staff.staffType,
+      departmentAssignments: staff
+        .getCurrentDepartmentAssignments()
+        .map((assignment) => ({
+          id: assignment.id,
+          departmentId: assignment.departmentId,
+          departmentCode: assignment.departmentCode,
+          departmentNameEn: assignment.departmentNameEn,
+          departmentNameVi: assignment.departmentNameVi,
+          role: assignment.role,
+          isPrimary: assignment.isPrimary,
+          isHead: assignment.isHead,
+          startDate: assignment.startDate.toISOString(),
+          endDate: assignment.endDate?.toISOString(),
+          isActive: assignment.isActive,
+          createdAt: assignment.createdAt.toISOString(),
+          updatedAt: assignment.updatedAt.toISOString(),
+        })),
       personalInfo: {
         fullName: staff.personalInfo.fullName,
         gender: staff.personalInfo.gender,

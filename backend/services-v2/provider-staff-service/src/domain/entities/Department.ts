@@ -1,11 +1,13 @@
 /**
  * Department Entity - Domain Layer
  * Simple entity for department management
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD
  */
+
+import { safeToISOString } from "../utils/date-utils";
 
 export interface DepartmentProps {
   departmentCode: string;
@@ -30,7 +32,7 @@ export interface DepartmentProps {
 export class Department {
   constructor(
     public readonly id: string,
-    public readonly props: DepartmentProps
+    public readonly props: DepartmentProps,
   ) {
     this.validate();
   }
@@ -122,7 +124,12 @@ export class Department {
     }
   }
 
-  public updateContactInfo(phone?: string, email?: string, location?: string, triggeredBy?: string): void {
+  public updateContactInfo(
+    phone?: string,
+    email?: string,
+    location?: string,
+    triggeredBy?: string,
+  ): void {
     if (phone !== undefined) {
       this.props.phone = phone;
     }
@@ -139,7 +146,7 @@ export class Department {
     departmentNameEn?: string,
     departmentNameVi?: string,
     description?: string,
-    triggeredBy?: string
+    triggeredBy?: string,
   ): void {
     if (departmentNameEn !== undefined) {
       this.props.departmentNameEn = departmentNameEn;
@@ -157,7 +164,7 @@ export class Department {
     headId: string,
     headName: string,
     headEmail: string,
-    triggeredBy?: string
+    triggeredBy?: string,
   ): void {
     this.props.headOfDepartmentId = headId;
     this.props.headOfDepartmentName = headName;
@@ -165,7 +172,12 @@ export class Department {
     this.touch(triggeredBy);
   }
 
-  public updateStaffCount(newCount: number, _changeType?: 'added' | 'removed' | 'transferred_in' | 'transferred_out', _staffId?: string, _staffName?: string): void {
+  public updateStaffCount(
+    newCount: number,
+    _changeType?: "added" | "removed" | "transferred_in" | "transferred_out",
+    _staffId?: string,
+    _staffName?: string,
+  ): void {
     this.props.staffCount = newCount;
     if (this.props.activeStaffCount === undefined) {
       this.props.activeStaffCount = newCount;
@@ -175,23 +187,29 @@ export class Department {
   // Validation
   private validate(): void {
     if (!this.props.departmentCode || this.props.departmentCode.length < 2) {
-      throw new Error('Department code must be at least 2 characters');
+      throw new Error("Department code must be at least 2 characters");
     }
 
     if (!/^[A-Z]{2,4}$/.test(this.props.departmentCode)) {
-      throw new Error('Department code must be 2-4 uppercase letters');
+      throw new Error("Department code must be 2-4 uppercase letters");
     }
 
-    if (!this.props.departmentNameEn || this.props.departmentNameEn.trim().length === 0) {
-      throw new Error('Department name (English) is required');
+    if (
+      !this.props.departmentNameEn ||
+      this.props.departmentNameEn.trim().length === 0
+    ) {
+      throw new Error("Department name (English) is required");
     }
 
-    if (!this.props.departmentNameVi || this.props.departmentNameVi.trim().length === 0) {
-      throw new Error('Department name (Vietnamese) is required');
+    if (
+      !this.props.departmentNameVi ||
+      this.props.departmentNameVi.trim().length === 0
+    ) {
+      throw new Error("Department name (Vietnamese) is required");
     }
 
     if (this.props.email && !this.isValidEmail(this.props.email)) {
-      throw new Error('Invalid email format');
+      throw new Error("Invalid email format");
     }
   }
 
@@ -217,8 +235,8 @@ export class Department {
       email: this.props.email,
       location: this.props.location,
       isActive: this.props.isActive,
-      createdAt: this.props.createdAt.toISOString(),
-      updatedAt: this.props.updatedAt.toISOString(),
+      createdAt: safeToISOString(this.props.createdAt),
+      updatedAt: safeToISOString(this.props.updatedAt),
       createdBy: this.props.createdBy,
       updatedBy: this.props.updatedBy,
       headOfDepartmentId: this.props.headOfDepartmentId,
@@ -240,9 +258,9 @@ export class Department {
   }
 
   private static generateId(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
   }

@@ -7,7 +7,8 @@
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards, HIPAA
  */
 
-import { HealthcareValueObject } from '@shared/domain/base/value-object';
+import { HealthcareValueObject } from "@shared/domain/base/value-object";
+import { safeToISOString } from "../utils/date-utils";
 
 export interface Address {
   street: string;
@@ -21,7 +22,7 @@ export interface Address {
 interface PersonalInfoProps {
   fullName: string;
   dateOfBirth: Date;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   nationalId: string; // CMND/CCCD
   nationality: string;
   phoneNumber: string;
@@ -37,53 +38,53 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
   protected validateFormat(): void {
     // Full name validation
     if (!this.props.fullName || this.props.fullName.trim().length === 0) {
-      throw new Error('Họ tên không được để trống');
+      throw new Error("Họ tên không được để trống");
     }
 
     if (this.props.fullName.trim().length < 2) {
-      throw new Error('Họ tên phải có ít nhất 2 ký tự');
+      throw new Error("Họ tên phải có ít nhất 2 ký tự");
     }
 
     // Date of birth validation
     if (!this.props.dateOfBirth) {
-      throw new Error('Ngày sinh không được để trống');
+      throw new Error("Ngày sinh không được để trống");
     }
 
     const age = this.calculateAge();
     if (age < 18) {
-      throw new Error('Nhân viên phải từ 18 tuổi trở lên');
+      throw new Error("Nhân viên phải từ 18 tuổi trở lên");
     }
 
     if (age > 100) {
-      throw new Error('Ngày sinh không hợp lệ');
+      throw new Error("Ngày sinh không hợp lệ");
     }
 
     // National ID validation (CMND/CCCD)
     if (!this.props.nationalId || this.props.nationalId.trim().length === 0) {
-      throw new Error('CMND/CCCD không được để trống');
+      throw new Error("CMND/CCCD không được để trống");
     }
 
     if (!this.isValidVietnameseNationalId(this.props.nationalId)) {
-      throw new Error('CMND/CCCD không đúng định dạng Việt Nam');
+      throw new Error("CMND/CCCD không đúng định dạng Việt Nam");
     }
 
     // Phone number validation
     if (!this.props.phoneNumber || this.props.phoneNumber.trim().length === 0) {
-      throw new Error('Số điện thoại không được để trống');
+      throw new Error("Số điện thoại không được để trống");
     }
 
     if (!this.isValidVietnamesePhoneNumber(this.props.phoneNumber)) {
-      throw new Error('Số điện thoại không đúng định dạng Việt Nam');
+      throw new Error("Số điện thoại không đúng định dạng Việt Nam");
     }
 
     // Email validation (optional)
     if (this.props.email && !this.isValidEmail(this.props.email)) {
-      throw new Error('Email không đúng định dạng');
+      throw new Error("Email không đúng định dạng");
     }
 
     // Address validation
     if (!this.props.address) {
-      throw new Error('Địa chỉ không được để trống');
+      throw new Error("Địa chỉ không được để trống");
     }
 
     this.validateAddress();
@@ -96,7 +97,7 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
       nationalId: props.nationalId.trim().toUpperCase(),
       phoneNumber: props.phoneNumber.trim(),
       email: props.email?.trim().toLowerCase(),
-      nationality: props.nationality.trim()
+      nationality: props.nationality.trim(),
     });
   }
 
@@ -107,10 +108,10 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
       dateOfBirth: new Date(data.dateOfBirth || data.date_of_birth),
       gender: data.gender,
       nationalId: data.nationalId || data.national_id,
-      nationality: data.nationality || 'Vietnamese', // Default if not provided
+      nationality: data.nationality || "Vietnamese", // Default if not provided
       phoneNumber: data.contact?.phone || data.phoneNumber || data.phone_number,
       email: data.contact?.email || data.email,
-      address: data.address
+      address: data.address,
     });
   }
 
@@ -123,7 +124,7 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     return this.props.dateOfBirth;
   }
 
-  public get gender(): 'male' | 'female' | 'other' {
+  public get gender(): "male" | "female" | "other" {
     return this.props.gender;
   }
 
@@ -153,11 +154,14 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     const birthDate = this.props.dateOfBirth;
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -167,8 +171,10 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
   }
 
   public isVietnamese(): boolean {
-    return this.props.nationality.toLowerCase() === 'vietnam' || 
-           this.props.nationality.toLowerCase() === 'việt nam';
+    return (
+      this.props.nationality.toLowerCase() === "vietnam" ||
+      this.props.nationality.toLowerCase() === "việt nam"
+    );
   }
 
   public isValid(): boolean {
@@ -181,16 +187,20 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
   }
 
   public isVietnameseCompliant(): boolean {
-    return this.isVietnamese() && 
-           this.isValidVietnameseNationalId(this.props.nationalId) &&
-           this.isValidVietnamesePhoneNumber(this.props.phoneNumber);
+    return (
+      this.isVietnamese() &&
+      this.isValidVietnameseNationalId(this.props.nationalId) &&
+      this.isValidVietnamesePhoneNumber(this.props.phoneNumber)
+    );
   }
 
   public isHIPAACompliant(): boolean {
     // HIPAA requires proper PHI handling
-    return this.props.fullName.length > 0 &&
-           this.props.nationalId.length > 0 &&
-           this.props.phoneNumber.length > 0;
+    return (
+      this.props.fullName.length > 0 &&
+      this.props.nationalId.length > 0 &&
+      this.props.phoneNumber.length > 0
+    );
   }
 
   // HIPAA compliance methods
@@ -204,17 +214,17 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
       fullName: this.maskName(this.props.fullName),
       nationalId: this.maskNationalId(this.props.nationalId),
       phoneNumber: this.maskPhoneNumber(this.props.phoneNumber),
-      email: this.props.email ? this.maskEmail(this.props.email) : undefined
+      email: this.props.email ? this.maskEmail(this.props.email) : undefined,
     });
   }
 
   // Validation helpers
   private validateAddress(): void {
     const addr = this.props.address;
-    
+
     // Required fields (flexible for legacy data)
     if (!addr.street || addr.street.trim().length === 0) {
-      throw new Error('Địa chỉ đường/phố không được để trống');
+      throw new Error("Địa chỉ đường/phố không được để trống");
     }
 
     // Ward is optional for legacy data compatibility
@@ -223,11 +233,11 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     // }
 
     if (!addr.district || addr.district.trim().length === 0) {
-      throw new Error('Quận/huyện không được để trống');
+      throw new Error("Quận/huyện không được để trống");
     }
 
     if (!addr.city || addr.city.trim().length === 0) {
-      throw new Error('Thành phố không được để trống');
+      throw new Error("Thành phố không được để trống");
     }
 
     // Province is optional (city might be enough)
@@ -236,7 +246,7 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     // }
 
     if (!addr.country || addr.country.trim().length === 0) {
-      throw new Error('Quốc gia không được để trống');
+      throw new Error("Quốc gia không được để trống");
     }
   }
 
@@ -245,7 +255,7 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     // CCCD: 12 digits
     const cmndRegex = /^\d{9}$/;
     const cccdRegex = /^\d{12}$/;
-    
+
     return cmndRegex.test(nationalId) || cccdRegex.test(nationalId);
   }
 
@@ -253,20 +263,20 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
     // Vietnamese phone number formats:
     // - Local: 0XXXXXXXXX (10 digits starting with 0)
     // - International: +84XXXXXXXXX (9 digits after +84)
-    const cleanPhone = phoneNumber.replace(/[\s-]/g, '');
-    
+    const cleanPhone = phoneNumber.replace(/[\s-]/g, "");
+
     // Check local format
     const localPhoneRegex = /^0\d{9}$/;
     if (localPhoneRegex.test(cleanPhone)) {
       return true;
     }
-    
+
     // Check international format
     const intlPhoneRegex = /^\+84\d{9,10}$/;
     if (intlPhoneRegex.test(cleanPhone)) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -277,63 +287,80 @@ export class PersonalInfo extends HealthcareValueObject<PersonalInfoProps> {
 
   // Masking methods for anonymization
   private maskName(name: string): string {
-    const parts = name.split(' ');
+    const parts = name.split(" ");
     if (parts.length === 1) {
-      return name.charAt(0) + '*'.repeat(name.length - 1);
+      return name.charAt(0) + "*".repeat(name.length - 1);
     }
-    
-    return parts.map((part, index) => {
-      if (index === 0 || index === parts.length - 1) {
-        return part;
-      }
-      return '*'.repeat(part.length);
-    }).join(' ');
+
+    return parts
+      .map((part, index) => {
+        if (index === 0 || index === parts.length - 1) {
+          return part;
+        }
+        return "*".repeat(part.length);
+      })
+      .join(" ");
   }
 
   private maskNationalId(nationalId: string): string {
-    if (nationalId.length <= 4) return '***';
-    return nationalId.substring(0, 2) + '*'.repeat(nationalId.length - 4) + nationalId.substring(nationalId.length - 2);
+    if (nationalId.length <= 4) return "***";
+    return (
+      nationalId.substring(0, 2) +
+      "*".repeat(nationalId.length - 4) +
+      nationalId.substring(nationalId.length - 2)
+    );
   }
 
   private maskPhoneNumber(phoneNumber: string): string {
-    if (phoneNumber.length <= 4) return '***';
-    return phoneNumber.substring(0, 3) + '*'.repeat(phoneNumber.length - 6) + phoneNumber.substring(phoneNumber.length - 3);
+    if (phoneNumber.length <= 4) return "***";
+    return (
+      phoneNumber.substring(0, 3) +
+      "*".repeat(phoneNumber.length - 6) +
+      phoneNumber.substring(phoneNumber.length - 3)
+    );
   }
 
   private maskEmail(email: string): string {
-    const [localPart, domain] = email.split('@');
+    const [localPart, domain] = email.split("@");
     if (localPart.length <= 2) {
-      return '*@' + domain;
+      return "*@" + domain;
     }
-    return localPart.charAt(0) + '*'.repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1) + '@' + domain;
+    return (
+      localPart.charAt(0) +
+      "*".repeat(localPart.length - 2) +
+      localPart.charAt(localPart.length - 1) +
+      "@" +
+      domain
+    );
   }
 
   // Persistence
   public toPersistence(): any {
     return {
       full_name: this.props.fullName,
-      date_of_birth: this.props.dateOfBirth.toISOString(),
+      date_of_birth: safeToISOString(this.props.dateOfBirth),
       gender: this.props.gender,
       national_id: this.props.nationalId,
       nationality: this.props.nationality,
       phone_number: this.props.phoneNumber,
       email: this.props.email,
-      address: this.props.address
+      address: this.props.address,
     };
   }
 
   public override equals(other: PersonalInfo): boolean {
     if (!other) return false;
-    
-    return this.props.fullName === other.props.fullName &&
-           this.props.dateOfBirth.getTime() === other.props.dateOfBirth.getTime() &&
-           this.props.gender === other.props.gender &&
-           this.props.nationalId === other.props.nationalId &&
-           this.props.phoneNumber === other.props.phoneNumber;
+
+    return (
+      this.props.fullName === other.props.fullName &&
+      this.props.dateOfBirth.getTime() === other.props.dateOfBirth.getTime() &&
+      this.props.gender === other.props.gender &&
+      this.props.nationalId === other.props.nationalId &&
+      this.props.phoneNumber === other.props.phoneNumber
+    );
   }
 
   public override toString(): string {
     return `${this.props.fullName} (${this.props.nationalId})`;
   }
 }
-

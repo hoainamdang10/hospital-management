@@ -30,13 +30,13 @@ export default function AdminAuditLogsPage() {
         {/* Filters */}
         <div className="flex items-center space-x-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm kiếm nhật ký..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 py-2 pr-4 pl-10 focus:ring-1 focus:outline-none"
             />
           </div>
           <select className="rounded-lg border border-gray-300 px-4 py-2">
@@ -50,7 +50,7 @@ export default function AdminAuditLogsPage() {
             <option>Tất cả người dùng</option>
             <option>Admin</option>
             <option>Doctor</option>
-            <option>Nurse</option>
+            <option>Patient</option>
           </select>
           <select className="rounded-lg border border-gray-300 px-4 py-2">
             <option>Hôm nay</option>
@@ -64,19 +64,19 @@ export default function AdminAuditLogsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                   Thời gian
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                   Người dùng
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                   Hành động
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                   Mô tả
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                   IP Address
                 </th>
               </tr>
@@ -100,7 +100,7 @@ export default function AdminAuditLogsPage() {
               />
               <LogRow
                 time="15/01/2025 09:20:33"
-                user="nurse@hospital.com"
+                user="patient@hospital.com"
                 action="CREATE"
                 description="Tạo lịch hẹn mới cho bệnh nhân"
                 ip="192.168.1.102"
@@ -121,15 +121,24 @@ export default function AdminAuditLogsPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-700">
-            Hiển thị <span className="font-medium">1</span> đến <span className="font-medium">20</span> trong tổng số{' '}
+            Hiển thị <span className="font-medium">1</span> đến{' '}
+            <span className="font-medium">20</span> trong tổng số{' '}
             <span className="font-medium">5,432</span> kết quả
           </p>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm">Trước</Button>
-            <Button variant="outline" size="sm">1</Button>
+            <Button variant="outline" size="sm">
+              Trước
+            </Button>
+            <Button variant="outline" size="sm">
+              1
+            </Button>
             <Button size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">Sau</Button>
+            <Button variant="outline" size="sm">
+              3
+            </Button>
+            <Button variant="outline" size="sm">
+              Sau
+            </Button>
           </div>
         </div>
       </div>
@@ -161,15 +170,15 @@ function LogRow({
 
   return (
     <tr className="hover:bg-gray-50">
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{time}</td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">{user}</td>
-      <td className="whitespace-nowrap px-6 py-4">
+      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">{time}</td>
+      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">{user}</td>
+      <td className="px-6 py-4 whitespace-nowrap">
         <span className={`rounded-full px-2 py-1 text-xs font-medium ${actionColors[actionType]}`}>
           {action}
         </span>
       </td>
       <td className="px-6 py-4 text-sm text-gray-600">{description}</td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{ip}</td>
+      <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">{ip}</td>
     </tr>
   );
 }

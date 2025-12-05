@@ -1,36 +1,22 @@
 /**
  * UserActivatedEventHandler
  * Handles user.activated events from Identity Service
- * Creates patient records when users verify their email and get activated
- *
- * @author Hospital Management Team
- * @version 2.0.0
- * @compliance Clean Architecture, Event-Driven Architecture
+ * Creates patient records or reactivates existing ones
  */
 import { ILogger } from '../../../../../shared/application/services/logger.interface';
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
-/**
- * User Activated Event Data
- * Matches payload structure from Identity Service UserActivatedEvent
- */
 export interface UserActivatedEventData {
-    userId: string;
+    userId?: string;
     email?: string;
     fullName?: string;
-    activatedAt: Date;
+    activatedAt?: Date | string;
+    eventData?: UserActivatedEventData;
 }
-/**
- * User Activated Event Handler
- * Processes user activation events from Identity Service
- * Creates patient records after email verification
- */
 export declare class UserActivatedEventHandler {
     private logger;
     private patientRepository;
     constructor(logger: ILogger, patientRepository: IPatientRepository);
-    /**
-     * Handle user.activated event
-     */
-    handle(eventData: UserActivatedEventData): Promise<void>;
+    handle(rawEventData: UserActivatedEventData): Promise<void>;
+    private normalizeEventData;
 }
 //# sourceMappingURL=UserActivatedEventHandler.d.ts.map

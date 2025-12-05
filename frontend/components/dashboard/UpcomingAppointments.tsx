@@ -205,13 +205,13 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
       <div className="p-6">
         {!hideHeader && (
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">Lịch hẹn sắp tới</h2>
+            <h2 className="text-xl font-bold text-slate-900">Lịch hẹn sắp tới</h2>
           </div>
         )}
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex animate-pulse gap-4">
-              <div className="h-16 flex-1 rounded-xl bg-gray-100" />
+              <div className="h-16 flex-1 rounded-xl bg-slate-100" />
             </div>
           ))}
         </div>
@@ -225,12 +225,12 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
       {!hideHeader && (
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-100 p-2">
-              <CalendarIcon className="h-6 w-6 text-blue-600" />
+            <div className="rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 p-2">
+              <CalendarIcon className="h-6 w-6 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Lịch hẹn sắp tới</h2>
+            <h2 className="text-xl font-bold text-slate-900">Lịch hẹn sắp tới</h2>
           </div>
-          <button className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+          <button className="text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors">
             Xem tất cả
           </button>
         </div>
@@ -239,19 +239,19 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
       {/* Mini Calendar */}
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-500">
+          <span className="text-sm font-medium text-slate-500">
             Tháng {format(weekStart, 'M, yyyy')}
           </span>
           <div className="flex gap-1">
             <button
               onClick={handlePrevWeek}
-              className="rounded-full p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
+              className="rounded-full p-1.5 text-slate-600 transition-colors hover:bg-slate-100"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={handleNextWeek}
-              className="rounded-full p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
+              className="rounded-full p-1.5 text-slate-600 transition-colors hover:bg-slate-100"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -270,10 +270,10 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
                 className={cn(
                   'flex flex-col items-center justify-center rounded-2xl py-3 transition-all duration-200',
                   isSelected
-                    ? 'bg-primary-600 shadow-primary-600/30 scale-105 text-white shadow-lg'
+                    ? 'bg-gradient-to-br from-emerald-600 to-teal-600 shadow-emerald-600/30 scale-105 text-white shadow-lg'
                     : isToday
-                      ? 'bg-primary-50 text-primary-600'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : 'text-slate-600 hover:bg-slate-50'
                 )}
               >
                 <span className="mb-1 text-xs font-medium opacity-80">
@@ -292,16 +292,16 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
           appointmentsForSelectedDate.map((appointment) => (
             <div
               key={appointment.id}
-              className="group flex flex-col justify-between gap-4 rounded-2xl border border-gray-100 bg-white/50 p-4 transition-all hover:border-gray-200 hover:bg-white hover:shadow-md sm:flex-row sm:items-center"
+              className="group flex flex-col justify-between gap-4 rounded-2xl border border-slate-100 bg-white/50 p-4 transition-all hover:border-emerald-200 hover:bg-white hover:shadow-md sm:flex-row sm:items-center"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50">
-                  <User className="h-6 w-6 text-blue-600" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-teal-50">
+                  <User className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900">{appointment.doctor}</h4>
-                  <p className="text-sm text-gray-500">{appointment.treatment}</p>
-                  <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 sm:hidden">
+                  <h4 className="font-semibold text-slate-900">{appointment.doctor}</h4>
+                  <p className="text-sm text-slate-500">{appointment.treatment}</p>
+                  <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 sm:hidden">
                     <div className="flex items-center gap-1">
                       <CalendarIcon className="h-3 w-3" />
                       {appointment.date}
@@ -316,12 +316,12 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
 
               <div className="flex items-center justify-between gap-6 sm:justify-end">
                 <div className="hidden text-right sm:block">
-                  <div className="flex items-center justify-end gap-1.5 text-sm font-medium text-gray-900">
-                    <CalendarIcon className="h-4 w-4 text-gray-400" />
+                  <div className="flex items-center justify-end gap-1.5 text-sm font-medium text-slate-900">
+                    <CalendarIcon className="h-4 w-4 text-slate-400" />
                     {appointment.date}
                   </div>
-                  <div className="mt-1 flex items-center justify-end gap-1.5 text-xs text-gray-500">
-                    <Clock className="h-3 w-3 text-gray-400" />
+                  <div className="mt-1 flex items-center justify-end gap-1.5 text-xs text-slate-500">
+                    <Clock className="h-3 w-3 text-slate-400" />
                     {appointment.time}
                   </div>
                 </div>
@@ -335,7 +335,7 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
                   {getStatusLabel(appointment.status)}
                 </span>
 
-                <button className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
+                <button className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
                   <MoreVertical className="h-4 w-4" />
                 </button>
               </div>
@@ -343,16 +343,16 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-3 rounded-full bg-blue-50 p-3">
-              <CalendarIcon className="h-6 w-6 text-blue-400" />
+            <div className="mb-3 rounded-full bg-gradient-to-br from-emerald-50 to-teal-50 p-3">
+              <CalendarIcon className="h-6 w-6 text-emerald-500" />
             </div>
-            <p className="font-medium text-gray-900">Bạn chưa có lịch hẹn nào trong ngày này</p>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="font-medium text-slate-900">Bạn chưa có lịch hẹn nào trong ngày này</p>
+            <p className="mt-1 text-sm text-slate-500">
               Đặt lịch khám ngay để chăm sóc sức khỏe của bạn
             </p>
             <a
               href="/patient/appointments/book"
-              className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-medium text-white transition-all hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
             >
               Đặt lịch khám
             </a>

@@ -6,16 +6,17 @@
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, HIPAA
  */
-import type { OptimizedSupabaseClient } from '../../../../shared/infrastructure/database/optimized-supabase-client';
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
-import { Patient } from '../../domain/aggregates/Patient';
-import { PatientId } from '../../domain/value-objects/PatientId';
-import { PatientRegistryCircuitBreaker } from '../resilience/CircuitBreaker';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
-import { IPatientMatchingService } from '../../application/services/IPatientMatchingService';
-import { IDomainEventPublisher } from '../../../../shared/domain/events/IDomainEventPublisher';
-import { PatientCache } from '../cache/PatientCache';
-import { IOutboxRepository } from '../outbox/SupabaseOutboxRepository';
+import type { OptimizedSupabaseClient } from "../../../../shared/infrastructure/database/optimized-supabase-client";
+import { IPatientRepository } from "../../domain/repositories/IPatientRepository";
+import { Patient } from "../../domain/aggregates/Patient";
+import { PatientId } from "../../domain/value-objects/PatientId";
+import { PatientStatus } from "../../domain/value-objects/PatientStatus";
+import { PatientRegistryCircuitBreaker } from "../resilience/CircuitBreaker";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { IPatientMatchingService } from "../../application/services/IPatientMatchingService";
+import { IDomainEventPublisher } from "../../../../shared/domain/events/IDomainEventPublisher";
+import { PatientCache } from "../cache/PatientCache";
+import { IOutboxRepository } from "../outbox/SupabaseOutboxRepository";
 /**
  * Supabase Patient Repository Implementation
  */
@@ -60,7 +61,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         city?: string;
         province?: string;
         dateOfBirth?: Date;
-        gender?: 'male' | 'female' | 'other';
+        gender?: "male" | "female" | "other";
         citizenId?: string;
     }): Promise<Patient>;
     /**
@@ -74,6 +75,18 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * Delete patient (soft delete)
      */
     delete(patientId: PatientId): Promise<void>;
+    /**
+     * Update patient lifecycle status by user ID
+     */
+    updateStatusByUserId(userId: string, newStatus: PatientStatus, options?: {
+        updatedBy?: string;
+        reason?: string;
+        source?: string;
+    }): Promise<{
+        updated: boolean;
+        patientId?: string;
+        previousStatus?: PatientStatus;
+    }>;
     /**
      * Find patients with filters
      */
@@ -89,7 +102,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         limit: number;
         sorting?: {
             field: string;
-            direction: 'asc' | 'desc';
+            direction: "asc" | "desc";
         };
     }): Promise<{
         patients: Patient[];
@@ -120,7 +133,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
         email?: string;
     }, onlyCertainMatches?: boolean, limit?: number): Promise<Array<{
         patient: Patient;
-        matchGrade: 'certain' | 'probable' | 'possible' | 'certainly-not';
+        matchGrade: "certain" | "probable" | "possible" | "certainly-not";
         score: number;
     }>>;
     /**
@@ -198,10 +211,10 @@ export declare class SupabasePatientRepository implements IPatientRepository {
             unknown: number;
         };
         byAgeRange: {
-            '0-18': number;
-            '19-40': number;
-            '41-60': number;
-            '60+': number;
+            "0-18": number;
+            "19-40": number;
+            "41-60": number;
+            "60+": number;
         };
         byInsuranceType: {
             bhyt: number;
@@ -247,9 +260,9 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     }>;
 }
 interface RepositoryHealthStatus {
-    status: 'healthy' | 'unhealthy';
+    status: "healthy" | "unhealthy";
     database?: string;
-    circuitBreaker?: ReturnType<PatientRegistryCircuitBreaker['getStatus']>;
+    circuitBreaker?: ReturnType<PatientRegistryCircuitBreaker["getStatus"]>;
     timestamp: string;
     error?: string;
 }

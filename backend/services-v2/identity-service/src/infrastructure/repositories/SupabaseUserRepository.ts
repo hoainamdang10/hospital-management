@@ -424,16 +424,7 @@ export class SupabaseUserRepository implements IUserRepository {
             error instanceof Error ? error : new Error(String(error)),
           );
           // Fallback to hardcoded roles if database query fails
-          validRoles = [
-            "admin",
-            "doctor",
-            "nurse",
-            "patient",
-            "receptionist",
-            "pharmacist",
-            "lab_technician",
-            "billing_staff",
-          ];
+          validRoles = ["admin", "doctor", "patient"];
         }
 
         if (!validRoles.includes(userData.roleType.toLowerCase())) {

@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsRegisterLoading(true);
       try {
         // Normalize role to uppercase for backend compatibility
-        // Backend accepts: ADMIN, DOCTOR, NURSE, PATIENT, RECEPTIONIST
+        // Backend accepts: ADMIN, DOCTOR, PATIENT
         const normalizedRole = data.role?.toUpperCase() || 'PATIENT';
         const registerData = {
           ...data,
@@ -316,13 +316,8 @@ function getRedirectPath(role: string): string {
       return '/patient/dashboard';
     case 'DOCTOR':
       return '/doctor/dashboard';
-    case 'NURSE':
-      return '/nurse/dashboard';
     case 'ADMIN':
-    case 'RECEPTIONIST':
       return '/admin/dashboard';
-    case 'STAFF':
-      return '/staff/dashboard';
     default:
       return '/';
   }
@@ -337,17 +332,21 @@ function getProfilePath(role: string): string {
       return '/patient/profile';
     case 'DOCTOR':
       return '/doctor/profile'; // Assuming this route exists, otherwise fallback to dashboard
-    case 'NURSE':
-      return '/nurse/profile';
     case 'ADMIN':
-    case 'RECEPTIONIST':
       return '/admin/settings'; // Admins usually update profile in settings
     default:
       return '/profile';
   }
 }
 
-const STAFF_ROLES = new Set(['DOCTOR', 'NURSE', 'ADMIN', 'STAFF', 'RECEPTIONIST']);
+const STAFF_ROLES = new Set([
+  'DOCTOR',
+  'NURSE',
+  'RECEPTIONIST',
+  'TECHNICIAN',
+  'PHARMACIST',
+  'THERAPIST',
+]);
 
 async function enrichUserWithRoleData(user: User): Promise<User> {
   const normalizedRole = user.role?.toUpperCase();
@@ -396,8 +395,15 @@ async function enrichUserWithRoleData(user: User): Promise<User> {
           userId: user.userId,
         });
       }
-    } catch (error) {
-      console.error('[AuthContext] Failed to fetch staffId:', error);
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        console.warn('[AuthContext] Staff profile not found for user', {
+          userId: user.userId,
+          role: normalizedRole,
+        });
+      } else {
+        console.error('[AuthContext] Failed to fetch staffId:', error);
+      }
     }
   } else {
     console.log('[AuthContext] No additional role data required', { role: normalizedRole });

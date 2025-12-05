@@ -177,10 +177,8 @@ export const validateAddCredential = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage(
-      "Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX (ví dụ: DOC-CARD-202501-001)",
-    ),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
 
   body("credentialNumber")
     .notEmpty()
@@ -220,8 +218,8 @@ export const validateRemoveCredential = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   param("credentialNumber")
     .notEmpty()
@@ -238,8 +236,8 @@ export const validateRenewCredential = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   param("credentialNumber")
     .notEmpty()
@@ -289,8 +287,8 @@ export const validateActivateStaff = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   handleValidationErrors,
 ];
@@ -299,16 +297,10 @@ export const validateSuspendStaff = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
-  body("reason")
-    .notEmpty()
-    .withMessage("Lý do tạm ngưng không được để trống")
-    .isString()
-    .withMessage("Lý do phải là chuỗi")
-    .isLength({ min: 10 })
-    .withMessage("Lý do phải có ít nhất 10 ký tự"),
+  body("reason").optional().isString().withMessage("Lý do phải là chuỗi"),
 
   body("suspensionStartDate")
     .optional()
@@ -327,8 +319,8 @@ export const validateReactivateStaff = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   handleValidationErrors,
 ];
@@ -337,8 +329,8 @@ export const validateTerminateStaff = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   body("reason")
     .notEmpty()
@@ -360,8 +352,8 @@ export const validateUpdateEmploymentStatus = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID phải có định dạng {TYPE}-{DEPT}-YYYYMM-XXX"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   body("employmentType")
     .notEmpty()
@@ -383,8 +375,8 @@ export const validateUpdateStaffInfo = [
   body("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
-    .withMessage("Staff ID không đúng định dạng ({TYPE}-{DEPT}-YYYYMM-XXX)"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   body("personalInfo.phoneNumber")
     .optional()
@@ -410,7 +402,7 @@ export const validateUpdateStaffStatus = [
   body("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
     .withMessage("Staff ID không đúng định dạng"),
 
   body("status")
@@ -428,8 +420,8 @@ export const validateStaffId = [
   param("staffId")
     .notEmpty()
     .withMessage("Staff ID không được để trống")
-    .matches(/^[A-Z]{3,5}-[A-Z]{3,5}-\d{6}-\d{2,3}$/)
-    .withMessage("Staff ID không đúng định dạng ({TYPE}-{DEPT}-YYYYMM-XXX)"),
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
+    .withMessage("Staff ID không đúng định dạng"),
 
   handleValidationErrors,
 ];
@@ -560,7 +552,7 @@ export const validateGetStaffList = [
 export const validateAssignDepartment = [
   body("staffId")
     .optional()
-    .matches(/^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$/)
+    .matches(/^[A-Z]+-[A-Z]+-\d{6}-\d{2,3}$/)
     .withMessage("Staff ID không đúng định dạng"),
 
   body("departmentId")

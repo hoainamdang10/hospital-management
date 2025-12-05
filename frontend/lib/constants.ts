@@ -13,10 +13,8 @@ export const API_CONFIG = {
 
 // User Roles
 export const USER_ROLES = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
   DOCTOR: 'DOCTOR',
-  NURSE: 'NURSE',
   PATIENT: 'PATIENT',
 } as const;
 

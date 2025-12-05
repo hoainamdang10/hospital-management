@@ -31,18 +31,114 @@ export const appointmentsService = {
    * GET /api/v2/appointments
    */
   async list(params?: ListAppointmentsParams): Promise<ListAppointmentsResponse> {
+    const queryParams: Record<string, any> = { ...(params || {}) };
+
+    // Backend expects page/pageSize. Convert legacy limit/offset if supplied.
+    if (typeof queryParams.limit === 'number' && queryParams.pageSize === undefined) {
+      queryParams.pageSize = queryParams.limit;
+    }
+    if (typeof queryParams.offset === 'number' && queryParams.page === undefined) {
+      const pageSize = queryParams.pageSize || queryParams.limit || 20;
+      queryParams.page = Math.floor(queryParams.offset / pageSize) + 1;
+    }
+    delete queryParams.limit;
+    delete queryParams.offset;
+
     const response = await apiClient.get<any>('/v1/appointments', {
-      params,
+      params: queryParams,
     });
 
-    // Backend returns: { success, data: { appointments, total, page, pageSize, totalPages } }
-    const result = response.data.data || response.data; // Support both nested and flat structure
+    const payload = response.data?.data || response.data || {};
+    const rawAppointments = payload.appointments || [];
+    const normalizedAppointments: AppointmentReadModel[] = rawAppointments.map((apt: any) => {
+      const appointmentId =
+        apt.appointmentId ||
+        apt.appointment_id ||
+        apt.id ||
+        apt.reference_id ||
+        `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const patientFullName =
+        apt.patientFullName ||
+        apt.patient_full_name ||
+        apt.patient_name ||
+        apt.patientName ||
+        'N/A';
+      const doctorFullName =
+        apt.doctorFullName || apt.doctor_full_name || apt.doctor_name || apt.doctorName || 'N/A';
+
+      return {
+        id: apt.id || appointmentId,
+        appointmentId,
+        patientId: apt.patientId || apt.patient_id || apt.patient || '',
+        doctorId: apt.doctorId || apt.doctor_id || apt.providerId || apt.provider_id || '',
+        appointmentDate: apt.appointmentDate || apt.appointment_date,
+        appointmentTime: apt.appointmentTime || apt.appointment_time,
+        durationMinutes: apt.durationMinutes ?? apt.duration_minutes ?? 0,
+        type: apt.type,
+        priority: apt.priority,
+        status: apt.status,
+        roomId: apt.roomId || apt.room_id,
+        departmentId: apt.departmentId || apt.department_id,
+        patient: {
+          patientId: apt.patientId || apt.patient_id || apt.patient || '',
+          fullName: patientFullName,
+          phone: apt.patientPhone || apt.patient_phone,
+          email: apt.patientEmail || apt.patient_email,
+          dateOfBirth: apt.patientDateOfBirth || apt.patient_date_of_birth,
+          gender: apt.patientGender || apt.patient_gender,
+          nationalId: apt.patientNationalId || apt.patient_national_id,
+          insuranceNumber: apt.patientInsuranceNumber || apt.insuranceNumber,
+          insuranceType: apt.patientInsuranceType || apt.insuranceType,
+          address: apt.patientAddress,
+        },
+        doctor: {
+          doctorId: apt.doctorId || apt.doctor_id || apt.providerId || apt.provider_id || '',
+          fullName: doctorFullName,
+          specialization: apt.doctorSpecialization || apt.doctor_specialization,
+          department: apt.doctorDepartment || apt.doctor_department,
+          licenseNumber: apt.doctorLicenseNumber || apt.doctor_license_number,
+          phone: apt.doctorPhone || apt.doctor_phone,
+          email: apt.doctorEmail || apt.doctor_email,
+        },
+        doctorName: doctorFullName,
+        doctorFullName,
+        doctorSpecialization: apt.doctorSpecialization || apt.doctor_specialization,
+        doctorDepartment: apt.doctorDepartment || apt.doctor_department,
+        patientName: patientFullName,
+        patientFullName,
+        patientPhone: apt.patientPhone || apt.patient_phone,
+        patientEmail: apt.patientEmail || apt.patient_email,
+        patientDateOfBirth: apt.patientDateOfBirth || apt.patient_date_of_birth,
+        patientGender: apt.patientGender || apt.patient_gender,
+        patientNationalId: apt.patientNationalId || apt.patient_national_id,
+        patientInsuranceNumber: apt.patientInsuranceNumber || apt.insuranceNumber,
+        patientInsuranceType: apt.patientInsuranceType || apt.insuranceType,
+        patientAddress: apt.patientAddress,
+        reason: apt.reason,
+        consultationFee: apt.consultationFee ?? apt.consultation_fee,
+        paymentStatus: apt.paymentStatus ?? apt.payment_status,
+        createdAt: apt.createdAt || apt.created_at,
+        updatedAt: apt.updatedAt || apt.updated_at,
+      } as AppointmentReadModel;
+    });
+
+    const totalCount = payload.total ?? payload.totalCount ?? normalizedAppointments.length;
+    const page = payload.page ?? 1;
+    const totalPages =
+      payload.totalPages ??
+      (payload.pageSize
+        ? Math.ceil(totalCount / payload.pageSize)
+        : payload.limit
+          ? Math.ceil(totalCount / payload.limit)
+          : page >= 1
+            ? Math.max(page, 1)
+            : 1);
 
     return {
-      success: response.data.success,
-      appointments: result.appointments || [],
-      totalCount: result.total || 0,
-      hasMore: result.total > result.page * result.pageSize,
+      success: response.data.success ?? true,
+      appointments: normalizedAppointments,
+      totalCount,
+      hasMore: page < totalPages,
     };
   },
 

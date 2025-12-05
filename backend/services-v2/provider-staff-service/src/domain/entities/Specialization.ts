@@ -1,13 +1,14 @@
 /**
  * Specialization Entity
  * Vietnamese Healthcare Specialization
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, DDD, Vietnamese Healthcare Standards
  */
 
-import { Entity } from '@shared/domain/base/entity';
+import { Entity } from "@shared/domain/base/entity";
+import { safeToISOString } from "../utils/date-utils";
 
 interface SpecializationProps {
   code: string;
@@ -23,28 +24,33 @@ export class Specialization extends Entity<SpecializationProps> {
     super(props, id);
   }
 
-  public static create(props: Omit<SpecializationProps, 'createdAt' | 'updatedAt'>): Specialization {
+  public static create(
+    props: Omit<SpecializationProps, "createdAt" | "updatedAt">,
+  ): Specialization {
     const now = new Date();
-    
+
     return new Specialization({
       ...props,
       code: props.code.trim().toUpperCase(),
       name: props.name.trim(),
       description: props.description?.trim(),
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     });
   }
 
   public static fromPersistenceData(data: any): Specialization {
-    return new Specialization({
-      code: data.code,
-      name: data.name,
-      description: data.description,
-      isActive: data.is_active,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
-    }, data.id);
+    return new Specialization(
+      {
+        code: data.code,
+        name: data.name,
+        description: data.description,
+        isActive: data.is_active,
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+      },
+      data.id,
+    );
   }
 
   // Getters
@@ -82,11 +88,11 @@ export class Specialization extends Entity<SpecializationProps> {
 
   public validate(): void {
     if (!this.props.code || this.props.code.trim().length === 0) {
-      throw new Error('Mã chuyên khoa không được để trống');
+      throw new Error("Mã chuyên khoa không được để trống");
     }
 
     if (!this.props.name || this.props.name.trim().length === 0) {
-      throw new Error('Tên chuyên khoa không được để trống');
+      throw new Error("Tên chuyên khoa không được để trống");
     }
   }
 
@@ -97,8 +103,8 @@ export class Specialization extends Entity<SpecializationProps> {
       name: this.props.name,
       description: this.props.description,
       is_active: this.props.isActive,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString()
+      created_at: safeToISOString(this.props.createdAt),
+      updated_at: safeToISOString(this.props.updatedAt),
     };
   }
 
@@ -111,4 +117,3 @@ export class Specialization extends Entity<SpecializationProps> {
     return `${this.props.code} - ${this.props.name}`;
   }
 }
-

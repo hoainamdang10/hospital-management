@@ -289,6 +289,15 @@ class ApiGatewayApplication {
         requiresAuth: true,
       }),
 
+      // Identity Service - Account Admin (deactivate/reactivate/unlock)
+      ServiceRoute.create({
+        serviceName: "identity-service",
+        baseUrl:
+          process.env.IDENTITY_SERVICE_URL || "http://identity-service:3001",
+        pathPrefix: "/api/admin/accounts",
+        requiresAuth: true,
+      }),
+
       // Patient Registry Service - Patient Management (internal port 3002, external 3002)
       // Authorization handled by patient-registry-service (ownership-based)
       // Patients can access their own data, Admin/Doctor need patient:read permission

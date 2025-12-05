@@ -1,7 +1,7 @@
 // Authentication Types
 // Based on Identity Service API
 
-export type UserRole = 'PATIENT' | 'DOCTOR' | 'NURSE' | 'ADMIN' | 'STAFF';
+export type UserRole = 'PATIENT' | 'DOCTOR' | 'ADMIN';
 
 export interface User {
   id: string;

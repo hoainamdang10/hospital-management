@@ -1,9 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout';
-import { ArrowLeft, Mail, Phone, MapPin, Users, Calendar, Star, Loader2, MessageSquare, CalendarPlus, Globe, Clock } from 'lucide-react';
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  MapPin,
+  Users,
+  Calendar,
+  Star,
+  Loader2,
+  CalendarPlus,
+  Globe,
+  Clock,
+  Edit3,
+} from 'lucide-react';
 import { getStaffById, type Staff } from '@/lib/api/staff.service';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import type { AppointmentReadModel } from '@/lib/types/appointments';
@@ -17,6 +30,9 @@ import { vi } from 'date-fns/locale';
 export default function DoctorProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const shouldEdit = searchParams.get('edit') === 'true';
+
   const [activeTab, setActiveTab] = useState('overview');
   const [doctor, setDoctor] = useState<Staff | null>(null);
   const [appointments, setAppointments] = useState<AppointmentReadModel[]>([]);
@@ -106,6 +122,13 @@ export default function DoctorProfilePage() {
     }
   }, [params.id]);
 
+  // Auto-redirect to edit page if ?edit=true
+  useEffect(() => {
+    if (shouldEdit && doctor?.staffId) {
+      router.push(`/admin/staff/${doctor.staffId}`);
+    }
+  }, [shouldEdit, doctor, router]);
+
   // Helper functions
   const getInitials = (name: string) => {
     const parts = name.split(' ');
@@ -133,25 +156,86 @@ export default function DoctorProfilePage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: { [key: string]: { label: string; className: string } } = {
-      active: { label: 'Đang hoạt động', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      active: {
+        label: 'Đang hoạt động',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      },
       suspended: { label: 'Tạm nghỉ', className: 'bg-amber-50 text-amber-700 border-amber-200' },
       on_leave: { label: 'Nghỉ phép', className: 'bg-blue-50 text-blue-700 border-blue-200' },
       inactive: { label: 'Đã nghỉ', className: 'bg-slate-50 text-slate-700 border-slate-200' },
     };
     const { label, className } = statusMap[status] || statusMap.inactive;
-    return <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${className}`}>{label}</span>;
+    return (
+      <span
+        className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${className}`}
+      >
+        {label}
+      </span>
+    );
+  };
+
+  // Map appointment type to Vietnamese
+  const getAppointmentTypeLabel = (type?: string): string => {
+    if (!type) return 'Khám bệnh';
+    const typeMap: { [key: string]: string } = {
+      CONSULTATION: 'Khám tổng quát',
+      FOLLOW_UP: 'Tái khám',
+      CHECKUP: 'Khám định kỳ',
+      EMERGENCY: 'Cấp cứu',
+      SURGERY: 'Phẫu thuật',
+      VACCINATION: 'Tiêm ngừa',
+      THERAPY: 'Vật lý trị liệu',
+      LAB_TEST: 'Xét nghiệm',
+      IMAGING: 'Chẩn đoán hình ảnh',
+    };
+    return typeMap[type.toUpperCase()] || type;
   };
 
   const getAppointmentStatusBadge = (status: string) => {
+    const normalizedStatus = status?.toLowerCase() || '';
     const statusMap: { [key: string]: { label: string; className: string } } = {
-      completed: { label: 'Hoàn thành', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      completed: {
+        label: 'Hoàn thành',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      },
       confirmed: { label: 'Đã xác nhận', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+      scheduled: { label: 'Đã lên lịch', className: 'bg-blue-50 text-blue-700 border-blue-200' },
       pending: { label: 'Chờ xác nhận', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+      pending_payment: {
+        label: 'Chờ thanh toán',
+        className: 'bg-orange-50 text-orange-700 border-orange-200',
+      },
       cancelled: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' },
+      no_show: { label: 'Vắng mặt', className: 'bg-slate-50 text-slate-700 border-slate-200' },
     };
-    const { label, className } = statusMap[status] || { label: status, className: 'bg-slate-50 text-slate-700 border-slate-200' };
-    return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${className}`}>{label}</span>;
+    const { label, className } = statusMap[normalizedStatus] || {
+      label: status,
+      className: 'bg-slate-50 text-slate-700 border-slate-200',
+    };
+    return (
+      <span
+        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}
+      >
+        {label}
+      </span>
+    );
   };
+
+  const formattedConsultationFee = useMemo(() => {
+    const fee = doctor?.consultationFee;
+    if (fee === null || fee === undefined) {
+      return null;
+    }
+    const numericFee = typeof fee === 'number' ? fee : Number(fee);
+    if (Number.isNaN(numericFee)) {
+      return null;
+    }
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(numericFee);
+  }, [doctor?.consultationFee]);
 
   if (isLoading) {
     return (
@@ -171,7 +255,9 @@ export default function DoctorProfilePage() {
       <DashboardLayout>
         <div className="flex h-screen flex-col items-center justify-center bg-slate-50">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-            <p className="mb-4 text-lg font-medium text-red-700">{error || 'Không tìm thấy bác sĩ'}</p>
+            <p className="mb-4 text-lg font-medium text-red-700">
+              {error || 'Không tìm thấy bác sĩ'}
+            </p>
             <button
               onClick={() => router.back()}
               className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-blue-700 hover:shadow-lg"
@@ -187,23 +273,81 @@ export default function DoctorProfilePage() {
   const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
   const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-  const todayAppointments = appointments.filter((apt) => {
-    const today = new Date().toISOString().split('T')[0];
-    return apt.appointment_date === today;
+  const handleEditDoctor = () => {
+    const targetStaffId = doctor?.staffId || (params.id as string);
+    router.push(`/admin/staff/${targetStaffId}`);
+  };
+
+  const getAppointmentDate = (apt: any): string | null => {
+    const raw = apt.appointmentDate || apt.appointment_date || apt.date || apt.scheduledDate;
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      return raw.split('T')[0];
+    }
+    // Handle Date object
+    if (raw instanceof Date) {
+      return raw.toISOString().split('T')[0];
+    }
+    return null;
+  };
+
+  const getAppointmentTime = (apt: any): string | null => {
+    const raw = apt.appointmentTime || apt.appointment_time || apt.time || apt.scheduledTime;
+    if (!raw || typeof raw !== 'string') return null;
+    return raw.substring(0, 5);
+  };
+
+  // Get today's date in LOCAL timezone (Vietnam +7)
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  console.log('[Admin Doctor] Today (local):', today);
+
+  // Filter and sort today's appointments by time ascending
+  const todayAppointments = appointments
+    .filter((apt) => {
+      const date = getAppointmentDate(apt);
+      return date === today;
+    })
+    .sort((a, b) => {
+      const timeA = getAppointmentTime(a) || '99:99';
+      const timeB = getAppointmentTime(b) || '99:99';
+      return timeA.localeCompare(timeB);
+    });
+
+  // Sort all appointments by date and time ascending
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    const dateA = getAppointmentDate(a) || '';
+    const dateB = getAppointmentDate(b) || '';
+    if (dateA !== dateB) {
+      return dateA.localeCompare(dateB);
+    }
+    const timeA = getAppointmentTime(a) || '99:99';
+    const timeB = getAppointmentTime(b) || '99:99';
+    return timeA.localeCompare(timeB);
   });
+
+  console.log('[Admin Doctor] Today appointments count:', todayAppointments.length);
 
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-slate-50">
-        {/* Header */}
-        <div className="border-b border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-4">
+        {/* Header with Glassmorphism */}
+        <div className="sticky top-0 z-20 border-b border-slate-200/60 bg-white/70 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <button
               onClick={() => router.back()}
               className="group flex items-center gap-2 text-slate-600 transition-colors hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
               <span className="text-lg font-semibold">Hồ sơ bác sĩ</span>
+            </button>
+            <button
+              onClick={handleEditDoctor}
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white transition-all hover:from-blue-700 hover:to-cyan-700 hover:shadow-lg"
+            >
+              <Edit3 className="h-4 w-4" />
+              Chỉnh sửa thông tin
             </button>
           </div>
         </div>
@@ -220,13 +364,13 @@ export default function DoctorProfilePage() {
                     <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-3xl font-bold text-white shadow-lg">
                       {getInitials(doctor.personalInfo.fullName)}
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900">{doctor.personalInfo.fullName}</h2>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {doctor.personalInfo.fullName}
+                    </h2>
                     <p className="mt-1 text-sm text-slate-600">
                       {doctor.specializations?.[0]?.name || doctor.professionalInfo.department}
                     </p>
-                    <div className="mt-3">
-                      {getStatusBadge(doctor.status)}
-                    </div>
+                    <div className="mt-3">{getStatusBadge(doctor.status)}</div>
                     {/* Rating */}
                     <div className="mt-4 flex items-center justify-center gap-1.5">
                       <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
@@ -238,7 +382,9 @@ export default function DoctorProfilePage() {
                   <div className="p-6">
                     {/* Contact Section */}
                     <div className="mb-6">
-                      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Liên hệ</h3>
+                      <h3 className="mb-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                        Liên hệ
+                      </h3>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3">
                           <Mail className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
@@ -251,7 +397,9 @@ export default function DoctorProfilePage() {
                         <div className="flex items-start gap-3">
                           <Phone className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm text-slate-700">{doctor.personalInfo.phoneNumber}</p>
+                            <p className="text-sm text-slate-700">
+                              {doctor.personalInfo.phoneNumber}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -259,7 +407,18 @@ export default function DoctorProfilePage() {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm leading-relaxed text-slate-700">
                               {doctor.personalInfo.address
-                                ? `${doctor.personalInfo.address.street}, ${doctor.personalInfo.address.ward || ''}, ${doctor.personalInfo.address.district}, ${doctor.personalInfo.address.city}`.replace(', ,', ',')
+                                ? [
+                                  doctor.personalInfo.address.street,
+                                  doctor.personalInfo.address.ward,
+                                  doctor.personalInfo.address.district,
+                                  doctor.personalInfo.address.city,
+                                  doctor.personalInfo.address.country,
+                                ]
+                                  .filter(
+                                    (part) =>
+                                      part && part.trim() && !part.includes('Chưa cập nhật')
+                                  )
+                                  .join(', ') || 'Chưa cập nhật địa chỉ'
                                 : 'Chưa cập nhật địa chỉ'}
                             </p>
                           </div>
@@ -269,42 +428,49 @@ export default function DoctorProfilePage() {
 
                     {/* Professional Info */}
                     <div className="mb-6 border-t border-slate-100 pt-6">
-                      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Thông tin nghề nghiệp</h3>
+                      <h3 className="mb-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                        Thông tin nghề nghiệp
+                      </h3>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-slate-600">Tổng bệnh nhân</span>
-                          <span className="font-semibold text-slate-900">{stats.totalPatients}</span>
+                          <span className="font-semibold text-slate-900">
+                            {stats.totalPatients}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-slate-600">Kinh nghiệm</span>
-                          <span className="font-semibold text-slate-900">{doctor.yearsOfExperience || 0} năm</span>
+                          <span className="font-semibold text-slate-900">
+                            {doctor.yearsOfExperience || 0} năm
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Languages */}
-                    {doctor.professionalInfo.languages && doctor.professionalInfo.languages.length > 0 && (
-                      <div className="mb-6 border-t border-slate-100 pt-6">
-                        <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          <Globe className="h-3.5 w-3.5" />
-                          Ngôn ngữ
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {doctor.professionalInfo.languages.map((lang, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
-                            >
-                              {lang}
-                            </span>
-                          ))}
+                    {doctor.professionalInfo.languages &&
+                      doctor.professionalInfo.languages.length > 0 && (
+                        <div className="mb-6 border-t border-slate-100 pt-6">
+                          <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                            <Globe className="h-3.5 w-3.5" />
+                            Ngôn ngữ
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {doctor.professionalInfo.languages.map((lang, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+                              >
+                                {lang}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Weekly Schedule */}
                     <div className="mb-6 border-t border-slate-100 pt-6">
-                      <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
                         <Clock className="h-3.5 w-3.5" />
                         Lịch làm việc
                       </h3>
@@ -334,18 +500,6 @@ export default function DoctorProfilePage() {
                         )}
                       </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="space-y-2 border-t border-slate-100 pt-6">
-                      <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-blue-700 hover:shadow-lg">
-                        <MessageSquare className="h-4 w-4" />
-                        Nhắn tin
-                      </button>
-                      <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 hover:shadow">
-                        <CalendarPlus className="h-4 w-4" />
-                        Đặt lịch
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -367,16 +521,16 @@ export default function DoctorProfilePage() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`relative flex-1 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-slate-600 hover:text-slate-900'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-slate-600 hover:text-slate-900'
                           }`}
                       >
                         {tab.label}
                         {tab.count !== undefined && (
                           <span
                             className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${activeTab === tab.id
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'bg-slate-100 text-slate-600'
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'bg-slate-100 text-slate-600'
                               }`}
                           >
                             {tab.count}
@@ -405,16 +559,22 @@ export default function DoctorProfilePage() {
 
                     {/* Education & Certifications */}
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                      <h3 className="mb-6 text-lg font-semibold text-slate-900">Học vấn & Chứng chỉ</h3>
+                      <h3 className="mb-6 text-lg font-semibold text-slate-900">
+                        Học vấn & Chứng chỉ
+                      </h3>
 
                       <div className="space-y-6">
                         {/* Education */}
                         <div>
                           <h4 className="mb-3 text-sm font-semibold text-slate-700">Học vấn</h4>
-                          {doctor.professionalInfo.education && doctor.professionalInfo.education.length > 0 ? (
+                          {doctor.professionalInfo.education &&
+                            doctor.professionalInfo.education.length > 0 ? (
                             <div className="space-y-3">
                               {doctor.professionalInfo.education.map((edu, idx) => (
-                                <div key={idx} className="flex items-start gap-3 rounded-lg bg-slate-50 p-3">
+                                <div
+                                  key={idx}
+                                  className="flex items-start gap-3 rounded-lg bg-slate-50 p-3"
+                                >
                                   <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
                                     <Calendar className="h-4 w-4 text-blue-600" />
                                   </div>
@@ -425,7 +585,9 @@ export default function DoctorProfilePage() {
                               ))}
                             </div>
                           ) : (
-                            <p className="text-sm text-slate-500">Chưa cập nhật thông tin học vấn</p>
+                            <p className="text-sm text-slate-500">
+                              Chưa cập nhật thông tin học vấn
+                            </p>
                           )}
                         </div>
 
@@ -435,10 +597,17 @@ export default function DoctorProfilePage() {
                           {doctor.certifications && doctor.certifications.length > 0 ? (
                             <div className="space-y-3">
                               {doctor.certifications.map((cert, idx) => (
-                                <div key={idx} className="flex items-start justify-between rounded-lg bg-slate-50 p-3">
+                                <div
+                                  key={idx}
+                                  className="flex items-start justify-between rounded-lg bg-slate-50 p-3"
+                                >
                                   <div>
-                                    <p className="font-medium text-slate-900">{cert.certificationName}</p>
-                                    <p className="text-sm text-slate-600">{cert.issuingOrganization}</p>
+                                    <p className="font-medium text-slate-900">
+                                      {cert.certificationName}
+                                    </p>
+                                    <p className="text-sm text-slate-600">
+                                      {cert.issuingOrganization}
+                                    </p>
                                   </div>
                                   {cert.issueDate && (
                                     <span className="text-sm font-medium text-slate-500">
@@ -477,13 +646,19 @@ export default function DoctorProfilePage() {
                               <div className="flex items-center gap-4">
                                 <div className="text-center">
                                   <p className="text-lg font-bold text-slate-900">
-                                    {apt.appointment_time?.substring(0, 5) || 'N/A'}
+                                    {getAppointmentTime(apt) || 'N/A'}
                                   </p>
-                                  <p className="text-xs text-slate-500">{apt.type}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {getAppointmentTypeLabel(apt.type)}
+                                  </p>
                                 </div>
                                 <div>
-                                  <p className="font-medium text-slate-900">{apt.patient_full_name}</p>
-                                  <p className="text-sm text-slate-600">{apt.reason || apt.type}</p>
+                                  <p className="font-medium text-slate-900">
+                                    {apt.patientName || apt.patientFullName || 'Bệnh nhân'}
+                                  </p>
+                                  <p className="text-sm text-slate-600">
+                                    {apt.reason || getAppointmentTypeLabel(apt.type)}
+                                  </p>
                                 </div>
                               </div>
                               {getAppointmentStatusBadge(apt.status)}
@@ -492,7 +667,9 @@ export default function DoctorProfilePage() {
                         ) : (
                           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                             <Calendar className="mx-auto h-12 w-12 text-slate-400" />
-                            <p className="mt-3 text-sm font-medium text-slate-600">Không có lịch hẹn hôm nay</p>
+                            <p className="mt-3 text-sm font-medium text-slate-600">
+                              Không có lịch hẹn hôm nay
+                            </p>
                           </div>
                         )}
                       </div>
@@ -505,7 +682,7 @@ export default function DoctorProfilePage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <h3 className="text-lg font-semibold text-slate-900">Danh sách lịch hẹn</h3>
-                      <select className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                      <select className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
                         <option>Tất cả</option>
                         <option>Hôm nay</option>
                         <option>Tuần này</option>
@@ -514,9 +691,10 @@ export default function DoctorProfilePage() {
                     </div>
 
                     <div className="space-y-3">
-                      {appointments.length > 0 ? (
-                        appointments.map((apt: any, i) => {
-                          const patientName = apt.patientName || apt.patient_full_name || 'Bệnh nhân';
+                      {sortedAppointments.length > 0 ? (
+                        sortedAppointments.map((apt: any, i) => {
+                          const patientName =
+                            apt.patientName || apt.patient_full_name || 'Bệnh nhân';
                           const appointmentTime = apt.appointmentTime || apt.appointment_time;
                           const appointmentDate = apt.appointmentDate || apt.appointment_date;
 
@@ -531,10 +709,13 @@ export default function DoctorProfilePage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-slate-900">{patientName}</p>
-                                  <p className="text-sm text-slate-600">{apt.reason || apt.type}</p>
+                                  <p className="text-sm text-slate-600">
+                                    {apt.reason || getAppointmentTypeLabel(apt.type)}
+                                  </p>
                                   <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                                     <Clock className="h-3.5 w-3.5" />
-                                    {appointmentTime?.substring(0, 5) || 'N/A'} • {formatDate(appointmentDate)}
+                                    {appointmentTime?.substring(0, 5) || 'N/A'} •{' '}
+                                    {formatDate(appointmentDate)}
                                   </p>
                                 </div>
                               </div>
@@ -545,7 +726,9 @@ export default function DoctorProfilePage() {
                       ) : (
                         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
                           <CalendarPlus className="mx-auto h-16 w-16 text-slate-400" />
-                          <p className="mt-4 text-lg font-medium text-slate-600">Chưa có lịch hẹn nào</p>
+                          <p className="mt-4 text-lg font-medium text-slate-600">
+                            Chưa có lịch hẹn nào
+                          </p>
                         </div>
                       )}
                     </div>
@@ -561,9 +744,9 @@ export default function DoctorProfilePage() {
                         <input
                           type="text"
                           placeholder="Tìm kiếm bệnh nhân..."
-                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
                         />
-                        <select className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <select className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
                           <option>Tất cả</option>
                           <option>Đang điều trị</option>
                           <option>Hoàn thành</option>
@@ -576,19 +759,19 @@ export default function DoctorProfilePage() {
                         <table className="w-full">
                           <thead className="border-b border-slate-200 bg-slate-50">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                              <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase">
                                 Bệnh nhân
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                              <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase">
                                 Tuổi
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                              <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase">
                                 Giới tính
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                              <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase">
                                 Lần khám cuối
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                              <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-slate-600 uppercase">
                                 Trạng thái
                               </th>
                             </tr>
@@ -608,11 +791,19 @@ export default function DoctorProfilePage() {
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 text-sm text-slate-700">{calculateAge(patient.dob)} tuổi</td>
                                   <td className="px-6 py-4 text-sm text-slate-700">
-                                    {patient.gender === 'male' ? 'Nam' : patient.gender === 'female' ? 'Nữ' : 'Khác'}
+                                    {calculateAge(patient.dob)} tuổi
                                   </td>
-                                  <td className="px-6 py-4 text-sm text-slate-700">{formatDate(patient.lastVisit)}</td>
+                                  <td className="px-6 py-4 text-sm text-slate-700">
+                                    {patient.gender === 'male'
+                                      ? 'Nam'
+                                      : patient.gender === 'female'
+                                        ? 'Nữ'
+                                        : 'Khác'}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-slate-700">
+                                    {formatDate(patient.lastVisit)}
+                                  </td>
                                   <td className="px-6 py-4">
                                     <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                                       {patient.status}
@@ -624,7 +815,9 @@ export default function DoctorProfilePage() {
                               <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center">
                                   <Users className="mx-auto h-16 w-16 text-slate-400" />
-                                  <p className="mt-4 text-lg font-medium text-slate-600">Chưa có bệnh nhân nào</p>
+                                  <p className="mt-4 text-lg font-medium text-slate-600">
+                                    Chưa có bệnh nhân nào
+                                  </p>
                                 </td>
                               </tr>
                             )}
@@ -642,12 +835,16 @@ export default function DoctorProfilePage() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 shadow-sm">
                         <p className="text-sm font-medium text-blue-700">Tổng bệnh nhân</p>
-                        <p className="mt-2 text-3xl font-bold text-blue-900">{stats.totalPatients}</p>
+                        <p className="mt-2 text-3xl font-bold text-blue-900">
+                          {stats.totalPatients}
+                        </p>
                         <p className="mt-1 text-xs text-blue-600">Tích lũy</p>
                       </div>
                       <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 shadow-sm">
                         <p className="text-sm font-medium text-emerald-700">Tỉ lệ hoàn thành</p>
-                        <p className="mt-2 text-3xl font-bold text-emerald-900">{stats.completedAppointments}%</p>
+                        <p className="mt-2 text-3xl font-bold text-emerald-900">
+                          {stats.completedAppointments}%
+                        </p>
                         <p className="mt-1 text-xs text-emerald-600">Trên tổng lịch hẹn</p>
                       </div>
                       <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-6 shadow-sm">
@@ -657,17 +854,24 @@ export default function DoctorProfilePage() {
                       </div>
                       <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 shadow-sm">
                         <p className="text-sm font-medium text-purple-700">Giờ làm việc</p>
-                        <p className="mt-2 text-3xl font-bold text-purple-900">{stats.workingHours}h</p>
+                        <p className="mt-2 text-3xl font-bold text-purple-900">
+                          {stats.workingHours}h
+                        </p>
                         <p className="mt-1 text-xs text-purple-600">Mỗi tuần</p>
                       </div>
                     </div>
 
                     {/* Recent Reviews */}
                     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                      <h4 className="mb-4 text-lg font-semibold text-slate-900">Đánh giá gần đây</h4>
+                      <h4 className="mb-4 text-lg font-semibold text-slate-900">
+                        Đánh giá gần đây
+                      </h4>
                       <div className="space-y-4">
                         {[1, 2, 3].map((i) => (
-                          <div key={i} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                          <div
+                            key={i}
+                            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                          >
                             <div className="flex items-start justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-slate-500 font-medium text-white">
@@ -677,7 +881,10 @@ export default function DoctorProfilePage() {
                                   <p className="font-medium text-slate-900">Bệnh nhân ẩn danh</p>
                                   <div className="mt-1 flex items-center gap-1">
                                     {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                      <Star
+                                        key={star}
+                                        className="h-4 w-4 fill-amber-400 text-amber-400"
+                                      />
                                     ))}
                                   </div>
                                 </div>

@@ -3,6 +3,18 @@
 import { Calendar, ChevronLeft, ChevronRight, Plus, User, Stethoscope, Filter } from 'lucide-react';
 import { useState } from 'react';
 
+interface DoctorOption {
+    id: string;
+    name: string;
+    specialty?: string;
+    avatar?: string | null;
+}
+
+interface DepartmentOption {
+    id: string;
+    name: string;
+}
+
 interface CalendarPanelProps {
     selectedDate: Date;
     onDateSelect: (date: Date) => void;
@@ -13,7 +25,8 @@ interface CalendarPanelProps {
     onDepartmentChange: (dept: string) => void;
     selectedStatus: string;
     onStatusChange: (status: string) => void;
-    doctors: any[];
+    doctors: DoctorOption[];
+    departments: DepartmentOption[];
     onAddAppointment: () => void;
 }
 
@@ -28,6 +41,7 @@ export function CalendarPanel({
     selectedStatus,
     onStatusChange,
     doctors,
+    departments,
     onAddAppointment,
 }: CalendarPanelProps) {
     const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
@@ -206,10 +220,11 @@ export function CalendarPanel({
                             onChange={(e) => onDepartmentChange(e.target.value)}
                             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
-                            <option value="all">Tất cả khoa</option>
-                            <option value="cardiology">Tim mạch</option>
-                            <option value="internal">Nội khoa</option>
-                            <option value="surgery">Ngoại khoa</option>
+                            {departments.map((dept) => (
+                                <option key={dept.id} value={dept.id}>
+                                    {dept.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

@@ -368,15 +368,15 @@ export default function BookAppointmentPage() {
       <div className="mx-auto max-w-6xl space-y-8 pb-12">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Đặt lịch khám</h1>
-          <p className="text-gray-500 max-w-lg mx-auto">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Đặt lịch khám</h1>
+          <p className="text-slate-500 max-w-lg mx-auto">
             Đặt lịch khám nhanh chóng, tiện lợi với đội ngũ bác sĩ chuyên khoa hàng đầu
           </p>
         </div>
 
         {/* Progress Steps */}
         <div className="relative">
-          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -z-10" />
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10" />
           <div className="flex justify-between max-w-3xl mx-auto px-4">
             <StepIndicator number={1} title="Chuyên khoa" active={step === 1} completed={step > 1} />
             <StepIndicator number={2} title="Bác sĩ" active={step === 2} completed={step > 2} />
@@ -399,7 +399,7 @@ export default function BookAppointmentPage() {
             >
               {/* Step 1: Choose Department */}
               {step === 1 && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                   <DepartmentSelector
                     departments={departments}
                     selectedDepartment={selectedDepartment}
@@ -409,11 +409,11 @@ export default function BookAppointmentPage() {
                     }}
                     loading={loadingDepartments}
                   />
-                  <div className="flex justify-end pt-8 mt-4 border-t border-gray-100">
+                  <div className="flex justify-end pt-8 mt-4 border-t border-slate-100">
                     <Button
                       onClick={handleNext}
                       disabled={!selectedDepartment}
-                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-blue-500/20"
+                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Tiếp tục
                       <ChevronRight className="ml-2 h-5 w-5" />
@@ -424,22 +424,22 @@ export default function BookAppointmentPage() {
 
               {/* Step 2: Choose Doctor */}
               {step === 2 && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                   <DoctorSelector
                     doctors={doctors}
                     selectedDoctor={selectedDoctor}
                     onSelect={setSelectedDoctor}
                     loading={loadingDoctors}
                   />
-                  <div className="flex justify-between pt-8 mt-4 border-t border-gray-100">
-                    <Button variant="ghost" onClick={handleBack} className="h-12 px-6 rounded-xl hover:bg-gray-100">
+                  <div className="flex justify-between pt-8 mt-4 border-t border-slate-100">
+                    <Button variant="ghost" onClick={handleBack} className="h-12 px-6 rounded-xl hover:bg-slate-100">
                       <ChevronLeft className="mr-2 h-5 w-5" />
                       Quay lại
                     </Button>
                     <Button
                       onClick={handleNext}
                       disabled={!selectedDoctor}
-                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-blue-500/20"
+                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Tiếp tục
                       <ChevronRight className="ml-2 h-5 w-5" />
@@ -450,7 +450,7 @@ export default function BookAppointmentPage() {
 
               {/* Step 3: Choose Date & Time */}
               {step === 3 && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                   <DateTimePicker
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
@@ -508,15 +508,15 @@ export default function BookAppointmentPage() {
                     </div>
                   )}
 
-                  <div className="flex justify-between pt-8 mt-4 border-t border-gray-100">
-                    <Button variant="ghost" onClick={handleBack} className="h-12 px-6 rounded-xl hover:bg-gray-100">
+                  <div className="flex justify-between pt-8 mt-4 border-t border-slate-100">
+                    <Button variant="ghost" onClick={handleBack} className="h-12 px-6 rounded-xl hover:bg-slate-100">
                       <ChevronLeft className="mr-2 h-5 w-5" />
                       Quay lại
                     </Button>
                     <Button
                       onClick={handleNext}
                       disabled={!selectedDate || !selectedTime}
-                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-blue-500/20"
+                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Xem xác nhận
                       <ChevronRight className="ml-2 h-5 w-5" />
@@ -530,7 +530,7 @@ export default function BookAppointmentPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left Column: Form & Details */}
                   <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                       <ConfirmationStep
                         department={selectedDepartment}
                         doctor={selectedDoctor}
@@ -543,7 +543,7 @@ export default function BookAppointmentPage() {
                       />
                     </div>
 
-                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                       <PaymentMethodSelector
                         walletAccount={walletAccount}
                         isWalletLoading={isWalletLoading}
@@ -555,7 +555,7 @@ export default function BookAppointmentPage() {
                     </div>
 
                     <div className="flex justify-between pt-4">
-                      <Button variant="ghost" onClick={handleBack} disabled={submitting} className="h-12 px-6 rounded-xl hover:bg-gray-100">
+                      <Button variant="ghost" onClick={handleBack} disabled={submitting} className="h-12 px-6 rounded-xl hover:bg-slate-100">
                         <ChevronLeft className="mr-2 h-5 w-5" />
                         Quay lại
                       </Button>
@@ -565,61 +565,61 @@ export default function BookAppointmentPage() {
                   {/* Right Column: Sticky Summary */}
                   <div className="lg:col-span-1">
                     <div className="sticky top-6 space-y-6">
-                      <div className="bg-white rounded-3xl p-6 shadow-lg shadow-blue-900/5 border border-blue-100 overflow-hidden relative">
-                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600" />
+                      <div className="bg-white rounded-3xl p-6 shadow-lg shadow-emerald-900/5 border border-emerald-100 overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
-                        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-blue-600" />
+                        <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-emerald-600" />
                           Tóm tắt lịch hẹn
                         </h3>
 
                         <div className="space-y-6 relative z-10">
                           {/* Doctor Info */}
                           <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg shrink-0">
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center text-emerald-700 font-bold text-lg shrink-0">
                               {selectedDoctor.personalInfo?.fullName?.split(' ').pop()?.charAt(0)}
                             </div>
                             <div>
-                              <p className="text-sm text-gray-500 font-medium">Bác sĩ phụ trách</p>
-                              <p className="font-bold text-gray-900 text-base">
+                              <p className="text-sm text-slate-500 font-medium">Bác sĩ phụ trách</p>
+                              <p className="font-bold text-slate-900 text-base">
                                 BS. {selectedDoctor.personalInfo?.fullName}
                               </p>
-                              <p className="text-sm text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded-md mt-1">
+                              <p className="text-sm text-emerald-600 bg-emerald-50 inline-block px-2 py-0.5 rounded-md mt-1">
                                 {selectedDepartment.nameVi}
                               </p>
                             </div>
                           </div>
 
-                          <div className="h-px bg-gray-100" />
+                          <div className="h-px bg-slate-100" />
 
                           {/* Time Info */}
                           <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                              <Calendar className="h-5 w-5 text-gray-400" />
+                              <Calendar className="h-5 w-5 text-slate-400" />
                               <div>
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Ngày khám</p>
-                                <p className="font-semibold text-gray-900">
+                                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Ngày khám</p>
+                                <p className="font-semibold text-slate-900">
                                   {format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
-                              <Clock className="h-5 w-5 text-gray-400" />
+                              <Clock className="h-5 w-5 text-slate-400" />
                               <div>
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Giờ khám</p>
-                                <p className="font-semibold text-gray-900">
+                                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Giờ khám</p>
+                                <p className="font-semibold text-slate-900">
                                   {selectedTime.formattedTime || format(new Date(selectedTime.startTime), 'HH:mm')}
                                 </p>
                               </div>
                             </div>
                           </div>
 
-                          <div className="h-px bg-gray-100" />
+                          <div className="h-px bg-slate-100" />
 
                           {/* Price */}
                           <div className="flex items-end justify-between">
-                            <p className="text-gray-600 font-medium">Tổng phí khám</p>
-                            <p className="text-2xl font-bold text-blue-600">
+                            <p className="text-slate-600 font-medium">Tổng phí khám</p>
+                            <p className="text-2xl font-bold text-emerald-600">
                               {formatCurrency(consultationFee)}
                             </p>
                           </div>
@@ -629,7 +629,7 @@ export default function BookAppointmentPage() {
                       <Button
                         onClick={handleSubmit}
                         disabled={submitting}
-                        className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-blue-600/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                        className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                       >
                         {submitting ? (
                           <>
@@ -675,16 +675,16 @@ function StepIndicator({
     <div className="flex flex-col items-center relative z-10">
       <div
         className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-bold transition-all duration-300 ${active
-            ? 'border-blue-600 bg-blue-600 text-white scale-110 shadow-lg shadow-blue-500/30'
-            : completed
-              ? 'border-blue-600 bg-white text-blue-600'
-              : 'border-gray-200 bg-white text-gray-300'
+          ? 'border-emerald-600 bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30'
+          : completed
+            ? 'border-emerald-600 bg-white text-emerald-600'
+            : 'border-slate-200 bg-white text-slate-300'
           }`}
       >
         {completed ? <Check className="h-5 w-5" /> : number}
       </div>
       <span
-        className={`mt-2 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${active ? 'text-blue-700' : completed ? 'text-blue-600' : 'text-gray-400'
+        className={`mt-2 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${active ? 'text-emerald-700' : completed ? 'text-emerald-600' : 'text-slate-400'
           }`}
       >
         {title}
@@ -719,8 +719,8 @@ function PaymentMethodSelector({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Phương thức thanh toán</h2>
-          <p className="text-sm text-gray-500">Chọn cách bạn muốn thanh toán cho lịch hẹn này</p>
+          <h2 className="text-xl font-bold text-slate-900">Phương thức thanh toán</h2>
+          <p className="text-sm text-slate-500">Chọn cách bạn muốn thanh toán cho lịch hẹn này</p>
         </div>
       </div>
 
@@ -730,7 +730,7 @@ function PaymentMethodSelector({
           description="Thanh toán qua PayOS/VNPAY. Nhận liên kết thanh toán ngay sau khi đặt lịch."
           selected={selectedMethod === 'online'}
           onClick={() => onSelect('online')}
-          icon={<CreditCard className="h-6 w-6 text-blue-600" />}
+          icon={<CreditCard className="h-6 w-6 text-teal-600" />}
         />
         <PaymentMethodOption
           title="Dùng số dư ví"
@@ -788,17 +788,17 @@ function PaymentMethodOption({
       className={cn(
         'relative flex flex-col p-6 rounded-2xl border-2 text-left transition-all duration-200 outline-none',
         selected
-          ? 'border-blue-600 bg-blue-50/50 shadow-md ring-1 ring-blue-600'
-          : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-lg hover:-translate-y-0.5',
-        disabled && 'cursor-not-allowed opacity-60 hover:border-gray-100 hover:shadow-none hover:translate-y-0 bg-gray-50'
+          ? 'border-emerald-600 bg-emerald-50/50 shadow-md ring-1 ring-emerald-600'
+          : 'border-slate-100 bg-white hover:border-emerald-200 hover:shadow-lg hover:-translate-y-0.5',
+        disabled && 'cursor-not-allowed opacity-60 hover:border-slate-100 hover:shadow-none hover:translate-y-0 bg-slate-50'
       )}
     >
       <div className="flex items-start gap-4 mb-4">
-        <div className={`p-3 rounded-xl transition-colors ${selected ? 'bg-blue-100' : 'bg-gray-100'}`}>
+        <div className={`p-3 rounded-xl transition-colors ${selected ? 'bg-emerald-100' : 'bg-slate-100'}`}>
           {icon}
         </div>
         <div>
-          <p className={`font-bold text-lg ${selected ? 'text-blue-900' : 'text-gray-900'}`}>{title}</p>
+          <p className={`font-bold text-lg ${selected ? 'text-emerald-900' : 'text-slate-900'}`}>{title}</p>
         </div>
       </div>
 
@@ -806,12 +806,12 @@ function PaymentMethodOption({
 
       {extraInfo && <p className="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md inline-block mb-2">{extraInfo}</p>}
 
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100/50 w-full">
-        <span className={`text-sm font-semibold ${selected ? 'text-blue-600' : 'text-gray-400'}`}>
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100/50 w-full">
+        <span className={`text-sm font-semibold ${selected ? 'text-emerald-600' : 'text-slate-400'}`}>
           {selected ? 'Đang chọn' : disabled ? 'Không khả dụng' : 'Chọn phương thức này'}
         </span>
         {selected && (
-          <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
+          <div className="h-6 w-6 rounded-full bg-emerald-600 flex items-center justify-center">
             <Check className="h-3.5 w-3.5 text-white" />
           </div>
         )}

@@ -117,15 +117,15 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
     return (
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
+          <h2 className="text-xl font-bold text-slate-900">Hoạt động gần đây</h2>
         </div>
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex animate-pulse gap-4">
-              <div className="h-10 w-10 rounded-full bg-gray-100" />
+              <div className="h-10 w-10 rounded-full bg-slate-100" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 rounded bg-gray-100" />
-                <div className="h-3 w-1/2 rounded bg-gray-100" />
+                <div className="h-4 rounded bg-slate-100" />
+                <div className="h-3 w-1/2 rounded bg-slate-100" />
               </div>
             </div>
           ))}
@@ -184,16 +184,16 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-purple-100 p-2">
-            <ActivityIcon className="h-6 w-6 text-purple-600" />
+          <div className="rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 p-2">
+            <ActivityIcon className="h-6 w-6 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Hoạt động gần đây</h2>
+          <h2 className="text-xl font-bold text-slate-900">Hoạt động gần đây</h2>
         </div>
         <button
-          className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+          className="rounded-lg p-2 transition-colors hover:bg-slate-100"
           aria-label="More options"
         >
-          <MoreVertical className="h-5 w-5 text-gray-600" />
+          <MoreVertical className="h-5 w-5 text-slate-600" />
         </button>
       </div>
 
@@ -205,7 +205,7 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
           return (
             <div key={activity.id} className="group relative flex gap-4 pb-8 last:pb-0">
               {!isLast && (
-                <div className="absolute top-12 bottom-0 left-5 w-px bg-gray-200 transition-colors group-hover:bg-gray-300" />
+                <div className="absolute top-12 bottom-0 left-5 w-px bg-slate-200 transition-colors group-hover:bg-emerald-200" />
               )}
 
               <div
@@ -232,8 +232,8 @@ export function RecentActivity({ patientId }: RecentActivityProps) {
       </div>
       <div className="mt-6 text-right">
         <Link
-          href="/dashboard/notifications"
-          className="text-sm font-semibold text-blue-600 hover:underline"
+          href="/patient/notifications"
+          className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
         >
           Xem tất cả thông báo
         </Link>

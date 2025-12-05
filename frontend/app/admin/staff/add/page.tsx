@@ -15,7 +15,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-type StaffType = 'doctor' | 'admin' | 'receptionist';
+type StaffType = 'doctor' | 'admin';
 
 const STAFF_TYPES: { value: StaffType; label: string; icon: string; description: string }[] = [
   {
@@ -29,12 +29,6 @@ const STAFF_TYPES: { value: StaffType; label: string; icon: string; description:
     label: 'Quản trị viên',
     icon: '👔',
     description: 'Quản lý toàn bộ hệ thống, tạo tài khoản',
-  },
-  {
-    value: 'receptionist',
-    label: 'Lễ tân',
-    icon: '📋',
-    description: 'Check-in bệnh nhân, xác nhận lịch hẹn',
   },
 ];
 
@@ -115,31 +109,18 @@ export default function AddStaffPage() {
 
     try {
       const { authService } = await import('@/lib/api/auth.service');
-      const roleType =
-        formData.staffType === 'admin'
-          ? 'admin'
-          : formData.staffType === 'receptionist'
-            ? 'receptionist'
-            : 'doctor';
+      const roleType = formData.staffType === 'admin' ? 'admin' : 'doctor';
       const payload = {
         email: formData.email,
         fullName: formData.fullName,
-        roleType: roleType as 'doctor' | 'receptionist' | 'admin',
+        roleType: roleType as 'doctor' | 'admin',
         phoneNumber: formData.phone,
         invitationData: {
           departmentCode: formData.department || 'INTE',
           specializationCode: isDoctorType ? formData.specialization || undefined : undefined,
           specializationName: isDoctorType ? formData.specialization || undefined : undefined,
-          title:
-            formData.title ||
-            (isDoctorType ? 'Bác sĩ' : formData.staffType === 'admin' ? 'Quản trị viên' : 'Lễ tân'),
-          position:
-            formData.position ||
-            (isDoctorType
-              ? 'Bác sĩ điều trị'
-              : formData.staffType === 'admin'
-                ? 'Admin'
-                : 'Receptionist'),
+          title: formData.title || (isDoctorType ? 'Bác sĩ' : 'Quản trị viên'),
+          position: formData.position || (isDoctorType ? 'Bác sĩ điều trị' : 'Admin'),
           licenseNumber: formData.licenseNumber || `TEMP-${Date.now()}`,
           employmentType: 'full_time',
           yearsOfExperience: Number(formData.experience || 0),

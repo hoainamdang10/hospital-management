@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserActivatedEventHandler = exports.IdentityUserUpdatedEventHandler = exports.IdentityUserDeletedEventHandler = exports.IdentityUserCreatedEventHandler = exports.IdentityEventConsumer = exports.RabbitMQEventPublisher = exports.PatientMapper = exports.SupabasePatientRepository = void 0;
+exports.UserDeactivatedEventHandler = exports.UserActivatedEventHandler = exports.IdentityUserUpdatedEventHandler = exports.IdentityUserDeletedEventHandler = exports.IdentityUserCreatedEventHandler = exports.IdentityEventConsumer = exports.RabbitMQEventPublisher = exports.PatientMapper = exports.SupabasePatientRepository = void 0;
 // Repositories
 var SupabasePatientRepository_1 = require("./repositories/SupabasePatientRepository");
 Object.defineProperty(exports, "SupabasePatientRepository", { enumerable: true, get: function () { return SupabasePatientRepository_1.SupabasePatientRepository; } });
@@ -33,4 +33,6 @@ var IdentityUserUpdatedEventHandler_1 = require("./events/handlers/IdentityUserU
 Object.defineProperty(exports, "IdentityUserUpdatedEventHandler", { enumerable: true, get: function () { return IdentityUserUpdatedEventHandler_1.IdentityUserUpdatedEventHandler; } });
 var UserActivatedEventHandler_1 = require("./events/handlers/UserActivatedEventHandler");
 Object.defineProperty(exports, "UserActivatedEventHandler", { enumerable: true, get: function () { return UserActivatedEventHandler_1.UserActivatedEventHandler; } });
+var UserDeactivatedEventHandler_1 = require("./events/handlers/UserDeactivatedEventHandler");
+Object.defineProperty(exports, "UserDeactivatedEventHandler", { enumerable: true, get: function () { return UserDeactivatedEventHandler_1.UserDeactivatedEventHandler; } });
 //# sourceMappingURL=index.js.map

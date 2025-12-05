@@ -7,19 +7,20 @@
  * @compliance Clean Architecture, RESTful API, HIPAA
  * @scope-reduction 2025-01-15: Removed 20 post-MVP use cases for graduation project
  */
-import { Request, Response } from 'express';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
-import { RegisterPatientUseCase } from '../../application/use-cases/RegisterPatientUseCase';
-import { UpdatePatientInfoUseCase } from '../../application/use-cases/UpdatePatientInfoUseCase';
-import { PatientQueryHandlers } from '../../application/handlers/PatientQueryHandlers';
-import { ValidateInsuranceUseCase } from '../../application/use-cases/ValidateInsuranceUseCase';
-import { AddEmergencyContactUseCase } from '../../application/use-cases/AddEmergencyContactUseCase';
-import { GetEmergencyContactsUseCase } from '../../application/use-cases/GetEmergencyContactsUseCase';
-import { UpdateEmergencyContactUseCase } from '../../application/use-cases/UpdateEmergencyContactUseCase';
-import { GetInsuranceInfoUseCase } from '../../application/use-cases/GetInsuranceInfoUseCase';
-import { AddInsuranceInfoUseCase } from '../../application/use-cases/AddInsuranceInfoUseCase';
-import { UpdateInsuranceInfoUseCase } from '../../application/use-cases/UpdateInsuranceInfoUseCase';
-import { VerifyInsuranceUseCase } from '../../application/use-cases/VerifyInsuranceUseCase';
+import { Request, Response } from "express";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { RegisterPatientUseCase } from "../../application/use-cases/RegisterPatientUseCase";
+import { UpdatePatientInfoUseCase } from "../../application/use-cases/UpdatePatientInfoUseCase";
+import { PatientQueryHandlers } from "../../application/handlers/PatientQueryHandlers";
+import { ValidateInsuranceUseCase } from "../../application/use-cases/ValidateInsuranceUseCase";
+import { AddEmergencyContactUseCase } from "../../application/use-cases/AddEmergencyContactUseCase";
+import { GetEmergencyContactsUseCase } from "../../application/use-cases/GetEmergencyContactsUseCase";
+import { UpdateEmergencyContactUseCase } from "../../application/use-cases/UpdateEmergencyContactUseCase";
+import { GetInsuranceInfoUseCase } from "../../application/use-cases/GetInsuranceInfoUseCase";
+import { AddInsuranceInfoUseCase } from "../../application/use-cases/AddInsuranceInfoUseCase";
+import { UpdateInsuranceInfoUseCase } from "../../application/use-cases/UpdateInsuranceInfoUseCase";
+import { VerifyInsuranceUseCase } from "../../application/use-cases/VerifyInsuranceUseCase";
+import { GetPatientStatisticsUseCase } from "../../application/use-cases/GetPatientStatisticsUseCase";
 /**
  * Patient Controller
  * @version 2.0.0 (MVP Scope - Graduation Project)
@@ -38,7 +39,8 @@ export declare class PatientController {
     private addEmergencyContactUseCase;
     private getEmergencyContactsUseCase;
     private updateEmergencyContactUseCase;
-    constructor(logger: ILogger, registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, patientQueryHandlers: PatientQueryHandlers, validateInsuranceUseCase: ValidateInsuranceUseCase, getInsuranceInfoUseCase: GetInsuranceInfoUseCase, addInsuranceInfoUseCase: AddInsuranceInfoUseCase, updateInsuranceInfoUseCase: UpdateInsuranceInfoUseCase, verifyInsuranceUseCase: VerifyInsuranceUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, getEmergencyContactsUseCase: GetEmergencyContactsUseCase, updateEmergencyContactUseCase: UpdateEmergencyContactUseCase);
+    private getPatientStatisticsUseCase;
+    constructor(logger: ILogger, registerPatientUseCase: RegisterPatientUseCase, updatePatientInfoUseCase: UpdatePatientInfoUseCase, patientQueryHandlers: PatientQueryHandlers, validateInsuranceUseCase: ValidateInsuranceUseCase, getInsuranceInfoUseCase: GetInsuranceInfoUseCase, addInsuranceInfoUseCase: AddInsuranceInfoUseCase, updateInsuranceInfoUseCase: UpdateInsuranceInfoUseCase, verifyInsuranceUseCase: VerifyInsuranceUseCase, addEmergencyContactUseCase: AddEmergencyContactUseCase, getEmergencyContactsUseCase: GetEmergencyContactsUseCase, updateEmergencyContactUseCase: UpdateEmergencyContactUseCase, getPatientStatisticsUseCase: GetPatientStatisticsUseCase);
     /**
      * Register new patient
      * POST /api/v1/patients
@@ -122,5 +124,10 @@ export declare class PatientController {
      * POST /api/v1/patients/:patientId/insurance/verify
      */
     verifyInsurance(req: Request, res: Response): Promise<void>;
+    /**
+     * Get patient statistics for admin dashboards
+     * GET /api/v1/patients/statistics
+     */
+    getStatistics(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=PatientController.d.ts.map

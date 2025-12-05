@@ -20,6 +20,9 @@ import {
   Lock,
   KeyRound,
   Building2,
+  Heart,
+  Sparkles,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -31,6 +34,7 @@ import { Staff, getStaffByUserId, updateMyStaffProfile } from '@/lib/api/staff.s
 import { getDepartmentByCode } from '@/lib/api/departments.service';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChangePasswordDialog } from '@/components/profile/ChangePasswordDialog';
+import { cn } from '@/lib/utils';
 
 type FormState = {
   fullName: string;
@@ -107,7 +111,6 @@ export default function DoctorProfilePage() {
                   .filter((part) => part && part.trim() !== '')
                   .join(', ');
 
-                // Split by comma and deduplicate
                 const allParts = combined.split(',').map((s) => s.trim()).filter(Boolean);
                 const seen = new Set<string>();
                 const unique = allParts.filter((part) => {
@@ -131,12 +134,8 @@ export default function DoctorProfilePage() {
               } năm kinh nghiệm tại khoa ${data.professionalInfo?.department || 'Chưa cập nhật'}.`,
           });
 
-          // Fetch department name if department code exists
           if (data.professionalInfo?.department) {
             const deptCode = data.professionalInfo.department;
-            console.log('🏥 Fetching department for code:', deptCode);
-
-            // Fallback mapping for common departments
             const departmentMapping: { [key: string]: string } = {
               'CARD': 'Tim mạch',
               'ORTH': 'Chỉnh hình',
@@ -149,17 +148,12 @@ export default function DoctorProfilePage() {
 
             try {
               const deptResponse = await getDepartmentByCode(deptCode);
-              console.log('📋 Department Response:', deptResponse);
               if (deptResponse.success && deptResponse.data.nameVi) {
-                console.log('✅ Setting department name from API:', deptResponse.data.nameVi);
                 setDepartmentName(deptResponse.data.nameVi);
               } else {
-                // Use mapping as fallback
                 setDepartmentName(departmentMapping[deptCode] || deptCode);
               }
             } catch (err) {
-              console.error('❌ Failed to fetch department name, using mapping:', err);
-              // Use mapping as fallback
               setDepartmentName(departmentMapping[deptCode] || deptCode);
             }
           }
@@ -252,7 +246,6 @@ export default function DoctorProfilePage() {
         },
       });
 
-      // Refresh data from API to reflect latest state
       if (user?.userId) {
         const fresh = await getStaffByUserId(user.userId);
         if (fresh) {
@@ -328,10 +321,10 @@ export default function DoctorProfilePage() {
   if (isAuthLoading || loading) {
     return (
       <DashboardLayout>
-        <div className="space-y-4">
-          <Skeleton className="h-40 w-full rounded-2xl" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
+        <div className="space-y-6 p-6">
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-80 w-full rounded-2xl" />
         </div>
       </DashboardLayout>
     );
@@ -339,41 +332,25 @@ export default function DoctorProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Premium Header */}
+      <div className="min-h-screen space-y-6 pb-10">
+        {/* Premium Header with Healthcare Theme */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-8 text-white shadow-xl"
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-600 p-8 text-white shadow-xl"
         >
-          {/* Animated background orbs */}
+          {/* Background decorations */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            {[...Array(3)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full bg-white/10 blur-3xl"
-                style={{
-                  width: `${200 + i * 100}px`,
-                  height: `${200 + i * 100}px`,
-                  left: `${10 + i * 30}%`,
-                  top: `${-20 + i * 20}%`,
-                }}
-                animate={{
-                  x: [0, 20, 0],
-                  y: [0, 30, 0],
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 8 + i * 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-            ))}
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}
+            />
           </div>
 
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="flex items-center gap-8">
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-6">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -381,83 +358,88 @@ export default function DoctorProfilePage() {
                 className="relative"
               >
                 <div className="absolute -inset-1 rounded-full bg-white/30 blur-sm" />
-                <Avatar className="h-28 w-28 border-4 border-white/20 shadow-2xl">
+                <Avatar className="h-28 w-28 border-4 border-white/30 shadow-2xl lg:h-32 lg:w-32">
                   <AvatarImage src={(staff?.personalInfo as any)?.avatar} alt={staff?.personalInfo?.fullName} />
-                  <AvatarFallback className="bg-white/10 text-3xl font-bold text-white backdrop-blur-md">
+                  <AvatarFallback className="bg-white/20 text-3xl font-bold text-white backdrop-blur-md lg:text-4xl">
                     {staff?.personalInfo?.fullName?.split(' ').pop()?.substring(0, 2).toUpperCase() || 'BS'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute bottom-2 right-2 h-5 w-5 rounded-full border-4 border-indigo-600 bg-emerald-400 shadow-sm" />
+                <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full border-4 border-teal-600 bg-emerald-400 shadow-lg" />
               </motion.div>
 
-              <div>
-                <h1 className="mb-1 text-3xl font-bold tracking-tight text-white">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight text-white lg:text-4xl">
                   {staff?.personalInfo?.fullName || 'Bác sĩ'}
                 </h1>
-                <div className="flex flex-col gap-1 text-blue-100">
-                  <div className="flex items-center gap-2 text-lg font-medium opacity-90">
-                    <Stethoscope className="h-4 w-4" />
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-lg font-medium text-cyan-100">
+                    <Heart className="h-5 w-5" />
                     {form.specialization}
                   </div>
-                  <div className="flex items-center gap-2 text-sm opacity-80">
-                    <Mail className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2 text-sm text-cyan-100/80">
+                    <Mail className="h-4 w-4" />
                     {form.email}
                   </div>
-                  <div className="flex items-center gap-2 text-sm opacity-80">
-                    <Building2 className="h-3.5 w-3.5" />
-                    Khoa: {departmentName || 'Chưa cập nhật'}
+                  <div className="flex items-center gap-2 text-sm text-cyan-100/80">
+                    <Building2 className="h-4 w-4" />
+                    Khoa: {departmentName || form.specialization}
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="h-2 w-32 overflow-hidden rounded-full bg-black/20 backdrop-blur-sm">
+                {/* Progress bar */}
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="h-2.5 w-36 overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${completionRate}%` }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                      className={`h-full ${completionRate === 100 ? 'bg-emerald-400' : 'bg-yellow-400'
-                        }`}
+                      transition={{ duration: 1, delay: 0.3 }}
+                      className={cn(
+                        'h-full rounded-full',
+                        completionRate === 100 ? 'bg-emerald-300' : 'bg-amber-300'
+                      )}
                     />
                   </div>
-                  <span className="text-xs font-medium text-white/80">
+                  <span className="text-sm font-medium text-white/80">
                     {completionRate}% hoàn thiện
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 self-start">
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap items-center gap-3">
               <ChangePasswordDialog
                 userId={user?.userId}
                 trigger={
                   <Button
                     type="button"
                     disabled={!user?.userId}
-                    className="rounded-xl border border-white/40 bg-white/20 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl border border-white/30 bg-white/15 px-5 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <KeyRound className="mr-2 h-4 w-4" />
                     Đổi mật khẩu
                   </Button>
                 }
               />
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <Button
                   onClick={isEditing ? handleSave : () => setIsEditing(true)}
                   disabled={isSaving}
-                  className="rounded-xl bg-white px-6 py-3 font-semibold text-blue-600 shadow-lg hover:bg-blue-50"
+                  className="rounded-xl bg-white px-6 py-2.5 font-semibold text-teal-700 shadow-lg transition-all hover:bg-teal-50"
                 >
                   {isSaving ? (
                     <>
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        className="mr-2 h-4 w-4 rounded-full border-2 border-blue-600 border-t-transparent"
+                        className="mr-2 h-4 w-4 rounded-full border-2 border-teal-600 border-t-transparent"
                       />
                       Đang lưu...
                     </>
                   ) : isEditing ? (
                     <>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Lưu
+                      Lưu thay đổi
                     </>
                   ) : (
                     <>
@@ -471,44 +453,48 @@ export default function DoctorProfilePage() {
           </div>
         </motion.div>
 
-
-
+        {/* Tabs */}
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-3 rounded-xl bg-gray-100/50 p-1">
+          <TabsList className="mb-6 grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50/50 p-1.5">
             <TabsTrigger
               value="personal"
-              className="rounded-lg px-4 py-2.5 text-sm font-medium text-gray-600 transition-all data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+              className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm"
             >
+              <User className="mr-2 h-4 w-4" />
               Thông tin cá nhân
             </TabsTrigger>
             <TabsTrigger
               value="professional"
-              className="rounded-lg px-4 py-2.5 text-sm font-medium text-gray-600 transition-all data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+              className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm"
             >
+              <Award className="mr-2 h-4 w-4" />
               Thông tin nghề nghiệp
             </TabsTrigger>
             <TabsTrigger
               value="schedule"
-              className="rounded-lg px-4 py-2.5 text-sm font-medium text-gray-600 transition-all data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+              className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm"
             >
+              <Calendar className="mr-2 h-4 w-4" />
               Lịch làm việc
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="personal" className="mt-0 outline-none">
-            {/* Personal Information Card */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
+              className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
             >
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                  <User className="h-5 w-5 text-blue-600" />
+              {/* Gradient accent */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
+
+              <div className="mb-8 flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-100 to-teal-100">
+                  <User className="h-6 w-6 text-cyan-700" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Thông tin cá nhân</h2>
-                  <p className="text-sm text-gray-500">Thông tin chi tiết về bác sĩ</p>
+                  <h2 className="text-xl font-bold text-slate-900">Thông tin cá nhân</h2>
+                  <p className="text-sm text-slate-500">Thông tin chi tiết về bác sĩ</p>
                 </div>
               </div>
 
@@ -562,19 +548,21 @@ export default function DoctorProfilePage() {
           </TabsContent>
 
           <TabsContent value="professional" className="mt-0 outline-none">
-            {/* Professional Info Card */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
+              className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
             >
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50">
-                  <Award className="h-5 w-5 text-purple-600" />
+              {/* Gradient accent */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+
+              <div className="mb-8 flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-purple-100">
+                  <Award className="h-6 w-6 text-violet-700" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Thông tin nghề nghiệp</h2>
-                  <p className="text-sm text-gray-500">Kinh nghiệm và chứng chỉ</p>
+                  <h2 className="text-xl font-bold text-slate-900">Thông tin nghề nghiệp</h2>
+                  <p className="text-sm text-slate-500">Kinh nghiệm và chứng chỉ</p>
                 </div>
               </div>
 
@@ -605,12 +593,12 @@ export default function DoctorProfilePage() {
                   value={form.license}
                   isEditing={isEditing}
                   readOnly
-                  icon={FileText}
+                  icon={Shield}
                 />
               </div>
 
-              <div className="mt-8 pt-6 border-t border-gray-100">
-                <label className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-500">
+              <div className="mt-8 border-t border-slate-100 pt-6">
+                <label className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-500">
                   <FileText className="h-4 w-4" />
                   Giới thiệu
                 </label>
@@ -618,12 +606,12 @@ export default function DoctorProfilePage() {
                   <textarea
                     value={form.bio}
                     onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-                    className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-gray-900 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50"
+                    className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition-all focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
                     rows={4}
                     placeholder="Giới thiệu về bản thân và kinh nghiệm..."
                   />
                 ) : (
-                  <div className="rounded-xl bg-gray-50/50 p-4 text-gray-700 leading-relaxed">
+                  <div className="rounded-xl bg-slate-50 p-4 leading-relaxed text-slate-700">
                     {form.bio || 'Chưa có thông tin giới thiệu.'}
                   </div>
                 )}
@@ -632,38 +620,41 @@ export default function DoctorProfilePage() {
           </TabsContent>
 
           <TabsContent value="schedule" className="mt-0 outline-none">
-            {/* Schedule Card */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
+              className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
             >
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-                  <Calendar className="h-5 w-5 text-emerald-600" />
+              {/* Gradient accent */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500" />
+
+              <div className="mb-8 flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100">
+                  <Calendar className="h-6 w-6 text-emerald-700" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Lịch làm việc</h2>
-                  <p className="text-sm text-gray-500">Thời gian làm việc trong tuần</p>
+                  <h2 className="text-xl font-bold text-slate-900">Lịch làm việc</h2>
+                  <p className="text-sm text-slate-500">Thời gian làm việc trong tuần</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {/* Header */}
-                <div className="grid grid-cols-3 gap-4 border-b border-gray-100 pb-4 mb-2">
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ngày</div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Buổi sáng</div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Buổi chiều</div>
+                <div className="grid grid-cols-3 gap-4 border-b border-slate-100 pb-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Ngày</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Buổi sáng</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Buổi chiều</div>
                 </div>
 
                 {/* Schedule Rows */}
-                {scheduleRows.map((row) => (
+                {scheduleRows.map((row, i) => (
                   <ScheduleRow
                     key={row.day}
                     day={row.day}
                     morning={row.morning}
                     afternoon={row.afternoon}
                     isOff={!row.working}
+                    index={i}
                   />
                 ))}
               </div>
@@ -671,7 +662,7 @@ export default function DoctorProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout >
+    </DashboardLayout>
   );
 }
 
@@ -694,8 +685,8 @@ function FormField({
 }) {
   return (
     <div className="group">
-      <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-500">
-        <Icon className="h-4 w-4" />
+      <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-500">
+        <Icon className="h-4 w-4 text-slate-400" />
         {label}
       </label>
 
@@ -704,17 +695,23 @@ function FormField({
           type={type}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50"
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 transition-all outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
           placeholder={`Nhập ${label.toLowerCase()}...`}
         />
       ) : (
-        <div className={`relative flex items-center justify-between rounded-lg px-4 py-2.5 transition-colors ${isEditing ? 'bg-gray-50 border border-gray-200' : 'hover:bg-gray-50'}`}>
-          <span className={`font-medium ${!value ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+        <div className={cn(
+          'relative flex items-center justify-between rounded-xl px-4 py-3 transition-colors',
+          isEditing ? 'border border-slate-200 bg-slate-50' : 'bg-slate-50/50 hover:bg-slate-50'
+        )}>
+          <span className={cn(
+            'font-medium',
+            !value || value === 'Chưa cập nhật' ? 'italic text-slate-400' : 'text-slate-900'
+          )}>
             {value || 'Chưa cập nhật'}
           </span>
           {isEditing && readOnly && (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400">
-              <Lock className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">
+              <Lock className="h-3 w-3" />
               <span>Không thể sửa</span>
             </div>
           )}
@@ -729,35 +726,53 @@ function ScheduleRow({
   morning,
   afternoon,
   isOff = false,
+  index = 0,
 }: {
   day: string;
   morning: string;
   afternoon: string;
   isOff?: boolean;
+  index?: number;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      whileHover={{ scale: 1.005, backgroundColor: 'rgba(59, 130, 246, 0.02)' }}
-      className="grid grid-cols-3 gap-4 rounded-xl border-b border-gray-50 px-4 py-4 transition-all last:border-0"
+      transition={{ delay: index * 0.05 }}
+      className={cn(
+        'grid grid-cols-3 gap-4 rounded-xl px-4 py-4 transition-all',
+        isOff ? 'bg-slate-50/50' : 'hover:bg-cyan-50/30'
+      )}
     >
-      <div className="flex items-center gap-3 font-medium text-gray-900">
-        <div className={`h-2.5 w-2.5 rounded-full ring-2 ring-offset-1 ${isOff ? 'bg-gray-300 ring-gray-100' : 'bg-emerald-500 ring-emerald-100'}`} />
+      <div className="flex items-center gap-3 font-medium text-slate-900">
+        <div className={cn(
+          'h-3 w-3 rounded-full ring-2 ring-offset-2',
+          isOff
+            ? 'bg-slate-300 ring-slate-100'
+            : 'bg-emerald-500 ring-emerald-100'
+        )} />
         {day}
       </div>
-      <div
-        className={`flex items-center gap-2 text-sm ${morning === 'Nghỉ' ? 'text-gray-400' : 'text-gray-700 font-medium'
-          }`}
-      >
-        {morning !== 'Nghỉ' && <Clock className="h-4 w-4 text-blue-500" />}
+      <div className={cn(
+        'flex items-center gap-2 text-sm',
+        morning === 'Nghỉ' ? 'text-slate-400' : 'font-medium text-slate-700'
+      )}>
+        {morning !== 'Nghỉ' && (
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-100">
+            <Clock className="h-3.5 w-3.5 text-cyan-600" />
+          </div>
+        )}
         {morning}
       </div>
-      <div
-        className={`flex items-center gap-2 text-sm ${afternoon === 'Nghỉ' ? 'text-gray-400' : 'text-gray-700 font-medium'
-          }`}
-      >
-        {afternoon !== 'Nghỉ' && <Clock className="h-4 w-4 text-blue-500" />}
+      <div className={cn(
+        'flex items-center gap-2 text-sm',
+        afternoon === 'Nghỉ' ? 'text-slate-400' : 'font-medium text-slate-700'
+      )}>
+        {afternoon !== 'Nghỉ' && (
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-100">
+            <Clock className="h-3.5 w-3.5 text-teal-600" />
+          </div>
+        )}
         {afternoon}
       </div>
     </motion.div>

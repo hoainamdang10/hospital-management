@@ -56,7 +56,7 @@ class SupabasePatientRepository {
         this.eventPublisher = eventPublisher;
         this.patientCache = patientCache;
         this.outboxRepository = outboxRepository;
-        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker('patient-repository');
+        this.circuitBreaker = CircuitBreaker_1.CircuitBreakerFactory.getBreaker("patient-repository");
         this.optimizedClient = optimizedClient;
         // Type cast needed due to duplicate @supabase/supabase-js in root and service node_modules
         this.supabaseClient = this.optimizedClient.getConnection();
@@ -70,22 +70,22 @@ class SupabasePatientRepository {
             try {
                 const cachedPatient = await this.patientCache.get(patientId);
                 if (cachedPatient) {
-                    if (typeof cachedPatient.isActive === 'function') {
-                        this.logger.debug('Patient found in cache', {
+                    if (typeof cachedPatient.isActive === "function") {
+                        this.logger.debug("Patient found in cache", {
                             patientId: patientId.getValue(),
                         });
                         return cachedPatient;
                     }
-                    this.logger.warn('Cached patient is stale, invalidating entry', {
+                    this.logger.warn("Cached patient is stale, invalidating entry", {
                         patientId: patientId.getValue(),
                     });
                     await this.patientCache.invalidate(patientId);
                 }
             }
             catch (cacheError) {
-                this.logger.warn('Cache lookup failed, proceeding to database', {
+                this.logger.warn("Cache lookup failed, proceeding to database", {
                     patientId: patientId.getValue(),
-                    error: cacheError instanceof Error ? cacheError.message : 'Unknown error',
+                    error: cacheError instanceof Error ? cacheError.message : "Unknown error",
                 });
             }
         }
@@ -93,12 +93,12 @@ class SupabasePatientRepository {
             const patientIdValue = patientId.getValue();
             // Fetch patient record
             const { data: patientData, error: patientError } = await this.supabaseClient
-                .from('patients')
-                .select('*')
-                .eq('patient_id', patientIdValue)
+                .from("patients")
+                .select("*")
+                .eq("patient_id", patientIdValue)
                 .single();
             if (patientError) {
-                if (patientError.code === 'PGRST116') {
+                if (patientError.code === "PGRST116") {
                     return null; // Not found
                 }
                 throw new Error(`Failed to find patient: ${patientError.message}`);
@@ -118,17 +118,17 @@ class SupabasePatientRepository {
                     await this.patientCache.set(patientId, patient);
                 }
                 catch (cacheError) {
-                    this.logger.warn('Failed to cache patient', {
+                    this.logger.warn("Failed to cache patient", {
                         patientId: patientId.getValue(),
                         error: cacheError instanceof Error
                             ? cacheError.message
-                            : 'Unknown error',
+                            : "Unknown error",
                     });
                 }
             }
             return patient;
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for findById', {
+            this.logger.warn("Circuit breaker fallback for findById", {
                 patientId: patientId.getValue(),
             });
             return null;
@@ -140,12 +140,12 @@ class SupabasePatientRepository {
     async findByUserId(userId) {
         return await this.circuitBreaker.execute(async () => {
             const { data: patientData, error: patientError } = await this.supabaseClient
-                .from('patients')
-                .select('*')
-                .eq('user_id', userId)
+                .from("patients")
+                .select("*")
+                .eq("user_id", userId)
                 .single();
             if (patientError) {
-                if (patientError.code === 'PGRST116') {
+                if (patientError.code === "PGRST116") {
                     return null;
                 }
                 throw new Error(`Failed to find patient by user ID: ${patientError.message}`);
@@ -159,7 +159,7 @@ class SupabasePatientRepository {
             ]);
             return PatientMapper_1.PatientMapper.toDomain(patientData, insuranceData, emergencyContactsData, consentsData, linksData);
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for findByUserId', {
+            this.logger.warn("Circuit breaker fallback for findByUserId", {
                 userId,
             });
             return null;
@@ -171,10 +171,10 @@ class SupabasePatientRepository {
     async findByNationalId(nationalId) {
         return await this.circuitBreaker.execute(async () => {
             const { data: patientDataArray, error: patientError } = await this.supabaseClient
-                .from('patients')
-                .select('*')
-                .eq('personal_info->>nationalId', nationalId)
-                .order('created_at', { ascending: false })
+                .from("patients")
+                .select("*")
+                .eq("personal_info->>nationalId", nationalId)
+                .order("created_at", { ascending: false })
                 .limit(1);
             if (patientError) {
                 throw new Error(`Failed to find patient by national ID: ${patientError.message}`);
@@ -192,7 +192,7 @@ class SupabasePatientRepository {
             ]);
             return PatientMapper_1.PatientMapper.toDomain(patientData, insuranceData, emergencyContactsData, consentsData, linksData);
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for findByNationalId', {
+            this.logger.warn("Circuit breaker fallback for findByNationalId", {
                 nationalId,
             });
             return null;
@@ -204,13 +204,13 @@ class SupabasePatientRepository {
     async findByBHYTNumber(bhytNumber) {
         return await this.circuitBreaker.execute(async () => {
             const { data: insuranceData, error: insuranceError } = await this.supabaseClient
-                .from('insurance_info')
-                .select('patient_id')
-                .eq('bhyt_number', bhytNumber)
-                .eq('is_active', true)
+                .from("insurance_info")
+                .select("patient_id")
+                .eq("bhyt_number", bhytNumber)
+                .eq("is_active", true)
                 .single();
             if (insuranceError) {
-                if (insuranceError.code === 'PGRST116') {
+                if (insuranceError.code === "PGRST116") {
                     return null;
                 }
                 throw new Error(`Failed to find patient by BHYT number: ${insuranceError.message}`);
@@ -218,7 +218,7 @@ class SupabasePatientRepository {
             // Find patient by patient_id
             return await this.findById(PatientId_1.PatientId.fromString(insuranceData.patient_id));
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for findByBHYTNumber', {
+            this.logger.warn("Circuit breaker fallback for findByBHYTNumber", {
                 bhytNumber,
             });
             return null;
@@ -230,56 +230,55 @@ class SupabasePatientRepository {
      */
     async createFromUserEvent(userData) {
         return await this.circuitBreaker.execute(async () => {
-            this.logger.info('Creating patient from user event', {
+            this.logger.info("Creating patient from user event", {
                 userId: userData.userId,
                 email: userData.email,
-                fullName: userData.fullName
+                fullName: userData.fullName,
             });
             // Import required value objects and helpers
-            const { PersonalInfo } = (await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/PersonalInfo'))));
-            const { ContactInfo } = (await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/ContactInfo'))));
-            const { BasicMedicalInfo } = (await Promise.resolve().then(() => __importStar(require('../../domain/value-objects/BasicMedicalInfo'))));
-            const { buildPersonalInfoForCreate, buildContactInfoForCreate } = (await Promise.resolve().then(() => __importStar(require('../../shared/helpers/PatientDataHelper'))));
+            const { PersonalInfo } = await Promise.resolve().then(() => __importStar(require("../../domain/value-objects/PersonalInfo")));
+            const { ContactInfo } = await Promise.resolve().then(() => __importStar(require("../../domain/value-objects/ContactInfo")));
+            const { BasicMedicalInfo } = await Promise.resolve().then(() => __importStar(require("../../domain/value-objects/BasicMedicalInfo")));
+            const { buildPersonalInfoForCreate, buildContactInfoForCreate } = await Promise.resolve().then(() => __importStar(require("../../shared/helpers/PatientDataHelper")));
             // Create patient using smart defaults for minimal data
             const personalInfoData = buildPersonalInfoForCreate({
                 fullName: userData.fullName,
-                dateOfBirth: userData.dateOfBirth?.toISOString().split('T')[0] || '2000-01-01', // Smart default
-                gender: userData.gender || 'other', // Smart default
-                nationalId: userData.citizenId || 'Chưa cập nhật', // Smart default
-                nationality: 'Việt Nam', // Default nationality for Vietnamese patients
-                ethnicity: 'Chưa cập nhật', // Smart default
-                occupation: 'Chưa cập nhật', // Smart default
-                maritalStatus: 'Chưa cập nhật' // Smart default
+                dateOfBirth: userData.dateOfBirth?.toISOString().split("T")[0] || "2000-01-01", // Smart default
+                gender: userData.gender || "other", // Smart default
+                nationalId: userData.citizenId || "Chưa cập nhật", // Smart default
+                nationality: "Việt Nam", // Default nationality for Vietnamese patients
+                ethnicity: "Chưa cập nhật", // Smart default
+                occupation: "Chưa cập nhật", // Smart default
+                maritalStatus: "Chưa cập nhật", // Smart default
             });
             const contactInfoData = buildContactInfoForCreate({
-                primaryPhone: userData.phoneNumber || 'Chưa cập nhật', // Smart default
+                primaryPhone: userData.phoneNumber || "Chưa cập nhật", // Smart default
                 secondaryPhone: undefined,
                 email: userData.email,
                 address: {
-                    street: userData.address || 'Chưa cập nhật', // Smart default
-                    ward: userData.ward || 'Chưa cập nhật', // Smart default
-                    district: userData.district || 'Chưa cập nhật', // Smart default
-                    city: userData.city || 'Chưa cập nhật', // Smart default
-                    province: userData.province || 'Chưa cập nhật', // Smart default
+                    street: userData.address || "Chưa cập nhật", // Smart default
+                    ward: userData.ward || "Chưa cập nhật", // Smart default
+                    district: userData.district || "Chưa cập nhật", // Smart default
+                    city: userData.city || "Chưa cập nhật", // Smart default
+                    province: userData.province || "Chưa cập nhật", // Smart default
                     postalCode: undefined,
-                    country: 'Việt Nam'
+                    country: "Việt Nam",
                 },
-                preferredContactMethod: 'phone'
+                preferredContactMethod: "phone",
             });
             const patient = Patient_1.Patient.register(userData.userId, PersonalInfo.create({
                 ...personalInfoData,
                 dateOfBirth: new Date(personalInfoData.dateOfBirth),
-                gender: personalInfoData.gender
+                gender: personalInfoData.gender,
             }), ContactInfo.create(contactInfoData), BasicMedicalInfo.create({ knownAllergies: [] }), // Empty allergies array
             undefined, // insuranceInfo
             [], // emergencyContacts
-            '00000000-0000-0000-0000-000000000001' // createdBy (system UUID)
-            );
+            "00000000-0000-0000-0000-000000000001");
             // Save patient to database
             await this.save(patient);
-            this.logger.info('Patient created successfully from user event', {
+            this.logger.info("Patient created successfully from user event", {
                 userId: userData.userId,
-                patientId: patient.getPatientId()
+                patientId: patient.getPatientId(),
             });
             return patient;
         });
@@ -293,14 +292,14 @@ class SupabasePatientRepository {
             const { patientRecord, insuranceRecord, emergencyContactRecords, consentRecords, linkRecords, } = PatientMapper_1.PatientMapper.toPersistence(patient);
             const patientIdValue = patient.getPatientId();
             if (!patientIdValue) {
-                throw new Error('Patient ID is required');
+                throw new Error("Patient ID is required");
             }
-            this.logger.info('Persisting patient record', {
+            this.logger.info("Persisting patient record", {
                 patientId: patientIdValue,
                 userId: patientRecord.user_id,
             });
             // ✅ Use PostgreSQL function for transaction support
-            const { data, error } = await this.supabaseClient.rpc('save_patient_transaction', {
+            const { data, error } = await this.supabaseClient.rpc("save_patient_transaction", {
                 p_patient_data: patientRecord,
                 p_insurance_data: insuranceRecord || null,
                 p_contacts_data: emergencyContactRecords || [],
@@ -310,7 +309,7 @@ class SupabasePatientRepository {
             if (error) {
                 if (this.shouldUseDirectPersistence(error)) {
                     await this.savePatientFallback(patientRecord, insuranceRecord, emergencyContactRecords, consentRecords, linkRecords);
-                    this.logger.warn('save_patient_transaction RPC failed, used fallback persistence', {
+                    this.logger.warn("save_patient_transaction RPC failed, used fallback persistence", {
                         patientId: patientIdValue,
                         error: error.message,
                     });
@@ -320,7 +319,7 @@ class SupabasePatientRepository {
                 }
             }
             else {
-                this.logger.info('Patient saved successfully (transaction)', {
+                this.logger.info("Patient saved successfully (transaction)", {
                     patientId: patientIdValue,
                     result: data,
                 });
@@ -330,11 +329,11 @@ class SupabasePatientRepository {
                     await this.patientCache.invalidate(patient.getPatientIdObject());
                 }
                 catch (cacheError) {
-                    this.logger.warn('Patient cache invalidation failed after save', {
+                    this.logger.warn("Patient cache invalidation failed after save", {
                         patientId: patientIdValue,
                         error: cacheError instanceof Error
                             ? cacheError.message
-                            : 'Unknown error',
+                            : "Unknown error",
                     });
                 }
             }
@@ -347,14 +346,14 @@ class SupabasePatientRepository {
             return false;
         }
         const normalized = error.message.toLowerCase();
-        return (normalized.includes('contact_id') ||
-            normalized.includes('save_patient_transaction'));
+        return (normalized.includes("contact_id") ||
+            normalized.includes("save_patient_transaction"));
     }
     async savePatientFallback(patientRecord, insuranceRecord, emergencyContactRecords, consentRecords, linkRecords) {
-        const schemaClient = this.supabaseClient.schema('patient_schema');
+        const schemaClient = this.supabaseClient.schema("patient_schema");
         const patientResult = await schemaClient
-            .from('patients')
-            .upsert(patientRecord, { onConflict: 'patient_id' });
+            .from("patients")
+            .upsert(patientRecord, { onConflict: "patient_id" });
         if (patientResult.error) {
             throw new Error(`Fallback save failed (patients): ${patientResult.error.message}`);
         }
@@ -392,39 +391,39 @@ class SupabasePatientRepository {
             updated_by: patientRecord.updated_by,
         };
         const profileResult = await schemaClient
-            .from('patient_profiles')
-            .upsert(profileRecord, { onConflict: 'patient_id' });
+            .from("patient_profiles")
+            .upsert(profileRecord, { onConflict: "patient_id" });
         if (profileResult.error) {
             throw new Error(`Fallback save failed (patient_profiles): ${profileResult.error.message}`);
         }
         if (insuranceRecord) {
             const insuranceResult = await schemaClient
-                .from('insurance_info')
-                .upsert(insuranceRecord, { onConflict: 'id' });
+                .from("insurance_info")
+                .upsert(insuranceRecord, { onConflict: "id" });
             if (insuranceResult.error) {
                 throw new Error(`Fallback save failed (insurance_info): ${insuranceResult.error.message}`);
             }
         }
         if (emergencyContactRecords.length > 0) {
             const contactsResult = await schemaClient
-                .from('emergency_contacts')
-                .upsert(emergencyContactRecords, { onConflict: 'id' });
+                .from("emergency_contacts")
+                .upsert(emergencyContactRecords, { onConflict: "id" });
             if (contactsResult.error) {
                 throw new Error(`Fallback save failed (emergency_contacts): ${contactsResult.error.message}`);
             }
         }
         if (consentRecords.length > 0) {
             const consentsResult = await schemaClient
-                .from('patient_consents')
-                .upsert(consentRecords, { onConflict: 'id' });
+                .from("patient_consents")
+                .upsert(consentRecords, { onConflict: "id" });
             if (consentsResult.error) {
                 throw new Error(`Fallback save failed (patient_consents): ${consentsResult.error.message}`);
             }
         }
         if (linkRecords.length > 0) {
             const linksResult = await schemaClient
-                .from('patient_links')
-                .upsert(linkRecords, { onConflict: 'id' });
+                .from("patient_links")
+                .upsert(linkRecords, { onConflict: "id" });
             if (linksResult.error) {
                 throw new Error(`Fallback save failed (patient_links): ${linksResult.error.message}`);
             }
@@ -436,15 +435,89 @@ class SupabasePatientRepository {
     async delete(patientId) {
         return await this.circuitBreaker.execute(async () => {
             const { error } = await this.supabaseClient
-                .from('patients')
-                .update({ status: 'inactive', updated_at: new Date().toISOString() })
-                .eq('patient_id', patientId.getValue());
+                .from("patients")
+                .update({ status: "inactive", updated_at: new Date().toISOString() })
+                .eq("patient_id", patientId.getValue());
             if (error) {
                 throw new Error(`Failed to delete patient: ${error.message}`);
             }
-            this.logger.info('Patient deleted (soft)', {
+            this.logger.info("Patient deleted (soft)", {
                 patientId: patientId.getValue(),
             });
+        });
+    }
+    /**
+     * Update patient lifecycle status by user ID
+     */
+    async updateStatusByUserId(userId, newStatus, options) {
+        return await this.circuitBreaker.execute(async () => {
+            const { data: patientRow, error: findError } = await this.supabaseClient
+                .from("patients")
+                .select("patient_id, status")
+                .eq("user_id", userId)
+                .single();
+            if (findError) {
+                if (findError.code === "PGRST116") {
+                    this.logger.warn("No patient record found for identity status event", {
+                        userId,
+                        newStatus,
+                    });
+                    return { updated: false };
+                }
+                throw new Error(`Failed to find patient for status update: ${findError.message}`);
+            }
+            const previousStatus = patientRow.status;
+            const patientId = patientRow.patient_id;
+            if (previousStatus === newStatus) {
+                this.logger.debug("Patient status already up to date", {
+                    userId,
+                    patientId,
+                    status: previousStatus,
+                });
+                return { updated: false, patientId, previousStatus };
+            }
+            const updatePayload = {
+                status: newStatus,
+                updated_at: new Date().toISOString(),
+            };
+            if (options?.updatedBy) {
+                updatePayload.updated_by = options.updatedBy;
+            }
+            const { error: updateError } = await this.supabaseClient
+                .from("patients")
+                .update(updatePayload)
+                .eq("patient_id", patientId);
+            if (updateError) {
+                throw new Error(`Failed to update patient status: ${updateError.message}`);
+            }
+            if (this.patientCache) {
+                try {
+                    await this.patientCache.invalidate(PatientId_1.PatientId.create(patientId));
+                }
+                catch (cacheError) {
+                    this.logger.warn("Failed to invalidate patient cache after status update", {
+                        patientId,
+                        error: cacheError instanceof Error
+                            ? cacheError.message
+                            : "Unknown error",
+                    });
+                }
+            }
+            this.logger.info("Patient status updated via identity event", {
+                userId,
+                patientId,
+                previousStatus,
+                newStatus,
+                reason: options?.reason,
+                source: options?.source,
+            });
+            return { updated: true, patientId, previousStatus };
+        }, async () => {
+            this.logger.warn("Circuit breaker fallback for updateStatusByUserId", {
+                userId,
+                newStatus,
+            });
+            return { updated: false };
         });
     }
     /**
@@ -454,23 +527,23 @@ class SupabasePatientRepository {
         return await this.circuitBreaker.execute(async () => {
             try {
                 let query = this.supabaseClient
-                    .from('patients')
-                    .select('*', { count: 'exact' });
+                    .from("patients")
+                    .select("*", { count: "exact" });
                 // Apply filters
                 if (filters.isActive !== undefined) {
-                    query = query.eq('status', filters.isActive ? 'active' : 'inactive');
+                    query = query.eq("status", filters.isActive ? "active" : "inactive");
                 }
                 if (filters.registrationDateFrom) {
-                    query = query.gte('created_at', filters.registrationDateFrom);
+                    query = query.gte("created_at", filters.registrationDateFrom);
                 }
                 if (filters.registrationDateTo) {
-                    query = query.lte('created_at', filters.registrationDateTo);
+                    query = query.lte("created_at", filters.registrationDateTo);
                 }
                 if (filters.city) {
-                    query = query.eq('contact_info->address->>city', filters.city);
+                    query = query.eq("contact_info->address->>city", filters.city);
                 }
                 if (filters.province) {
-                    query = query.eq('contact_info->address->>province', filters.province);
+                    query = query.eq("contact_info->address->>province", filters.province);
                 }
                 if (filters.hasInsurance !== undefined) {
                     const insuredPatientIds = await this.getActiveInsurancePatientIds();
@@ -478,10 +551,10 @@ class SupabasePatientRepository {
                         if (insuredPatientIds.length === 0) {
                             return { patients: [], total: 0 };
                         }
-                        query = query.in('patient_id', insuredPatientIds);
+                        query = query.in("patient_id", insuredPatientIds);
                     }
                     else if (insuredPatientIds.length > 0) {
-                        query = query.not('patient_id', 'in', this.buildInClause(insuredPatientIds));
+                        query = query.not("patient_id", "in", this.buildInClause(insuredPatientIds));
                     }
                 }
                 // Apply pagination
@@ -490,13 +563,13 @@ class SupabasePatientRepository {
                     query = query.range(offset, offset + pagination.limit - 1);
                     if (pagination.sorting) {
                         query = query.order(pagination.sorting.field, {
-                            ascending: pagination.sorting.direction === 'asc',
+                            ascending: pagination.sorting.direction === "asc",
                         });
                     }
                 }
                 const { data, error, count } = await query;
                 if (error) {
-                    this.logger.error('[PatientRepository] findWithFilters query failed', {
+                    this.logger.error("[PatientRepository] findWithFilters query failed", {
                         error: error.message,
                         details: error?.details,
                         hint: error?.hint,
@@ -523,13 +596,13 @@ class SupabasePatientRepository {
                 };
             }
             catch (error) {
-                this.logger.error('[PatientRepository] findWithFilters execution failed', {
-                    error: error instanceof Error ? error.message : 'Unknown error',
+                this.logger.error("[PatientRepository] findWithFilters execution failed", {
+                    error: error instanceof Error ? error.message : "Unknown error",
                 });
                 throw error;
             }
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for findWithFilters');
+            this.logger.warn("Circuit breaker fallback for findWithFilters");
             return { patients: [], total: 0 };
         });
     }
@@ -540,16 +613,16 @@ class SupabasePatientRepository {
         return await this.circuitBreaker.execute(async () => {
             try {
                 let query = this.supabaseClient
-                    .from('patients')
-                    .select('*', { count: 'exact' })
+                    .from("patients")
+                    .select("*", { count: "exact" })
                     .or([
                     `personal_info->>fullName.ilike.%${searchTerm}%`,
                     `personal_info->>nationalId.ilike.%${searchTerm}%`,
                     `contact_info->>primaryPhone.ilike.%${searchTerm}%`,
                     `contact_info->>email.ilike.%${searchTerm}%`,
-                ].join(','));
+                ].join(","));
                 if (filters?.isActive !== undefined) {
-                    query = query.eq('status', filters.isActive ? 'active' : 'inactive');
+                    query = query.eq("status", filters.isActive ? "active" : "inactive");
                 }
                 if (filters?.hasInsurance !== undefined) {
                     const insuredPatientIds = await this.getActiveInsurancePatientIds();
@@ -557,10 +630,10 @@ class SupabasePatientRepository {
                         if (insuredPatientIds.length === 0) {
                             return { patients: [], total: 0 };
                         }
-                        query = query.in('patient_id', insuredPatientIds);
+                        query = query.in("patient_id", insuredPatientIds);
                     }
                     else if (insuredPatientIds.length > 0) {
-                        query = query.not('patient_id', 'in', this.buildInClause(insuredPatientIds));
+                        query = query.not("patient_id", "in", this.buildInClause(insuredPatientIds));
                     }
                 }
                 if (pagination) {
@@ -569,7 +642,7 @@ class SupabasePatientRepository {
                 }
                 const { data, error, count } = await query;
                 if (error) {
-                    this.logger.error('[PatientRepository] searchPatients query failed', {
+                    this.logger.error("[PatientRepository] searchPatients query failed", {
                         error: error.message,
                         details: error?.details,
                         hint: error?.hint,
@@ -593,13 +666,13 @@ class SupabasePatientRepository {
                 return { patients, total: count || 0 };
             }
             catch (error) {
-                this.logger.error('[PatientRepository] searchPatients execution failed', {
-                    error: error instanceof Error ? error.message : 'Unknown error',
+                this.logger.error("[PatientRepository] searchPatients execution failed", {
+                    error: error instanceof Error ? error.message : "Unknown error",
                 });
                 throw error;
             }
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for searchPatients');
+            this.logger.warn("Circuit breaker fallback for searchPatients");
             return { patients: [], total: 0 };
         });
     }
@@ -610,19 +683,19 @@ class SupabasePatientRepository {
     async matchPatients(criteria, onlyCertainMatches, limit) {
         return await this.circuitBreaker.execute(async () => {
             // Build query to fetch candidate patients
-            let query = this.supabaseClient.from('patients').select('*');
+            let query = this.supabaseClient.from("patients").select("*");
             // Add filters based on criteria
             if (criteria.nationalId) {
-                query = query.eq('personal_info->>nationalId', criteria.nationalId);
+                query = query.eq("personal_info->>nationalId", criteria.nationalId);
             }
             else if (criteria.fullName) {
-                query = query.ilike('personal_info->>fullName', `%${criteria.fullName}%`);
+                query = query.ilike("personal_info->>fullName", `%${criteria.fullName}%`);
             }
             else if (criteria.primaryPhone) {
-                query = query.eq('contact_info->>primaryPhone', criteria.primaryPhone);
+                query = query.eq("contact_info->>primaryPhone", criteria.primaryPhone);
             }
             else if (criteria.email) {
-                query = query.eq('contact_info->>email', criteria.email);
+                query = query.eq("contact_info->>email", criteria.email);
             }
             // Limit candidates to 100 for performance
             query = query.limit(100);
@@ -647,7 +720,7 @@ class SupabasePatientRepository {
             const matches = await this.matchingService.matchPatients(candidates, criteria, onlyCertainMatches || false, limit || 10);
             return matches;
         }, async () => {
-            this.logger.warn('Circuit breaker fallback for matchPatients');
+            this.logger.warn("Circuit breaker fallback for matchPatients");
             return [];
         });
     }
@@ -657,18 +730,18 @@ class SupabasePatientRepository {
     async getHealthStatus() {
         try {
             const client = this.supabaseClient;
-            const { error } = await client.from('patients').select('count').limit(1);
+            const { error } = await client.from("patients").select("count").limit(1);
             return {
-                status: error ? 'unhealthy' : 'healthy',
-                database: 'patient_schema',
+                status: error ? "unhealthy" : "healthy",
+                database: "patient_schema",
                 circuitBreaker: this.circuitBreaker.getStatus(),
                 timestamp: new Date().toISOString(),
             };
         }
         catch (error) {
             return {
-                status: 'unhealthy',
-                error: error instanceof Error ? error.message : 'Unknown error',
+                status: "unhealthy",
+                error: error instanceof Error ? error.message : "Unknown error",
                 timestamp: new Date().toISOString(),
             };
         }
@@ -679,14 +752,14 @@ class SupabasePatientRepository {
      */
     async fetchInsurance(patientId) {
         const { data, error } = await this.supabaseClient
-            .from('insurance_info')
-            .select('*')
-            .eq('patient_id', patientId)
-            .eq('is_primary', true)
-            .eq('is_active', true)
+            .from("insurance_info")
+            .select("*")
+            .eq("patient_id", patientId)
+            .eq("is_primary", true)
+            .eq("is_active", true)
             .single();
-        if (error && error.code !== 'PGRST116') {
-            this.logger.warn('Failed to fetch insurance', {
+        if (error && error.code !== "PGRST116") {
+            this.logger.warn("Failed to fetch insurance", {
                 patientId,
                 error: error.message,
             });
@@ -698,11 +771,11 @@ class SupabasePatientRepository {
      */
     async fetchEmergencyContacts(patientId) {
         const { data, error } = await this.supabaseClient
-            .from('emergency_contacts')
-            .select('*')
-            .eq('patient_id', patientId);
+            .from("emergency_contacts")
+            .select("*")
+            .eq("patient_id", patientId);
         if (error) {
-            this.logger.warn('Failed to fetch emergency contacts', {
+            this.logger.warn("Failed to fetch emergency contacts", {
                 patientId,
                 error: error.message,
             });
@@ -715,11 +788,11 @@ class SupabasePatientRepository {
      */
     async fetchConsents(patientId) {
         const { data, error } = await this.supabaseClient
-            .from('patient_consents')
-            .select('*')
-            .eq('patient_id', patientId);
+            .from("patient_consents")
+            .select("*")
+            .eq("patient_id", patientId);
         if (error) {
-            this.logger.warn('Failed to fetch consents', {
+            this.logger.warn("Failed to fetch consents", {
                 patientId,
                 error: error.message,
             });
@@ -732,11 +805,11 @@ class SupabasePatientRepository {
      */
     async fetchLinks(patientId) {
         const { data, error } = await this.supabaseClient
-            .from('patient_links')
-            .select('*')
-            .eq('patient_id', patientId);
+            .from("patient_links")
+            .select("*")
+            .eq("patient_id", patientId);
         if (error) {
-            this.logger.warn('Failed to fetch links', {
+            this.logger.warn("Failed to fetch links", {
                 patientId,
                 error: error.message,
             });
@@ -752,11 +825,11 @@ class SupabasePatientRepository {
             return new Map();
         }
         const { data, error } = await this.supabaseClient
-            .from('insurance_info')
-            .select('*')
-            .in('patient_id', patientIds);
+            .from("insurance_info")
+            .select("*")
+            .in("patient_id", patientIds);
         if (error) {
-            this.logger.warn('Failed to batch fetch insurance', {
+            this.logger.warn("Failed to batch fetch insurance", {
                 patientIds,
                 error: error.message,
             });
@@ -778,11 +851,11 @@ class SupabasePatientRepository {
             return new Map();
         }
         const { data, error } = await this.supabaseClient
-            .from('emergency_contacts')
-            .select('*')
-            .in('patient_id', patientIds);
+            .from("emergency_contacts")
+            .select("*")
+            .in("patient_id", patientIds);
         if (error) {
-            this.logger.warn('Failed to batch fetch emergency contacts', {
+            this.logger.warn("Failed to batch fetch emergency contacts", {
                 patientIds,
                 error: error.message,
             });
@@ -806,11 +879,11 @@ class SupabasePatientRepository {
             return new Map();
         }
         const { data, error } = await this.supabaseClient
-            .from('patient_consents')
-            .select('*')
-            .in('patient_id', patientIds);
+            .from("patient_consents")
+            .select("*")
+            .in("patient_id", patientIds);
         if (error) {
-            this.logger.warn('Failed to batch fetch consents', {
+            this.logger.warn("Failed to batch fetch consents", {
                 patientIds,
                 error: error.message,
             });
@@ -834,11 +907,11 @@ class SupabasePatientRepository {
             return new Map();
         }
         const { data, error } = await this.supabaseClient
-            .from('patient_links')
-            .select('*')
-            .in('patient_id', patientIds);
+            .from("patient_links")
+            .select("*")
+            .in("patient_id", patientIds);
         if (error) {
-            this.logger.warn('Failed to batch fetch links', {
+            this.logger.warn("Failed to batch fetch links", {
                 patientIds,
                 error: error.message,
             });
@@ -855,13 +928,13 @@ class SupabasePatientRepository {
         return linksMap;
     }
     buildInClause(ids) {
-        return '(' + ids.map((id) => '"' + id + '"').join(',') + ')';
+        return "(" + ids.map((id) => '"' + id + '"').join(",") + ")";
     }
     async getActiveInsurancePatientIds() {
         const { data, error } = await this.supabaseClient
-            .from('insurance_info')
-            .select('patient_id')
-            .eq('is_active', true);
+            .from("insurance_info")
+            .select("patient_id")
+            .eq("is_active", true);
         if (error) {
             throw new Error(`Failed to fetch insured patient IDs: ${error.message}`);
         }
@@ -875,15 +948,15 @@ class SupabasePatientRepository {
     async _saveInsurance(patientId, insuranceRecord) {
         // Delete existing insurance
         await this.supabaseClient
-            .from('insurance_info')
+            .from("insurance_info")
             .delete()
-            .eq('patient_id', patientId);
+            .eq("patient_id", patientId);
         // Insert new insurance
         const { error } = await this.supabaseClient
-            .from('insurance_info')
+            .from("insurance_info")
             .insert({ ...insuranceRecord, patient_id: patientId });
         if (error) {
-            this.logger.error('Failed to save insurance', {
+            this.logger.error("Failed to save insurance", {
                 patientId,
                 error: error.message,
             });
@@ -896,16 +969,16 @@ class SupabasePatientRepository {
     async _saveEmergencyContacts(patientId, contacts) {
         // Delete existing contacts
         await this.supabaseClient
-            .from('emergency_contacts')
+            .from("emergency_contacts")
             .delete()
-            .eq('patient_id', patientId);
+            .eq("patient_id", patientId);
         if (contacts.length > 0) {
             // Insert new contacts
             const { error } = await this.supabaseClient
-                .from('emergency_contacts')
+                .from("emergency_contacts")
                 .insert(contacts.map((c) => ({ ...c, patient_id: patientId })));
             if (error) {
-                this.logger.error('Failed to save emergency contacts', {
+                this.logger.error("Failed to save emergency contacts", {
                     patientId,
                     error: error.message,
                 });
@@ -919,16 +992,16 @@ class SupabasePatientRepository {
     async _saveConsents(patientId, consents) {
         // Delete existing consents
         await this.supabaseClient
-            .from('patient_consents')
+            .from("patient_consents")
             .delete()
-            .eq('patient_id', patientId);
+            .eq("patient_id", patientId);
         if (consents.length > 0) {
             // Insert new consents
             const { error } = await this.supabaseClient
-                .from('patient_consents')
+                .from("patient_consents")
                 .insert(consents.map((c) => ({ ...c, patient_id: patientId })));
             if (error) {
-                this.logger.error('Failed to save consents', {
+                this.logger.error("Failed to save consents", {
                     patientId,
                     error: error.message,
                 });
@@ -942,16 +1015,16 @@ class SupabasePatientRepository {
     async _saveLinks(patientId, links) {
         // Delete existing links
         await this.supabaseClient
-            .from('patient_links')
+            .from("patient_links")
             .delete()
-            .eq('patient_id', patientId);
+            .eq("patient_id", patientId);
         if (links.length > 0) {
             // Insert new links
             const { error } = await this.supabaseClient
-                .from('patient_links')
+                .from("patient_links")
                 .insert(links.map((l) => ({ ...l, patient_id: patientId })));
             if (error) {
-                this.logger.error('Failed to save links', {
+                this.logger.error("Failed to save links", {
                     patientId,
                     error: error.message,
                 });
@@ -973,7 +1046,7 @@ class SupabasePatientRepository {
                 await this.outboxRepository.saveEvents(events);
                 // Mark events as committed after saving to outbox
                 patient.markEventsAsCommitted();
-                this.logger.info('Domain events saved to outbox', {
+                this.logger.info("Domain events saved to outbox", {
                     patientId: patient.getPatientId(),
                     eventCount: events.length,
                     eventTypes: events.map((event) => event.eventType),
@@ -982,23 +1055,23 @@ class SupabasePatientRepository {
             }
             // ✅ FALLBACK: Direct publishing if outbox not available
             if (!this.eventPublisher) {
-                this.logger.debug('Neither outbox nor event publisher configured, skipping event publishing');
+                this.logger.debug("Neither outbox nor event publisher configured, skipping event publishing");
                 return;
             }
             // Publish events in batch (legacy approach)
             await this.eventPublisher.publishBatch(events);
             // Mark events as committed after successful publishing
             patient.markEventsAsCommitted();
-            this.logger.info('Domain events published directly', {
+            this.logger.info("Domain events published directly", {
                 patientId: patient.getPatientId(),
                 eventCount: events.length,
                 eventTypes: events.map((event) => event.eventType),
             });
         }
         catch (error) {
-            this.logger.error('Failed to publish domain events', {
+            this.logger.error("Failed to publish domain events", {
                 patientId: patient.getPatientId(),
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
                 eventCount: events.length,
             });
             // Don't throw - event publishing failure shouldn't fail the transaction
@@ -1010,18 +1083,18 @@ class SupabasePatientRepository {
      */
     async getStatistics() {
         return this.circuitBreaker.execute(async () => {
-            this.logger.info('Getting patient statistics');
+            this.logger.info("Getting patient statistics");
             // Get total count
             const { count: total, error: totalError } = await this.supabaseClient
-                .from('patients')
-                .select('*', { count: 'exact', head: true });
+                .from("patients")
+                .select("*", { count: "exact", head: true });
             if (totalError) {
                 throw new Error(`Failed to get total count: ${totalError.message}`);
             }
             // Get gender distribution
             const { data: genderData, error: genderError } = await this.supabaseClient
-                .from('patients')
-                .select('personal_info');
+                .from("patients")
+                .select("personal_info");
             if (genderError) {
                 throw new Error(`Failed to get gender data: ${genderError.message}`);
             }
@@ -1033,13 +1106,13 @@ class SupabasePatientRepository {
             };
             genderData?.forEach((row) => {
                 const gender = row.personal_info?.gender?.toLowerCase();
-                if (gender === 'male') {
+                if (gender === "male") {
                     byGender.male++;
                 }
-                else if (gender === 'female') {
+                else if (gender === "female") {
                     byGender.female++;
                 }
-                else if (gender === 'other') {
+                else if (gender === "other") {
                     byGender.other++;
                 }
                 else {
@@ -1048,16 +1121,16 @@ class SupabasePatientRepository {
             });
             // Get age distribution
             const { data: ageData, error: ageError } = await this.supabaseClient
-                .from('patients')
-                .select('personal_info');
+                .from("patients")
+                .select("personal_info");
             if (ageError) {
                 throw new Error(`Failed to get age data: ${ageError.message}`);
             }
             const byAgeRange = {
-                '0-18': 0,
-                '19-40': 0,
-                '41-60': 0,
-                '60+': 0,
+                "0-18": 0,
+                "19-40": 0,
+                "41-60": 0,
+                "60+": 0,
             };
             const currentYear = new Date().getFullYear();
             ageData?.forEach((row) => {
@@ -1066,23 +1139,23 @@ class SupabasePatientRepository {
                     const birthYear = new Date(dob).getFullYear();
                     const age = currentYear - birthYear;
                     if (age <= 18) {
-                        byAgeRange['0-18']++;
+                        byAgeRange["0-18"]++;
                     }
                     else if (age <= 40) {
-                        byAgeRange['19-40']++;
+                        byAgeRange["19-40"]++;
                     }
                     else if (age <= 60) {
-                        byAgeRange['41-60']++;
+                        byAgeRange["41-60"]++;
                     }
                     else {
-                        byAgeRange['60+']++;
+                        byAgeRange["60+"]++;
                     }
                 }
             });
             // Get insurance type distribution
             const { data: insuranceData, error: insuranceError } = await this.supabaseClient
-                .from('insurance_info')
-                .select('coverage_type');
+                .from("insurance_info")
+                .select("coverage_type");
             if (insuranceError) {
                 throw new Error(`Failed to get insurance data: ${insuranceError.message}`);
             }
@@ -1094,23 +1167,23 @@ class SupabasePatientRepository {
             };
             insuranceData?.forEach((row) => {
                 const type = row.coverage_type?.toLowerCase();
-                if (type === 'bhyt') {
+                if (type === "bhyt") {
                     byInsuranceType.bhyt++;
                     byInsuranceType.selfPay--;
                 }
-                else if (type === 'bhtn') {
+                else if (type === "bhtn") {
                     byInsuranceType.bhtn++;
                     byInsuranceType.selfPay--;
                 }
-                else if (type === 'private') {
+                else if (type === "private") {
                     byInsuranceType.private++;
                     byInsuranceType.selfPay--;
                 }
             });
             // Get status distribution
             const { data: statusData, error: statusError } = await this.supabaseClient
-                .from('patients')
-                .select('status');
+                .from("patients")
+                .select("status");
             if (statusError) {
                 throw new Error(`Failed to get status data: ${statusError.message}`);
             }
@@ -1122,24 +1195,24 @@ class SupabasePatientRepository {
             };
             statusData?.forEach((row) => {
                 const status = row.status?.toLowerCase();
-                if (status === 'active') {
+                if (status === "active") {
                     byStatus.active++;
                 }
-                else if (status === 'inactive') {
+                else if (status === "inactive") {
                     byStatus.inactive++;
                 }
-                else if (status === 'deceased') {
+                else if (status === "deceased") {
                     byStatus.deceased++;
                 }
-                else if (status === 'merged') {
+                else if (status === "merged") {
                     byStatus.merged++;
                 }
             });
             // Get registration trend (last 12 months)
             const { data: trendData, error: trendError } = await this.supabaseClient
-                .from('patients')
-                .select('created_at')
-                .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString());
+                .from("patients")
+                .select("created_at")
+                .gte("created_at", new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString());
             if (trendError) {
                 throw new Error(`Failed to get trend data: ${trendError.message}`);
             }
@@ -1151,7 +1224,7 @@ class SupabasePatientRepository {
             const registrationTrend = Object.entries(monthCounts)
                 .map(([month, count]) => ({ month, count }))
                 .sort((a, b) => a.month.localeCompare(b.month));
-            this.logger.info('Patient statistics retrieved successfully', {
+            this.logger.info("Patient statistics retrieved successfully", {
                 total,
                 byGender,
                 byAgeRange,
@@ -1177,31 +1250,31 @@ class SupabasePatientRepository {
         return this.circuitBreaker.execute(async () => {
             const limit = options?.limit || 50;
             const offset = options?.offset || 0;
-            this.logger.info('Retrieving patient history from database', {
+            this.logger.info("Retrieving patient history from database", {
                 patientId: patientId.getValue(),
                 limit,
                 offset,
             });
             // Build query for audit_logs (schema already set in client config)
             let auditQuery = this.supabaseClient
-                .from('audit_logs')
-                .select('*', { count: 'exact' })
-                .eq('patient_id', patientId.getValue())
-                .order('created_at', { ascending: false })
+                .from("audit_logs")
+                .select("*", { count: "exact" })
+                .eq("patient_id", patientId.getValue())
+                .order("created_at", { ascending: false })
                 .range(offset, offset + limit - 1);
             // Apply filters
             if (options?.dateFrom) {
-                auditQuery = auditQuery.gte('created_at', options.dateFrom.toISOString());
+                auditQuery = auditQuery.gte("created_at", options.dateFrom.toISOString());
             }
             if (options?.dateTo) {
-                auditQuery = auditQuery.lte('created_at', options.dateTo.toISOString());
+                auditQuery = auditQuery.lte("created_at", options.dateTo.toISOString());
             }
             if (options?.eventTypes && options.eventTypes.length > 0) {
-                auditQuery = auditQuery.in('event_type', options.eventTypes);
+                auditQuery = auditQuery.in("event_type", options.eventTypes);
             }
             const { data: auditLogs, error: auditError, count } = await auditQuery;
             if (auditError) {
-                this.logger.error('Failed to retrieve audit logs', {
+                this.logger.error("Failed to retrieve audit logs", {
                     error: auditError.message,
                     patientId: patientId.getValue(),
                 });
@@ -1209,20 +1282,20 @@ class SupabasePatientRepository {
             }
             // Build query for phi_access_logs (schema already set in client config)
             let phiQuery = this.supabaseClient
-                .from('phi_access_logs')
-                .select('*')
-                .eq('patient_id', patientId.getValue())
-                .order('accessed_at', { ascending: false })
+                .from("phi_access_logs")
+                .select("*")
+                .eq("patient_id", patientId.getValue())
+                .order("accessed_at", { ascending: false })
                 .range(offset, offset + limit - 1);
             if (options?.dateFrom) {
-                phiQuery = phiQuery.gte('accessed_at', options.dateFrom.toISOString());
+                phiQuery = phiQuery.gte("accessed_at", options.dateFrom.toISOString());
             }
             if (options?.dateTo) {
-                phiQuery = phiQuery.lte('accessed_at', options.dateTo.toISOString());
+                phiQuery = phiQuery.lte("accessed_at", options.dateTo.toISOString());
             }
             const { data: phiLogs, error: phiError } = await phiQuery;
             if (phiError) {
-                this.logger.warn('Failed to retrieve PHI access logs', {
+                this.logger.warn("Failed to retrieve PHI access logs", {
                     error: phiError.message,
                     patientId: patientId.getValue(),
                 });
@@ -1247,12 +1320,12 @@ class SupabasePatientRepository {
                     userId: log.user_id,
                     userRole: log.user_role,
                     timestamp: new Date(log.accessed_at),
-                    accessedFields: log.data_accessed?.split(',') || [],
+                    accessedFields: log.data_accessed?.split(",") || [],
                     ipAddress: log.ip_address,
                     userAgent: log.user_agent,
                 })),
             ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-            this.logger.info('Patient history retrieved successfully', {
+            this.logger.info("Patient history retrieved successfully", {
                 patientId: patientId.getValue(),
                 totalRecords: history.length,
                 total: count || 0,

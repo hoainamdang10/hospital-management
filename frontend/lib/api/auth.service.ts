@@ -111,7 +111,7 @@ export const authService = {
   async inviteStaffAdmin(data: {
     email: string;
     fullName: string;
-    roleType: 'doctor' | 'receptionist' | 'admin';
+    roleType: 'doctor' | 'admin';
     phoneNumber?: string;
     // professional fields (flattened) to avoid fallback profile
     departmentCode?: string;
