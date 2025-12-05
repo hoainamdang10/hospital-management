@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, Shield, Clock, Search, MapPin, Stethoscope } from 'lucide-react';
@@ -179,11 +177,10 @@ export default function LandingPage() {
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -4, scale: 1.05 }}
                 onClick={() => setSelectedSpecialty(specialty.code)}
-                className={`rounded-2xl border-2 p-6 text-center transition-all ${
-                  selectedSpecialty === specialty.id
+                className={`rounded-2xl border-2 p-6 text-center transition-all ${selectedSpecialty === specialty.id
                     ? 'border-primary bg-primary-50 shadow-lg'
                     : 'hover:border-primary/50 border-gray-200 bg-white hover:shadow-md'
-                }`}
+                  }`}
               >
                 <div className="mb-3 text-4xl">🏥</div>
                 <h3 className="mb-1 font-semibold text-gray-900">{specialty.nameVi}</h3>

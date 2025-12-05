@@ -45,6 +45,7 @@ import { appointmentsService } from '@/lib/api/appointments.service';
 import { doctorsService } from '@/lib/api/doctors.service';
 import { patientsService } from '@/lib/api/patients.service';
 import { departmentsService } from '@/lib/api/departments.service';
+import { getAvailableSlots, getProviderSchedule, TimeSlot, ProviderSchedule } from '@/lib/api/availability.service';
 
 interface Doctor {
   id: string;
@@ -135,6 +136,11 @@ export default function AddAppointmentPage() {
   const [notes, setNotes] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
 
+  // Availability states
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [providerSchedule, setProviderSchedule] = useState<ProviderSchedule | null>(null);
+
   // Fetch initial data
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -184,6 +190,94 @@ export default function AddAppointmentPage() {
     };
     fetchDoctors();
   }, [selectedDepartment]);
+
+  // Fetch provider schedule when doctor is selected
+  useEffect(() => {
+    if (!selectedDoctor) {
+      setProviderSchedule(null);
+      return;
+    }
+
+    const fetchSchedule = async () => {
+      try {
+        const res = await getProviderSchedule(selectedDoctor);
+        if (res?.success && res.data) {
+          setProviderSchedule(res.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch provider schedule:', error);
+        // Set default schedule if API fails
+        setProviderSchedule({
+          providerId: selectedDoctor,
+          workingDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
+          workingHours: { start: '08:00', end: '17:00' },
+        });
+      }
+    };
+    fetchSchedule();
+  }, [selectedDoctor]);
+
+  // Fetch available slots when doctor and date are selected
+  useEffect(() => {
+    if (!selectedDoctor || !date) {
+      setAvailableSlots([]);
+      setTime(''); // Reset time when doctor or date changes
+      return;
+    }
+
+    const fetchSlots = async () => {
+      setIsLoadingSlots(true);
+      try {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const res = await getAvailableSlots(selectedDoctor, dateStr, 30);
+        if (res?.success && res.data?.availableSlots) {
+          setAvailableSlots(res.data.availableSlots);
+        } else {
+          // Fallback: Generate default slots based on provider schedule
+          const defaultSlots = generateDefaultSlots(providerSchedule);
+          setAvailableSlots(defaultSlots);
+        }
+      } catch (error) {
+        console.error('Failed to fetch available slots:', error);
+        // Fallback: Generate default slots
+        const defaultSlots = generateDefaultSlots(providerSchedule);
+        setAvailableSlots(defaultSlots);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+    fetchSlots();
+  }, [selectedDoctor, date, providerSchedule]);
+
+  // Helper function to generate default slots based on schedule
+  const generateDefaultSlots = (schedule: ProviderSchedule | null): TimeSlot[] => {
+    const slots: TimeSlot[] = [];
+    const startHour = schedule?.workingHours?.start ? parseInt(schedule.workingHours.start.split(':')[0]) : 8;
+    const endHour = schedule?.workingHours?.end ? parseInt(schedule.workingHours.end.split(':')[0]) : 17;
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      slots.push({
+        startTime: `${hour.toString().padStart(2, '0')}:00`,
+        endTime: `${hour.toString().padStart(2, '0')}:30`,
+        isAvailable: true,
+      });
+      slots.push({
+        startTime: `${hour.toString().padStart(2, '0')}:30`,
+        endTime: `${(hour + 1).toString().padStart(2, '0')}:00`,
+        isAvailable: true,
+      });
+    }
+    return slots;
+  };
+
+  // Check if a date is a working day for the selected doctor
+  const isWorkingDay = (dateToCheck: Date): boolean => {
+    if (!providerSchedule?.workingDays) return true; // Allow all days if no schedule
+
+    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const dayName = dayNames[dateToCheck.getDay()];
+    return providerSchedule.workingDays.includes(dayName);
+  };
 
   const fetchPatients = async (keyword: string, options?: { allowEmpty?: boolean }) => {
     const sanitized = keyword.trim();
@@ -1074,13 +1168,38 @@ export default function AddAppointmentPage() {
                       mode="single"
                       selected={date}
                       onSelect={setDate}
-                      disabled={(calendarDate) =>
-                        calendarDate < new Date(new Date().setHours(0, 0, 0, 0))
-                      }
+                      disabled={(calendarDate) => {
+                        // Disable past dates
+                        if (calendarDate < new Date(new Date().setHours(0, 0, 0, 0))) {
+                          return true;
+                        }
+                        // Disable non-working days for selected doctor
+                        if (selectedDoctor && !isWorkingDay(calendarDate)) {
+                          return true;
+                        }
+                        return false;
+                      }}
                       className="rounded-xl"
                     />
                   </PopoverContent>
                 </Popover>
+                {/* Working days hint */}
+                {selectedDoctor && providerSchedule?.workingDays && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Bác sĩ làm việc: {providerSchedule.workingDays.map(d => {
+                      const dayMap: Record<string, string> = {
+                        'MONDAY': 'T2',
+                        'TUESDAY': 'T3',
+                        'WEDNESDAY': 'T4',
+                        'THURSDAY': 'T5',
+                        'FRIDAY': 'T6',
+                        'SATURDAY': 'T7',
+                        'SUNDAY': 'CN'
+                      };
+                      return dayMap[d] || d;
+                    }).join(', ')}
+                  </p>
+                )}
               </div>
 
               {/* Time select */}
@@ -1088,29 +1207,50 @@ export default function AddAppointmentPage() {
                 <Label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   <Clock className="h-4 w-4 text-teal-500" />
                   Giờ khám
+                  {isLoadingSlots && (
+                    <Loader2 className="h-3 w-3 animate-spin text-cyan-500" />
+                  )}
                 </Label>
-                <Select value={time} onValueChange={setTime}>
-                  <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 transition-all focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-500/20">
-                    <SelectValue placeholder="Chọn giờ" />
+                <Select
+                  value={time}
+                  onValueChange={setTime}
+                  disabled={!date || isLoadingSlots}
+                >
+                  <SelectTrigger className={cn(
+                    "h-12 rounded-xl border-slate-200 bg-slate-50 transition-all focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-500/20",
+                    (!date || isLoadingSlots) && "opacity-60 cursor-not-allowed"
+                  )}>
+                    <SelectValue placeholder={!date ? "Vui lòng chọn ngày trước" : isLoadingSlots ? "Đang tải..." : "Chọn giờ"} />
                   </SelectTrigger>
-                  <SelectContent className="max-h-60 rounded-xl border-slate-200 shadow-xl">
-                    {Array.from({ length: 20 }).map((_, i) => {
-                      const hour = Math.floor(i / 2) + 8;
-                      const minute = i % 2 === 0 ? '00' : '30';
-                      const timeStr = `${hour.toString().padStart(2, '0')}:${minute}`;
-                      if (hour > 17) return null;
-                      return (
-                        <SelectItem
-                          key={timeStr}
-                          value={timeStr}
-                          className="rounded-lg transition-colors focus:bg-cyan-50 focus:text-cyan-900"
-                        >
-                          {timeStr}
-                        </SelectItem>
-                      );
-                    })}
+                  <SelectContent className="max-h-60 rounded-xl border-slate-200 bg-white shadow-xl">
+                    {availableSlots.length > 0 ? (
+                      availableSlots
+                        .filter(slot => slot.isAvailable)
+                        .map((slot) => (
+                          <SelectItem
+                            key={slot.startTime}
+                            value={slot.startTime}
+                            className="rounded-lg transition-colors focus:bg-cyan-50 focus:text-cyan-900"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                              {slot.startTime} - {slot.endTime}
+                            </span>
+                          </SelectItem>
+                        ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-slate-500">
+                        {!date ? "Vui lòng chọn ngày" : "Không có khung giờ trống"}
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
+                {/* Slots count hint */}
+                {date && availableSlots.length > 0 && (
+                  <p className="text-xs text-slate-500">
+                    Còn {availableSlots.filter(s => s.isAvailable).length} khung giờ trống
+                  </p>
+                )}
               </div>
             </div>
 

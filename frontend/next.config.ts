@@ -1,5 +1,4 @@
 import type { NextConfig } from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -52,7 +51,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
-  outputFileTracingRoot: path.join(__dirname, '..'),
+  // NOTE: outputFileTracingRoot removed - was causing nested standalone output breaking Docker
 
   // Webpack configuration
   webpack: (config) => {

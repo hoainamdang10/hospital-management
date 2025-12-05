@@ -27,9 +27,19 @@ RUN npm ci --legacy-peer-deps
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Install dependencies needed for native modules (SWC)
+RUN apk add --no-cache libc6-compat
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Clean any existing build artifacts from host
+RUN rm -rf .next
+
+# Reinstall Next.js SWC for Alpine/musl compatibility
+RUN npm uninstall @next/swc-linux-x64-gnu 2>/dev/null || true && \
+    npm install @next/swc-linux-x64-musl --legacy-peer-deps --save-optional 2>/dev/null || true
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -67,6 +77,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built assets from builder
+# Next.js standalone output now puts server.js directly in .next/standalone/
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
