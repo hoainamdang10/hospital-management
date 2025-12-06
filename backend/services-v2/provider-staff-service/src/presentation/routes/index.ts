@@ -12,6 +12,7 @@ import { StaffController } from '../controllers/StaffController';
 import { logger } from '../../infrastructure/logging/logger';
 import { RegisterStaffUseCase } from '../../application/use-cases/RegisterStaffUseCase';
 import { GetStaffProfileUseCase } from '../../application/use-cases/GetStaffProfileUseCase';
+import { AuditService } from '../../infrastructure/audit/AuditService';
 import { AssignStaffToDepartmentUseCase } from '../../application/use-cases/AssignStaffToDepartmentUseCase';
 import { SetDepartmentHeadUseCase } from '../../application/use-cases/SetDepartmentHeadUseCase';
 import { AddStaffCredentialUseCase } from '../../application/use-cases/AddStaffCredentialUseCase';
@@ -31,6 +32,7 @@ import { RemoveStaffSpecializationUseCase } from '../../application/use-cases/Re
 import { StaffCommandHandlers } from '../../application/handlers/StaffCommandHandlers';
 import { StaffQueryHandlers } from '../../application/handlers/StaffQueryHandlers';
 import { SupabaseDepartmentRepository } from '../../infrastructure/repositories/SupabaseDepartmentRepository';
+import { SupabaseProviderStaffRepository } from '../../infrastructure/repositories/SupabaseProviderStaffRepository';
 
 export function setupRoutes(
   app: Express,
@@ -89,7 +91,22 @@ export function setupRoutes(
     process.env.SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   );
-  const departmentRoutes = createDepartmentRoutes(departmentRepository);
+
+  const auditService = new AuditService({
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    logger: logger,
+    serviceName: 'provider-staff-service'
+  });
+
+  const staffRepository = new SupabaseProviderStaffRepository(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    logger,
+    auditService
+  );
+
+  const departmentRoutes = createDepartmentRoutes(departmentRepository, staffRepository);
   app.use('/api/v1/departments', departmentRoutes);
 
   logger.info('Department routes registered at /api/v1/departments');

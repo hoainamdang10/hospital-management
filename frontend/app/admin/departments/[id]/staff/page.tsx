@@ -61,12 +61,43 @@ export default function ManageDepartmentStaffPage() {
     }
   };
 
+  const normalizeStaff = (staff: any) => {
+    const personalInfo = staff.personalInfo || staff.personal_info || {};
+    const professionalInfo = staff.professionalInfo || staff.professional_info || {};
+
+    const fullName =
+      personalInfo.fullName || personalInfo.full_name || personalInfo.name || 'Không rõ';
+
+    const email =
+      personalInfo.email ||
+      personalInfo.contact?.email ||
+      staff.email ||
+      professionalInfo.contact?.email ||
+      '';
+
+    return {
+      ...staff,
+      staffId: staff.staffId || staff.staff_id,
+      personalInfo: {
+        ...personalInfo,
+        fullName,
+        email,
+      },
+      professionalInfo: {
+        ...professionalInfo,
+      },
+      isActive: typeof staff.isActive === 'boolean' ? staff.isActive : staff.status === 'active',
+      registrationDate: staff.registrationDate || staff.registration_date,
+    };
+  };
+
   const fetchStaff = async (departmentId: string) => {
     try {
       setIsLoadingStaff(true);
       const response = await getDepartmentStaff(departmentId);
       if (response.success) {
-        setStaffList(response.data);
+        const normalized = (response.data || []).map(normalizeStaff);
+        setStaffList(normalized);
       }
     } catch (error) {
       console.error('Error fetching staff:', error);
@@ -77,14 +108,30 @@ export default function ManageDepartmentStaffPage() {
 
   // Filter staff
   const filteredStaff = staffList.filter((staff) => {
-    const matchesSearch =
-      staff.personalInfo?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.personalInfo?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const search = searchQuery.toLowerCase();
+    const name = staff.personalInfo?.fullName?.toLowerCase() || '';
+    const email = staff.personalInfo?.email?.toLowerCase() || '';
+    const matchesSearch = name.includes(search) || email.includes(search);
     const matchesRole =
       roleFilter === 'all' ||
-      staff.professionalInfo?.position?.toLowerCase() === roleFilter.toLowerCase();
+      (staff.professionalInfo?.title || staff.professionalInfo?.position || '')
+        .toLowerCase()
+        .includes(roleFilter.toLowerCase());
     return matchesSearch && matchesRole;
   });
+
+  const getStaffInitials = (staff: any) => {
+    const name = staff.personalInfo?.fullName;
+    if (name) {
+      return name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    }
+    return 'DS';
+  };
 
   if (isLoading) {
     return (

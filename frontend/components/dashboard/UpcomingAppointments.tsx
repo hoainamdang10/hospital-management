@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import Link from 'next/link';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +22,7 @@ interface Appointment {
   time: string;
   doctor: string;
   treatment: string;
-  status: 'confirmed' | 'pending' | 'pending_payment' | 'cancelled';
+  status: 'confirmed' | 'pending' | 'pending_payment' | 'cancelled' | 'completed';
 }
 
 interface UpcomingAppointmentsProps {
@@ -83,22 +84,48 @@ function getMockAppointments(): Appointment[] {
 export function UpcomingAppointments({ patientId, hideHeader = false }: UpcomingAppointmentsProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [completedAppointments, setCompletedAppointments] = useState<Appointment[]>([]);
+  const [viewMode, setViewMode] = useState<'upcoming' | 'completed'>('upcoming');
+  const [userSelectedDate, setUserSelectedDate] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Fetch appointments
   useEffect(() => {
     async function fetchAppointments() {
       if (!patientId) {
-        setAppointments(getMockAppointments());
+        const mock = getMockAppointments();
+        const upcomingMock = mock
+          .filter((apt) => ['confirmed', 'pending', 'pending_payment'].includes(apt.status))
+          .sort((a, b) => getAppointmentTimestamp(a) - getAppointmentTimestamp(b));
+        setUpcomingAppointments(upcomingMock);
+        setCompletedAppointments(mock.filter((apt) => apt.status === 'completed'));
         setLoading(false);
         return;
       }
 
       try {
+        // Calculate date range: 7 days ago to 14 days ahead (like doctor dashboard)
+        const now = new Date();
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+
+        const endDate = new Date(today);
+        endDate.setDate(today.getDate() + 14);
+
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
         const aggregatedAppointments: any[] = [];
-        const PAGE_SIZE = 50;
-        const MAX_PAGES = 10;
+        const PAGE_SIZE = 100;
+        const MAX_PAGES = 5;
         let page = 1;
         let hasMore = true;
 
@@ -106,6 +133,8 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
           const response = await appointmentsService.getPatientAppointments(patientId, {
             page,
             pageSize: PAGE_SIZE,
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
           });
 
           aggregatedAppointments.push(...(response.appointments || []));
@@ -118,17 +147,8 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
           page += 1;
         }
 
-        const normalizedAppointments: Appointment[] = aggregatedAppointments
-          .filter((apt: any) => {
-            const status = (apt.status || '').toUpperCase();
-            return (
-              status === 'SCHEDULED' ||
-              status === 'CONFIRMED' ||
-              status === 'PENDING_PAYMENT' ||
-              status === 'ARRIVED'
-            );
-          })
-          .map((apt: any, idx: number) => ({
+        const mappedAppointments: Appointment[] = aggregatedAppointments.map(
+          (apt: any, idx: number) => ({
             id: apt.id || apt.appointmentId || `${apt.appointmentId || 'apt'}-${idx}`,
             patientName: apt.patientName || apt.patient?.fullName || 'Bệnh nhân',
             date: apt.appointmentDate || apt.date,
@@ -136,12 +156,42 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
             doctor: apt.doctorName || apt.doctor?.fullName || 'Bác sĩ',
             treatment: mapAppointmentType(apt.type || apt.appointmentType),
             status: mapStatus(apt.status, apt.paymentStatus),
-          }));
+          })
+        );
 
-        setAppointments(normalizedAppointments);
+        const upcomingAppointments = mappedAppointments.filter((apt) => {
+          return (
+            apt.status === 'confirmed' ||
+            apt.status === 'pending' ||
+            apt.status === 'pending_payment'
+          );
+        });
+
+        // Get ALL completed appointments in the date range (not just 5)
+        const completedList = mappedAppointments
+          .filter((apt) => apt.status === 'completed')
+          .sort((a, b) => {
+            if (!a.date || !b.date) return 0;
+            try {
+              return parseISO(b.date).getTime() - parseISO(a.date).getTime();
+            } catch {
+              return 0;
+            }
+          });
+
+        const sortedUpcoming = upcomingAppointments
+          .slice()
+          .sort((a, b) => getAppointmentTimestamp(a) - getAppointmentTimestamp(b));
+        setUpcomingAppointments(sortedUpcoming);
+        setCompletedAppointments(completedList);
       } catch (error) {
         console.error('Error fetching appointments:', error);
-        setAppointments(getMockAppointments());
+        const mock = getMockAppointments();
+        const mockUpcoming = mock
+          .filter((apt) => ['confirmed', 'pending', 'pending_payment'].includes(apt.status))
+          .sort((a, b) => getAppointmentTimestamp(a) - getAppointmentTimestamp(b));
+        setUpcomingAppointments(mockUpcoming);
+        setCompletedAppointments(mock.filter((apt) => apt.status === 'completed'));
       } finally {
         setLoading(false);
       }
@@ -149,6 +199,66 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
 
     fetchAppointments();
   }, [patientId]);
+
+  useEffect(() => {
+    if (viewMode !== 'upcoming' || userSelectedDate) {
+      return;
+    }
+
+    if (upcomingAppointments.length === 0) {
+      const today = new Date();
+      setSelectedDate(today);
+      setWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+      return;
+    }
+
+    const hasAppointmentOnSelected = upcomingAppointments.some((apt) => {
+      if (!apt.date) return false;
+      try {
+        return isSameDay(parseISO(apt.date), selectedDate);
+      } catch {
+        return false;
+      }
+    });
+
+    if (hasAppointmentOnSelected) {
+      return;
+    }
+
+    const firstWithDate = upcomingAppointments.find((apt) => !!apt.date);
+    if (!firstWithDate?.date) {
+      return;
+    }
+
+    try {
+      const parsed = parseISO(firstWithDate.date);
+      setSelectedDate(parsed);
+      setWeekStart(startOfWeek(parsed, { weekStartsOn: 1 }));
+      setUserSelectedDate(false);
+    } catch {
+      // ignore parse errors
+    }
+  }, [upcomingAppointments, viewMode, userSelectedDate, selectedDate]);
+
+  useEffect(() => {
+    if (viewMode !== 'completed' || completedAppointments.length === 0) {
+      return;
+    }
+
+    const firstWithDate = completedAppointments.find((apt) => !!apt.date);
+    if (!firstWithDate?.date) {
+      return;
+    }
+
+    try {
+      const parsed = parseISO(firstWithDate.date);
+      setSelectedDate(parsed);
+      setWeekStart(startOfWeek(parsed, { weekStartsOn: 1 }));
+      setUserSelectedDate(false);
+    } catch {
+      // ignore parse errors
+    }
+  }, [viewMode, completedAppointments]);
 
   // Generate week days
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -161,7 +271,10 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
     setWeekStart(addDays(weekStart, 7));
   };
 
-  const appointmentsForSelectedDate = appointments.filter((appointment) => {
+  const sourceAppointments =
+    viewMode === 'completed' ? completedAppointments : upcomingAppointments;
+
+  const appointmentsForSelectedDate = sourceAppointments.filter((appointment) => {
     if (!appointment.date) return false;
     try {
       return isSameDay(parseISO(appointment.date), selectedDate);
@@ -180,6 +293,8 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
         return 'bg-amber-50 text-amber-700 border-amber-100';
       case 'cancelled':
         return 'bg-gray-50 text-gray-700 border-gray-100';
+      case 'completed':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-100';
     }
@@ -195,6 +310,8 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
         return 'Chờ thanh toán';
       case 'cancelled':
         return 'Đã hủy';
+      case 'completed':
+        return 'Hoàn thành';
       default:
         return status;
     }
@@ -228,13 +345,51 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
             <div className="rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 p-2">
               <CalendarIcon className="h-6 w-6 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Lịch hẹn sắp tới</h2>
+            <h2 className="text-xl font-bold text-slate-900">
+              {viewMode === 'completed' ? 'Lịch đã hoàn thành' : 'Lịch hẹn sắp tới'}
+            </h2>
           </div>
-          <button className="text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors">
+          <button className="text-sm font-medium text-emerald-600 transition-colors hover:text-emerald-700">
             Xem tất cả
           </button>
         </div>
       )}
+
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          {viewMode === 'completed'
+            ? 'Xem lại những cuộc hẹn đã hoàn thành gần đây'
+            : 'Theo dõi lịch đã đặt và chuẩn bị cho chuyến khám tiếp theo'}
+        </p>
+        <div className="flex rounded-full bg-slate-100/70 p-1 text-sm font-medium text-slate-500">
+          <button
+            type="button"
+            onClick={() => {
+              setUserSelectedDate(false);
+              setViewMode('upcoming');
+            }}
+            className={cn(
+              'relative rounded-full px-4 py-1.5 transition-all duration-200',
+              viewMode === 'upcoming' ? 'bg-white text-emerald-700 shadow' : 'hover:text-slate-700'
+            )}
+          >
+            Sắp tới
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setUserSelectedDate(false);
+              setViewMode('completed');
+            }}
+            className={cn(
+              'relative rounded-full px-4 py-1.5 transition-all duration-200',
+              viewMode === 'completed' ? 'bg-white text-emerald-700 shadow' : 'hover:text-slate-700'
+            )}
+          >
+            Hoàn thành
+          </button>
+        </div>
+      </div>
 
       {/* Mini Calendar */}
       <div className="mb-8">
@@ -266,11 +421,14 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
             return (
               <button
                 key={index}
-                onClick={() => setSelectedDate(day)}
+                onClick={() => {
+                  setUserSelectedDate(true);
+                  setSelectedDate(day);
+                }}
                 className={cn(
                   'flex flex-col items-center justify-center rounded-2xl py-3 transition-all duration-200',
                   isSelected
-                    ? 'bg-gradient-to-br from-emerald-600 to-teal-600 shadow-emerald-600/30 scale-105 text-white shadow-lg'
+                    ? 'scale-105 bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/30'
                     : isToday
                       ? 'bg-emerald-50 text-emerald-600'
                       : 'text-slate-600 hover:bg-slate-50'
@@ -346,16 +504,24 @@ export function UpcomingAppointments({ patientId, hideHeader = false }: Upcoming
             <div className="mb-3 rounded-full bg-gradient-to-br from-emerald-50 to-teal-50 p-3">
               <CalendarIcon className="h-6 w-6 text-emerald-500" />
             </div>
-            <p className="font-medium text-slate-900">Bạn chưa có lịch hẹn nào trong ngày này</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Đặt lịch khám ngay để chăm sóc sức khỏe của bạn
+            <p className="font-medium text-slate-900">
+              {viewMode === 'completed'
+                ? 'Không có lịch hoàn thành trong ngày này'
+                : 'Bạn chưa có lịch hẹn nào trong ngày này'}
             </p>
-            <a
-              href="/patient/appointments/book"
-              className="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-medium text-white transition-all hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
-            >
-              Đặt lịch khám
-            </a>
+            <p className="mt-1 text-sm text-slate-500">
+              {viewMode === 'completed'
+                ? 'Hoàn tất lịch khám để xem lại thông tin chi tiết tại đây'
+                : 'Đặt lịch khám ngay để chăm sóc sức khỏe của bạn'}
+            </p>
+            {viewMode === 'upcoming' && (
+              <Link
+                href="/patient/appointments/book"
+                className="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-700 hover:to-teal-700"
+              >
+                Đặt lịch khám
+              </Link>
+            )}
           </div>
         )}
       </div>
@@ -375,6 +541,8 @@ function mapStatus(status?: string, paymentStatus?: string): Appointment['status
       return 'pending_payment';
     case 'CANCELLED':
       return 'cancelled';
+    case 'COMPLETED':
+      return 'completed';
     default:
       if ((paymentStatus || '').toUpperCase() === 'PENDING') {
         return 'pending_payment';
@@ -395,4 +563,25 @@ function mapAppointmentType(type?: string): string {
     THERAPY: 'Vật lý trị liệu',
   };
   return labels[normalized] || 'Khám bệnh';
+}
+
+function getAppointmentTimestamp(appointment: Appointment): number {
+  if (!appointment.date) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  try {
+    const date = parseISO(appointment.date);
+    if (appointment.time) {
+      const [hours, minutes] = appointment.time.split(':').map((value) => Number(value));
+      if (!Number.isNaN(hours)) {
+        date.setHours(hours);
+        date.setMinutes(Number.isNaN(minutes) ? 0 : minutes);
+        date.setSeconds(0, 0);
+      }
+    }
+    return date.getTime();
+  } catch {
+    return Number.MAX_SAFE_INTEGER;
+  }
 }

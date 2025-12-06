@@ -15,15 +15,10 @@ import {
   Cell,
   BarChart,
   Bar,
-  Legend,
-  RadialBarChart,
-  RadialBar,
 } from 'recharts';
 import {
-  Users,
   Calendar,
   DollarSign,
-  TrendingUp,
   Clock,
   Loader2,
   CreditCard,
@@ -34,9 +29,7 @@ import {
   MoreHorizontal,
   CheckCircle2,
   XCircle,
-  Stethoscope,
   HeartPulse,
-  Zap,
   PieChart as PieChartIcon,
   BarChart3,
   Sparkles,
@@ -49,21 +42,15 @@ import { vi } from 'date-fns/locale';
 import {
   getAdminDashboardStats,
   getRecentAppointments,
-  getMonthlyStats,
   getInvoiceSummary,
   getRevenueTrend,
-  getInvoiceStatusDistribution,
   getRecentPayments,
-  getRecentWebhooks,
-  getTodayCheckInCount,
   formatCurrency,
   formatNumber,
   type AdminDashboardStats,
   type RecentAppointment,
-  type MonthlyStats,
   type InvoiceStatusSummary,
   type PaymentRecord,
-  type WebhookEvent
 } from '@/lib/api/admin-dashboard.service';
 
 /**
@@ -115,17 +102,6 @@ const pulseVariants = {
 };
 
 // Chart colors - Healthcare theme
-const CHART_COLORS = {
-  primary: '#0891B2',    // Cyan-600
-  secondary: '#22D3EE',  // Cyan-400
-  accent: '#059669',     // Emerald-600
-  success: '#10B981',    // Emerald-500
-  warning: '#F59E0B',    // Amber-500
-  danger: '#EF4444',     // Red-500
-  info: '#6366F1',       // Indigo-500
-  muted: '#94A3B8',      // Slate-400
-};
-
 const DONUT_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
 export default function AdminDashboardPage() {
@@ -145,12 +121,10 @@ export default function AdminDashboardPage() {
     staffChange: '0',
   });
   const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([]);
-  const [chartData, setChartData] = useState<MonthlyStats[]>([]);
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceStatusSummary>({ paid: 0, pending: 0, failed: 0, refunded: 0 });
   const [todayRevenue, setTodayRevenue] = useState<{ payos: number; cash: number }>({ payos: 0, cash: 0 });
   const [revenueTrend, setRevenueTrend] = useState<{ date: string; amount: number }[]>([]);
   const [recentPayments, setRecentPayments] = useState<PaymentRecord[]>([]);
-  const [checkInSummary, setCheckInSummary] = useState<{ checkedIn: number; total: number }>({ checkedIn: 0, total: 0 });
 
   useEffect(() => {
     loadDashboardData();
@@ -163,31 +137,23 @@ export default function AdminDashboardPage() {
       const [
         statsData,
         appointmentsData,
-        monthlyData,
         invoiceData,
         revenueTrendData,
-        invoiceDistData,
         recentPaymentsData,
-        checkInData
       ] = await Promise.all([
         getAdminDashboardStats(),
         getRecentAppointments(5),
-        getMonthlyStats(),
         getInvoiceSummary(),
         getRevenueTrend(14),
-        getInvoiceStatusDistribution(),
         getRecentPayments(8),
-        getTodayCheckInCount()
       ]);
 
       setStats(statsData);
       setRecentAppointments(appointmentsData);
-      setChartData(monthlyData);
       setInvoiceSummary(invoiceData.summary);
       setTodayRevenue(invoiceData.todayRevenue);
       setRevenueTrend(revenueTrendData);
       setRecentPayments(recentPaymentsData);
-      setCheckInSummary(checkInData);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -213,21 +179,6 @@ export default function AdminDashboardPage() {
       { name: 'Hoàn tiền', value: invoiceSummary.refunded, color: DONUT_COLORS[3] },
     ].filter(item => item.value > 0);
   }, [invoiceSummary]);
-
-  // Calculate check-in progress
-  const checkInProgress = useMemo(() => {
-    if (checkInSummary.total === 0) return 0;
-    return Math.round((checkInSummary.checkedIn / checkInSummary.total) * 100);
-  }, [checkInSummary]);
-
-  // Radial chart data for check-in
-  const radialData = useMemo(() => [
-    {
-      name: 'Check-in',
-      value: checkInProgress,
-      fill: '#0891B2',
-    },
-  ], [checkInProgress]);
 
   // Custom tooltip for area chart
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -264,10 +215,10 @@ export default function AdminDashboardPage() {
     {
       id: 'appointments',
       title: 'Lịch hẹn hôm nay',
-      value: formatNumber(checkInSummary.total),
+      value: formatNumber(stats.totalAppointments),
       change: stats.appointmentsChange,
       trend: 'up' as const,
-      subtitle: `${checkInSummary.checkedIn} đã check-in`,
+      subtitle: 'tổng lịch hẹn',
       icon: Calendar,
       gradient: 'from-emerald-500 to-teal-600',
       bgGlow: 'bg-emerald-500/20',
@@ -378,10 +329,10 @@ export default function AdminDashboardPage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 + 0.4 }}
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${stat.trend === 'up'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : stat.trend === 'down'
-                              ? 'bg-red-50 text-red-700'
-                              : 'bg-slate-50 text-slate-600'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : stat.trend === 'down'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-slate-50 text-slate-600'
                           }`}
                       >
                         {stat.trend === 'up' ? (
@@ -403,30 +354,87 @@ export default function AdminDashboardPage() {
           ))}
         </motion.div>
 
-        {/* Main Charts Section */}
+        {/* Revenue Section with Tabs */}
         <motion.div
           variants={containerVariants}
           className="grid gap-6 lg:grid-cols-3"
         >
-          {/* Revenue Trend - Interactive Area Chart */}
+          {/* Revenue Charts with Tabs */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-2 relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-slate-200/20"
+            className="lg:col-span-2 relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-xl shadow-slate-200/30"
           >
-            {/* Gradient accent */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-violet-500" />
+            {/* Animated gradient accent */}
+            <motion.div
+              className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-purple-500"
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+              style={{ backgroundSize: '200% 100%' }}
+            />
 
             <div className="p-6">
+              {/* Tabs Header */}
               <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-                      <Activity className="h-4 w-4 text-white" />
-                    </div>
-                    Xu hướng doanh thu
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">Doanh thu 14 ngày gần nhất</p>
+                <div className="flex items-center gap-2">
+                  {/* Tab Buttons */}
+                  <div className="relative flex items-center bg-slate-100/80 rounded-xl p-1">
+                    {/* Animated Background Indicator */}
+                    <motion.div
+                      className="absolute h-[calc(100%-8px)] top-1 rounded-lg bg-white shadow-lg shadow-slate-200/50"
+                      layoutId="revenueTabBg"
+                      initial={false}
+                      animate={{
+                        left: hoveredStat === 'todayRevenue' ? 'calc(50% + 4px)' : '4px',
+                        width: 'calc(50% - 8px)',
+                      }}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 400,
+                        damping: 30,
+                      }}
+                    />
+
+                    <motion.button
+                      onClick={() => setHoveredStat(null)}
+                      className={`relative z-10 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${hoveredStat !== 'todayRevenue'
+                        ? 'text-slate-900'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Activity className="h-4 w-4" />
+                      <span>Xu hướng 14 ngày</span>
+                    </motion.button>
+
+                    <motion.button
+                      onClick={() => setHoveredStat('todayRevenue')}
+                      className={`relative z-10 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${hoveredStat === 'todayRevenue'
+                        ? 'text-slate-900'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Hôm nay</span>
+                      <motion.span
+                        className="ml-1 px-2 py-0.5 rounded-full text-xs bg-violet-100 text-violet-700 font-semibold"
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                      >
+                        {formatCurrency(todayRevenue.payos + todayRevenue.cash)}
+                      </motion.span>
+                    </motion.button>
+                  </div>
                 </div>
+
                 <div className="flex items-center gap-3 text-sm">
                   <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-50 text-cyan-700 font-medium border border-cyan-100">
                     <div className="h-2 w-2 rounded-full bg-cyan-500"></div>
@@ -439,65 +447,214 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="h-[320px]">
-                {isLoading ? (
-                  <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={revenueChartData}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              {/* Tab Content */}
+              <div className="relative min-h-[320px]">
+                <AnimatePresence mode="wait">
+                  {hoveredStat !== 'todayRevenue' ? (
+                    /* Revenue Trend Tab - Area Chart */
+                    <motion.div
+                      key="revenueTrend"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                      className="h-[320px]"
                     >
-                      <defs>
-                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#0891B2" stopOpacity={0.4} />
-                          <stop offset="50%" stopColor="#22D3EE" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="#0891B2" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#0891B2" />
-                          <stop offset="50%" stopColor="#22D3EE" />
-                          <stop offset="100%" stopColor="#06B6D4" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#E2E8F0"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="date"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#94A3B8', fontSize: 12 }}
-                        dy={10}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#94A3B8', fontSize: 12 }}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                          return value;
-                        }}
-                        dx={-10}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Area
-                        type="monotone"
-                        dataKey="revenue"
-                        stroke="url(#lineGradient)"
-                        strokeWidth={3}
-                        fill="url(#revenueGradient)"
-                        animationDuration={2000}
-                        animationEasing="ease-out"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
+                      {isLoading ? (
+                        <div className="flex h-full items-center justify-center">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Loader2 className="h-8 w-8 text-cyan-500" />
+                          </motion.div>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart
+                            data={revenueChartData}
+                            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                          >
+                            <defs>
+                              <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#0891B2" stopOpacity={0.4} />
+                                <stop offset="50%" stopColor="#22D3EE" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="#0891B2" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#0891B2" />
+                                <stop offset="50%" stopColor="#22D3EE" />
+                                <stop offset="100%" stopColor="#06B6D4" />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#E2E8F0"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="date"
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: '#94A3B8', fontSize: 12 }}
+                              dy={10}
+                            />
+                            <YAxis
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: '#94A3B8', fontSize: 12 }}
+                              tickFormatter={(value) => {
+                                if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                                if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                                return value;
+                              }}
+                              dx={-10}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area
+                              type="monotone"
+                              dataKey="revenue"
+                              stroke="url(#lineGradient)"
+                              strokeWidth={3}
+                              fill="url(#revenueGradient)"
+                              animationDuration={2000}
+                              animationEasing="ease-out"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      )}
+                    </motion.div>
+                  ) : (
+                    /* Today's Revenue Tab - Bar Chart */
+                    <motion.div
+                      key="todayRevenue"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                      className="h-[320px]"
+                    >
+                      {isLoading ? (
+                        <div className="flex h-full items-center justify-center">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Loader2 className="h-8 w-8 text-violet-500" />
+                          </motion.div>
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col">
+                          {/* Summary Stats */}
+                          <div className="grid grid-cols-3 gap-4 mb-6">
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 }}
+                              className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100"
+                            >
+                              <p className="text-xs text-violet-600 font-medium mb-1">Tổng doanh thu</p>
+                              <p className="text-xl font-bold text-violet-900">
+                                {formatCurrency(todayRevenue.payos + todayRevenue.cash)}
+                              </p>
+                            </motion.div>
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.2 }}
+                              className="p-4 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-100"
+                            >
+                              <p className="text-xs text-cyan-600 font-medium mb-1">PayOS</p>
+                              <p className="text-xl font-bold text-cyan-900">
+                                {formatCurrency(todayRevenue.payos)}
+                              </p>
+                            </motion.div>
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3 }}
+                              className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200"
+                            >
+                              <p className="text-xs text-slate-600 font-medium mb-1">Tiền mặt</p>
+                              <p className="text-xl font-bold text-slate-900">
+                                {formatCurrency(todayRevenue.cash)}
+                              </p>
+                            </motion.div>
+                          </div>
+
+                          {/* Bar Chart */}
+                          <div className="flex-1">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={[
+                                  { method: 'PayOS', amount: todayRevenue.payos },
+                                  { method: 'Tiền mặt', amount: todayRevenue.cash },
+                                ]}
+                                layout="vertical"
+                                margin={{ top: 0, right: 30, left: 20, bottom: 0 }}
+                              >
+                                <defs>
+                                  <linearGradient id="payosGradient" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor="#7C3AED" />
+                                    <stop offset="100%" stopColor="#A78BFA" />
+                                  </linearGradient>
+                                  <linearGradient id="cashGradient" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor="#94A3B8" />
+                                    <stop offset="100%" stopColor="#CBD5E1" />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
+                                <XAxis
+                                  type="number"
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fill: '#94A3B8', fontSize: 12 }}
+                                  tickFormatter={(value) => {
+                                    if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                                    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                                    return value;
+                                  }}
+                                />
+                                <YAxis
+                                  type="category"
+                                  dataKey="method"
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }}
+                                  width={80}
+                                />
+                                <Tooltip
+                                  content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                      return (
+                                        <div className="bg-slate-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700/50">
+                                          <p className="text-xs text-slate-400">{payload[0].payload.method}</p>
+                                          <p className="text-lg font-bold text-violet-400">
+                                            {formatCurrency(payload[0].value as number)}
+                                          </p>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  }}
+                                />
+                                <Bar
+                                  dataKey="amount"
+                                  radius={[0, 8, 8, 0]}
+                                  animationDuration={1500}
+                                  animationEasing="ease-out"
+                                >
+                                  <Cell fill="url(#payosGradient)" />
+                                  <Cell fill="url(#cashGradient)" />
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </motion.div>
@@ -610,370 +767,341 @@ export default function AdminDashboardPage() {
           </motion.div>
         </motion.div>
 
-        {/* Secondary Charts Row */}
+        {/* Unified Activity Section with Tabs */}
         <motion.div
-          variants={containerVariants}
-          className="grid gap-6 lg:grid-cols-3"
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-xl shadow-slate-200/30"
         >
-          {/* Check-in Progress - Radial Chart */}
+          {/* Animated gradient accent */}
           <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-slate-200/20"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-violet-500"
+            animate={{
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            style={{ backgroundSize: '200% 100%' }}
+          />
 
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg shadow-blue-500/20">
-                  <Zap className="h-4 w-4 text-white" />
-                </div>
-                Tiến độ Check-in
-              </h3>
-              <p className="text-sm text-slate-500 mb-4">Lịch hẹn hôm nay</p>
+          {/* Tabs Header */}
+          <div className="p-6 border-b border-slate-100/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* Tab Buttons */}
+                <div className="relative flex items-center bg-slate-100/80 rounded-xl p-1">
+                  {/* Animated Background Indicator */}
+                  <motion.div
+                    className="absolute h-[calc(100%-8px)] top-1 rounded-lg bg-white shadow-lg shadow-slate-200/50"
+                    layoutId="activeTabBg"
+                    initial={false}
+                    animate={{
+                      left: hoveredStat === 'payments' ? 'calc(50% + 4px)' : '4px',
+                      width: 'calc(50% - 8px)',
+                    }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 400,
+                      damping: 30,
+                    }}
+                  />
 
-              <div className="flex items-center justify-center h-[180px] relative">
-                {isLoading ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                ) : (
-                  <>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadialBarChart
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="65%"
-                        outerRadius="90%"
-                        barSize={12}
-                        data={radialData}
-                        startAngle={90}
-                        endAngle={-270}
-                      >
-                        <RadialBar
-                          background={{ fill: '#E2E8F0' }}
-                          dataKey="value"
-                          cornerRadius={10}
-                          animationDuration={2000}
-                          animationEasing="ease-out"
-                        />
-                      </RadialBarChart>
-                    </ResponsiveContainer>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 1.5, type: 'spring' }}
-                      className="absolute inset-0 flex flex-col items-center justify-center"
+                  <motion.button
+                    onClick={() => setHoveredStat(null)}
+                    className={`relative z-10 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${hoveredStat !== 'payments'
+                      ? 'text-slate-900'
+                      : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span>Lịch hẹn gần đây</span>
+                    <motion.span
+                      className="ml-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
                     >
-                      <span className="text-4xl font-bold text-slate-900">{checkInProgress}%</span>
-                      <span className="text-sm text-slate-500">{checkInSummary.checkedIn}/{checkInSummary.total}</span>
-                    </motion.div>
-                  </>
-                )}
+                      {recentAppointments.length}
+                    </motion.span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => setHoveredStat('payments')}
+                    className={`relative z-10 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${hoveredStat === 'payments'
+                      ? 'text-slate-900'
+                      : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    <span>Giao dịch mới</span>
+                    <motion.span
+                      className="ml-1 px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                    >
+                      {recentPayments.length}
+                    </motion.span>
+                  </motion.button>
+                </div>
               </div>
+
+              <motion.button
+                whileHover={{ scale: 1.05, x: 2 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 text-sm font-medium text-cyan-600 hover:text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-4 py-2 rounded-lg transition-colors"
+              >
+                Xem tất cả
+                <ArrowUpRight className="h-4 w-4" />
+              </motion.button>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Today's Revenue Comparison - Bar Chart */}
-          <motion.div
-            variants={itemVariants}
-            className="lg:col-span-2 relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-slate-200/20"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
-
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-                      <BarChart3 className="h-4 w-4 text-white" />
+          {/* Tab Content with AnimatePresence */}
+          <div className="relative min-h-[320px]">
+            <AnimatePresence mode="wait">
+              {hoveredStat !== 'payments' ? (
+                /* Appointments Tab */
+                <motion.div
+                  key="appointments"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="p-0"
+                >
+                  {isLoading ? (
+                    <div className="flex h-[320px] items-center justify-center">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <Loader2 className="h-8 w-8 text-cyan-500" />
+                      </motion.div>
                     </div>
-                    Doanh thu hôm nay
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">So sánh theo phương thức thanh toán</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-slate-900">
-                    {formatCurrency(todayRevenue.payos + todayRevenue.cash)}
-                  </p>
-                  <p className="text-sm text-slate-500">Tổng cộng</p>
-                </div>
-              </div>
-
-              <div className="h-[160px]">
-                {isLoading ? (
-                  <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { method: 'PayOS', amount: todayRevenue.payos },
-                        { method: 'Tiền mặt', amount: todayRevenue.cash },
-                      ]}
-                      layout="vertical"
-                      margin={{ top: 0, right: 30, left: 20, bottom: 0 }}
+                  ) : recentAppointments.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex h-[320px] flex-col items-center justify-center text-slate-500 gap-3"
                     >
-                      <defs>
-                        <linearGradient id="payosGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#7C3AED" />
-                          <stop offset="100%" stopColor="#A78BFA" />
-                        </linearGradient>
-                        <linearGradient id="cashGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#94A3B8" />
-                          <stop offset="100%" stopColor="#CBD5E1" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
-                      <XAxis
-                        type="number"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#94A3B8', fontSize: 12 }}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                          return value;
-                        }}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="method"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }}
-                        width={80}
-                      />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-slate-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-400">{payload[0].payload.method}</p>
-                                <p className="text-lg font-bold text-violet-400">
-                                  {formatCurrency(payload[0].value as number)}
-                                </p>
+                      <div className="p-4 rounded-full bg-slate-100">
+                        <Calendar className="h-12 w-12 text-slate-400" />
+                      </div>
+                      <p className="font-medium">Chưa có lịch hẹn nào</p>
+                      <p className="text-sm text-slate-400">Các lịch hẹn sẽ hiển thị ở đây</p>
+                    </motion.div>
+                  ) : (
+                    <div className="divide-y divide-slate-100/50">
+                      {recentAppointments.map((apt, index) => (
+                        <motion.div
+                          key={apt.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05, type: 'spring', stiffness: 300 }}
+                          whileHover={{
+                            backgroundColor: 'rgba(248, 250, 252, 0.8)',
+                            x: 4,
+                          }}
+                          className="p-4 flex items-center justify-between group cursor-pointer transition-all"
+                        >
+                          <div className="flex items-center gap-4">
+                            <motion.div
+                              whileHover={{ scale: 1.1, rotate: 5 }}
+                              className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-blue-500/30"
+                            >
+                              {apt.patientName.charAt(0)}
+                            </motion.div>
+                            <div>
+                              <p className="font-semibold text-slate-900">{apt.patientName}</p>
+                              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100">
+                                  <Clock className="h-3 w-3" />
+                                  {format(new Date(apt.appointmentDateTime), 'HH:mm dd/MM', { locale: vi })}
+                                </div>
+                                <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                                  {apt.appointmentType}
+                                </span>
                               </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar
-                        dataKey="amount"
-                        radius={[0, 8, 8, 0]}
-                        animationDuration={1500}
-                        animationEasing="ease-out"
-                      >
-                        <Cell fill="url(#payosGradient)" />
-                        <Cell fill="url(#cashGradient)" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Recent Activity Section */}
-        <motion.div
-          variants={containerVariants}
-          className="grid gap-6 lg:grid-cols-2"
-        >
-          {/* Recent Appointments with Animation */}
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-slate-200/20"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
-
-            <div className="p-6 border-b border-slate-100/50 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
-                    <Calendar className="h-4 w-4 text-white" />
-                  </div>
-                  Lịch hẹn gần đây
-                </h3>
-                <p className="text-sm text-slate-500 mt-1">Các cuộc hẹn sắp tới</p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
-              >
-                Xem tất cả
-              </motion.button>
-            </div>
-
-            <div className="p-0">
-              {isLoading ? (
-                <div className="flex h-48 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                </div>
-              ) : recentAppointments.length === 0 ? (
-                <div className="flex h-48 flex-col items-center justify-center text-slate-500 gap-2">
-                  <Calendar className="h-12 w-12 text-slate-300" />
-                  <p>Chưa có lịch hẹn nào</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100/50">
-                  <AnimatePresence>
-                    {recentAppointments.map((apt, index) => (
-                      <motion.div
-                        key={apt.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ backgroundColor: 'rgba(248, 250, 252, 0.5)' }}
-                        className="p-4 flex items-center justify-between group cursor-pointer"
-                      >
-                        <div className="flex items-center gap-4">
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            className="h-11 w-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-blue-500/20"
-                          >
-                            {apt.patientName.charAt(0)}
-                          </motion.div>
-                          <div>
-                            <p className="font-medium text-slate-900">{apt.patientName}</p>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                              <Clock className="h-3 w-3" />
-                              {format(new Date(apt.appointmentDateTime), 'HH:mm dd/MM', { locale: vi })}
-                              <span className="text-slate-300">•</span>
-                              <span>{apt.appointmentType}</span>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <motion.span
-                            whileHover={{ scale: 1.05 }}
-                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${apt.status === 'CONFIRMED'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          <div className="flex items-center gap-3">
+                            <motion.span
+                              whileHover={{ scale: 1.05 }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all shadow-sm ${apt.status === 'CONFIRMED'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-emerald-100'
                                 : apt.status === 'PENDING'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-amber-100'
                                   : apt.status === 'COMPLETED'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-blue-100'
                                     : 'bg-slate-50 text-slate-600 border-slate-200'
-                              }`}
-                          >
-                            {apt.status === 'CONFIRMED'
-                              ? 'Đã xác nhận'
-                              : apt.status === 'PENDING'
-                                ? 'Chờ xác nhận'
-                                : apt.status === 'COMPLETED'
-                                  ? 'Hoàn thành'
-                                  : apt.status}
-                          </motion.span>
-                          <motion.button
-                            initial={{ opacity: 0 }}
-                            whileHover={{ opacity: 1 }}
-                            className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreHorizontal className="h-5 w-5" />
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Recent Payments with Animation */}
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 backdrop-blur-sm shadow-lg shadow-slate-200/20"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-
-            <div className="p-6 border-b border-slate-100/50 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-                    <CreditCard className="h-4 w-4 text-white" />
-                  </div>
-                  Giao dịch mới nhất
-                </h3>
-                <p className="text-sm text-slate-500 mt-1">Lịch sử thanh toán</p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="text-sm font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors"
-              >
-                Xem tất cả
-              </motion.button>
-            </div>
-
-            <div className="p-0">
-              {isLoading ? (
-                <div className="flex h-48 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                </div>
-              ) : recentPayments.length === 0 ? (
-                <div className="flex h-48 flex-col items-center justify-center text-slate-500 gap-2">
-                  <CreditCard className="h-12 w-12 text-slate-300" />
-                  <p>Chưa có giao dịch nào</p>
-                </div>
+                                }`}
+                            >
+                              {apt.status === 'CONFIRMED'
+                                ? '✓ Đã xác nhận'
+                                : apt.status === 'PENDING'
+                                  ? '◷ Chờ xác nhận'
+                                  : apt.status === 'COMPLETED'
+                                    ? '★ Hoàn thành'
+                                    : apt.status}
+                            </motion.span>
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              whileHover={{ opacity: 1, scale: 1 }}
+                              className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-slate-100 rounded-lg"
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               ) : (
-                <div className="divide-y divide-slate-100/50">
-                  <AnimatePresence>
-                    {recentPayments.slice(0, 5).map((p, idx) => (
+                /* Payments Tab */
+                <motion.div
+                  key="payments"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="p-0"
+                >
+                  {isLoading ? (
+                    <div className="flex h-[320px] items-center justify-center">
                       <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        whileHover={{ backgroundColor: 'rgba(248, 250, 252, 0.5)' }}
-                        className="p-4 flex items-center justify-between cursor-pointer"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       >
-                        <div className="flex items-center gap-4">
-                          <motion.div
-                            whileHover={{ scale: 1.1, rotate: 5 }}
-                            className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg ${p.status === 'PAID'
-                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
+                        <Loader2 className="h-8 w-8 text-emerald-500" />
+                      </motion.div>
+                    </div>
+                  ) : recentPayments.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex h-[320px] flex-col items-center justify-center text-slate-500 gap-3"
+                    >
+                      <div className="p-4 rounded-full bg-slate-100">
+                        <CreditCard className="h-12 w-12 text-slate-400" />
+                      </div>
+                      <p className="font-medium">Chưa có giao dịch nào</p>
+                      <p className="text-sm text-slate-400">Các giao dịch sẽ hiển thị ở đây</p>
+                    </motion.div>
+                  ) : (
+                    <div className="divide-y divide-slate-100/50">
+                      {recentPayments.slice(0, 6).map((p, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.05, type: 'spring', stiffness: 300 }}
+                          whileHover={{
+                            backgroundColor: 'rgba(248, 250, 252, 0.8)',
+                            x: 4,
+                          }}
+                          className="p-4 flex items-center justify-between group cursor-pointer transition-all"
+                        >
+                          <div className="flex items-center gap-4">
+                            <motion.div
+                              whileHover={{ scale: 1.1, rotate: 5 }}
+                              className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-lg ${p.status === 'PAID'
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'
                                 : p.status === 'PENDING'
-                                  ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/20'
-                                  : 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/20'
-                              }`}
-                          >
-                            {p.status === 'PAID' ? (
-                              <CheckCircle2 className="h-5 w-5 text-white" />
-                            ) : p.status === 'PENDING' ? (
-                              <Clock className="h-5 w-5 text-white" />
-                            ) : (
-                              <XCircle className="h-5 w-5 text-white" />
-                            )}
-                          </motion.div>
-                          <div>
-                            <p className="font-medium text-slate-900">{p.patientName}</p>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                              {p.description && (
-                                <>
-                                  <span className="font-medium text-blue-600">{p.description}</span>
-                                  <span className="text-slate-300">•</span>
-                                </>
+                                  ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30'
+                                  : 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/30'
+                                }`}
+                            >
+                              {p.status === 'PAID' ? (
+                                <CheckCircle2 className="h-6 w-6 text-white" />
+                              ) : p.status === 'PENDING' ? (
+                                <Clock className="h-6 w-6 text-white" />
+                              ) : (
+                                <XCircle className="h-6 w-6 text-white" />
                               )}
-                              <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{p.invoiceId}</span>
+                            </motion.div>
+                            <div>
+                              <p className="font-semibold text-slate-900">{p.patientName}</p>
+                              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                {p.description && (
+                                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                                    {p.description}
+                                  </span>
+                                )}
+                                <span className="font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                                  {p.invoiceId}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="font-bold text-slate-900"
-                          >
-                            {formatCurrency(p.amount)}
-                          </motion.p>
-                          <p className="text-xs text-slate-500">{p.method}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
+                          <div className="text-right flex items-center gap-4">
+                            <div>
+                              <motion.p
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="font-bold text-lg text-slate-900"
+                              >
+                                {formatCurrency(p.amount)}
+                              </motion.p>
+                              <p className="text-xs text-slate-500 flex items-center justify-end gap-1">
+                                <span className={`inline-block h-1.5 w-1.5 rounded-full ${p.method === 'PayOS' ? 'bg-violet-500' : 'bg-slate-400'
+                                  }`} />
+                                {p.method}
+                              </p>
+                            </div>
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              whileHover={{ opacity: 1, scale: 1 }}
+                              className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-slate-100 rounded-lg"
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom Stats Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="p-4 border-t border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-white/50"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700">{invoiceSummary.paid}</span> thành công
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span className="text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700">{invoiceSummary.pending}</span> đang chờ
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-red-500" />
+                  <span className="text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700">{invoiceSummary.failed}</span> thất bại
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-slate-400" suppressHydrationWarning>
+                Cập nhật lúc {format(new Date(), 'HH:mm', { locale: vi })}
+              </div>
             </div>
           </motion.div>
         </motion.div>

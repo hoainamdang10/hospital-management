@@ -1,53 +1,51 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout';
 import {
   ArrowLeft,
-  Save,
+  Send,
   Mail,
   AlertCircle,
   CheckCircle2,
   Info,
   User,
+  Shield,
   Briefcase,
+  Phone,
+  Calendar,
+  MapPin,
+  Loader2,
+  Sparkles,
+  UserPlus,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-type StaffType = 'doctor' | 'admin';
-
-const STAFF_TYPES: { value: StaffType; label: string; icon: string; description: string }[] = [
-  {
-    value: 'doctor',
-    label: 'Bác sĩ',
-    icon: '👨‍⚕️',
-    description: 'Khám bệnh, kê đơn, quản lý hồ sơ bệnh án',
+// Animation variants
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring' as const, stiffness: 300, damping: 30 },
   },
-  {
-    value: 'admin',
-    label: 'Quản trị viên',
-    icon: '👔',
-    description: 'Quản lý toàn bộ hệ thống, tạo tài khoản',
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
   },
-];
+};
 
-const DEPARTMENTS: { value: string; label: string }[] = [];
-
-const DOCTOR_SPECIALIZATIONS = [
-  { value: 'cardiology', label: 'Tim mạch' },
-  { value: 'neurology', label: 'Thần kinh' },
-  { value: 'orthopedics', label: 'Chỉnh hình' },
-  { value: 'pediatrics', label: 'Nhi khoa' },
-  { value: 'dermatology', label: 'Da liễu' },
-  { value: 'general', label: 'Đa khoa' },
-];
-
-/**
- * Admin - Thêm nhân viên mới
- */
-export default function AddStaffPage() {
+function AddStaffPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role');
+
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,25 +53,21 @@ export default function AddStaffPage() {
     Array<{ id: string; code: string; nameVi: string; nameEn: string }>
   >([]);
 
-  const [formData, setFormData] = useState({
-    // Staff Type
-    staffType: 'doctor' as StaffType,
+  // Check if adding admin (from URL param)
+  const isAdminMode = roleParam === 'admin';
 
+  const [formData, setFormData] = useState({
     // Personal Info
     fullName: '',
     email: '',
     phone: '',
     dateOfBirth: '',
     gender: 'male',
-    nationality: 'Vietnamese',
     address: '',
 
-    // Professional Info
-    title: '',
+    // Professional Info  
+    title: isAdminMode ? 'Quản trị viên' : '',
     department: '',
-    position: '',
-    specialization: '',
-    licenseNumber: '',
     experience: '',
     education: '',
     languages: 'Vietnamese, English',
@@ -109,28 +103,26 @@ export default function AddStaffPage() {
 
     try {
       const { authService } = await import('@/lib/api/auth.service');
-      const roleType = formData.staffType === 'admin' ? 'admin' : 'doctor';
       const payload = {
         email: formData.email,
         fullName: formData.fullName,
-        roleType: roleType as 'doctor' | 'admin',
+        roleType: 'admin' as const,
         phoneNumber: formData.phone,
         invitationData: {
-          departmentCode: formData.department || 'INTE',
-          specializationCode: isDoctorType ? formData.specialization || undefined : undefined,
-          specializationName: isDoctorType ? formData.specialization || undefined : undefined,
-          title: formData.title || (isDoctorType ? 'Bác sĩ' : 'Quản trị viên'),
-          position: formData.position || (isDoctorType ? 'Bác sĩ điều trị' : 'Admin'),
-          licenseNumber: formData.licenseNumber || `TEMP-${Date.now()}`,
+          departmentCode: formData.department || 'ADMIN',
+          title: formData.title || 'Quản trị viên',
+          position: 'Admin',
+          licenseNumber: `ADMIN-${Date.now()}`,
           employmentType: 'full_time',
           yearsOfExperience: Number(formData.experience || 0),
-          education: formData.education ? [formData.education] : ['General Medicine'],
+          education: formData.education ? [formData.education] : ['Administration'],
           languages: formData.languages
             ? formData.languages.split(',').map((s) => s.trim())
             : ['vi'],
           bio: formData.bio || '',
         },
       };
+
       const res = await authService.inviteStaffAdmin(payload);
       if (!res?.success) {
         throw new Error(res?.message || 'Không thể tạo lời mời');
@@ -142,426 +134,488 @@ export default function AddStaffPage() {
         router.push('/admin/staff');
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'Có lỗi xảy ra khi tạo tài khoản nhân viên');
+      setError(err.message || 'Có lỗi xảy ra khi tạo tài khoản quản trị viên');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStaffTypeLabel = () => {
-    return STAFF_TYPES.find((t) => t.value === formData.staffType)?.label || 'Nhân viên';
-  };
-
-  const isDoctorType = formData.staffType === 'doctor';
-
-  // Success Modal
+  // Success Modal with beautiful animation
   if (showSuccess) {
     return (
       <DashboardLayout>
-        <div className="mx-auto mt-20 max-w-2xl">
-          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-            <h2 className="mb-2 text-2xl font-bold text-gray-900">Tạo tài khoản thành công!</h2>
-            <p className="mb-6 text-gray-600">
-              {formData.sendInvitationEmail
-                ? `Email kích hoạt đã được gửi đến ${formData.email}. ${getStaffTypeLabel()} cần xác nhận email để kích hoạt tài khoản.`
-                : `Tài khoản ${getStaffTypeLabel().toLowerCase()} đã được tạo. Bạn có thể gửi thông tin đăng nhập cho họ sau.`}
-            </p>
-            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mx-auto mt-20 max-w-2xl"
+        >
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm p-8 text-center shadow-xl">
+            {/* Gradient accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+              className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25"
+            >
+              <CheckCircle2 className="h-10 w-10 text-white" />
+            </motion.div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-3 text-2xl font-bold text-slate-900"
+            >
+              Tạo tài khoản thành công!
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mb-6 text-slate-600"
+            >
+              Email kích hoạt đã được gửi đến <span className="font-semibold text-cyan-600">{formData.email}</span>.
+              <br />Quản trị viên cần xác nhận email để kích hoạt tài khoản.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mb-6 rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-teal-50 p-5"
+            >
               <div className="flex items-start gap-3">
-                <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-                <div className="text-left text-sm text-blue-900">
-                  <p className="mb-1 font-medium">Các bước tiếp theo:</p>
-                  <ol className="list-inside list-decimal space-y-1">
-                    <li>{getStaffTypeLabel()} kiểm tra email và click vào link kích hoạt</li>
+                <div className="p-2 rounded-lg bg-cyan-100">
+                  <Info className="h-5 w-5 text-cyan-600" />
+                </div>
+                <div className="text-left text-sm text-slate-700">
+                  <p className="mb-2 font-semibold text-slate-900">Các bước tiếp theo:</p>
+                  <ol className="list-inside list-decimal space-y-1.5">
+                    <li>Quản trị viên kiểm tra email và click vào link kích hoạt</li>
                     <li>Đặt mật khẩu cho tài khoản</li>
-                    <li>Đăng nhập vào hệ thống</li>
+                    <li>Đăng nhập vào hệ thống với quyền Admin</li>
                   </ol>
                 </div>
               </div>
-            </div>
-            <p className="text-sm text-gray-500">Đang chuyển hướng về danh sách nhân viên...</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center justify-center gap-2 text-sm text-slate-500"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Đang chuyển về danh sách quản trị viên...
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="space-y-6 max-w-4xl"
+      >
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/admin/staff" className="rounded-lg p-2 transition-colors hover:bg-gray-100">
-            <ArrowLeft className="h-5 w-5" />
+        <motion.div variants={fadeInUp} className="flex items-center gap-4">
+          <Link
+            href="/admin/staff"
+            className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Thêm nhân viên mới</h1>
-            <p className="mt-1 text-gray-600">Tạo tài khoản và gửi email mời kích hoạt</p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-600 shadow-lg shadow-cyan-500/25">
+              <UserPlus className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Thêm quản trị viên mới</h1>
+              <p className="text-slate-500">Tạo tài khoản và gửi email mời kích hoạt</p>
+            </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Error Alert */}
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-              <div>
-                <h3 className="text-sm font-medium text-red-900">Có lỗi xảy ra</h3>
-                <p className="mt-1 text-sm text-red-700">{error}</p>
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="rounded-xl border border-red-200 bg-red-50 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 rounded-lg bg-red-100">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-red-900">Có lỗi xảy ra</h3>
+                  <p className="mt-1 text-sm text-red-700">{error}</p>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="max-w-4xl">
-          <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6">
-            {/* Loại nhân viên */}
-            <div>
-              <div className="mb-4 flex items-center gap-2">
-                <User className="h-5 w-5 text-gray-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Loại nhân viên</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {STAFF_TYPES.map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, staffType: type.value, specialization: '' })
-                    }
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${
-                      formData.staffType === type.value
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="text-3xl">{type.icon}</div>
-                      <div className="flex-1">
-                        <div className="mb-1 text-sm font-semibold text-gray-900">{type.label}</div>
-                        <div className="text-xs text-gray-600">{type.description}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+        <form onSubmit={handleSubmit}>
+          <motion.div
+            variants={fadeInUp}
+            className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm shadow-xl"
+          >
+            {/* Gradient accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
 
-            {/* Thông tin cá nhân */}
-            <div>
-              <div className="mb-4 flex items-center gap-2">
-                <User className="h-5 w-5 text-gray-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Thông tin cá nhân</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="p-6 space-y-8">
+              {/* Admin Badge */}
+              <motion.div
+                variants={fadeInUp}
+                className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-200"
+              >
+                <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 shadow-lg shadow-cyan-500/20">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Họ và tên <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="Nguyễn Văn A"
-                  />
+                  <h3 className="font-semibold text-slate-900">Quản trị viên hệ thống</h3>
+                  <p className="text-sm text-slate-600">Toàn quyền quản lý hệ thống, tạo và quản lý tài khoản</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-100 text-cyan-700 text-xs font-medium">
+                  <Sparkles className="h-3 w-3" />
+                  ADMIN
+                </div>
+              </motion.div>
+
+              {/* Thông tin cá nhân */}
+              <motion.div variants={fadeInUp}>
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-slate-100">
+                    <User className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-slate-900">Thông tin cá nhân</h2>
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="email@hospital.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Số điện thoại <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="0901234567"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Ngày sinh</label>
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Giới tính</label>
-                  <select
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                  >
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Quốc tịch</label>
-                  <input
-                    type="text"
-                    value={formData.nationality}
-                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="Vietnamese"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Địa chỉ</label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="Số nhà, đường, phường, quận, thành phố"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Thông tin nghề nghiệp */}
-            <div>
-              <div className="mb-4 flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-gray-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Thông tin nghề nghiệp</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Chức danh <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder={
-                      isDoctorType
-                        ? 'Bác sĩ'
-                        : formData.staffType === 'admin'
-                          ? 'Quản trị viên'
-                          : 'Lễ tân'
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Khoa/Phòng ban <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                  >
-                    <option value="">Chọn khoa/phòng ban</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.code}>
-                        {d.nameVi} ({d.nameEn})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {isDoctorType && (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {/* Full Name */}
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Chuyên khoa <span className="text-red-500">*</span>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Họ và tên <span className="text-red-500">*</span>
                     </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                      placeholder="Nguyễn Văn A"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                        placeholder="admin@hospital.com"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Số điện thoại <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        type="tel"
+                        required
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                        placeholder="0901234567"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-500">Format: 0XXXXXXXXX (10-11 số)</p>
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Ngày sinh</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-700 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gender */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Giới tính</label>
                     <select
-                      required={isDoctorType}
-                      value={formData.specialization}
-                      onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                      className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all cursor-pointer"
                     >
-                      <option value="">Chọn chuyên khoa</option>
-                      {DOCTOR_SPECIALIZATIONS.map((spec) => (
-                        <option key={spec.value} value={spec.value}>
-                          {spec.label}
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
+                  </div>
+
+                  {/* Address */}
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Địa chỉ</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                        placeholder="Số nhà, đường, phường, quận, thành phố"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Thông tin công việc */}
+              <motion.div variants={fadeInUp}>
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-slate-100">
+                    <Briefcase className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-slate-900">Thông tin công việc</h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {/* Title */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Chức danh <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                      placeholder="Quản trị viên hệ thống"
+                    />
+                  </div>
+
+                  {/* Department */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Phòng ban</label>
+                    <select
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all cursor-pointer"
+                    >
+                      <option value="">Chọn phòng ban (tùy chọn)</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.code}>
+                          {d.nameVi}
                         </option>
                       ))}
                     </select>
                   </div>
-                )}
 
-                {isDoctorType && (
+                  {/* Experience */}
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Số chứng chỉ hành nghề
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Kinh nghiệm (năm)
                     </label>
                     <input
-                      type="text"
-                      value={formData.licenseNumber}
-                      onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                      className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                      placeholder="BS-12345"
+                      type="number"
+                      min="0"
+                      value={formData.experience}
+                      onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                      placeholder="5"
                     />
                   </div>
-                )}
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Kinh nghiệm (năm)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.experience}
-                    onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="5"
-                  />
-                </div>
+                  {/* Languages */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Ngôn ngữ</label>
+                    <input
+                      type="text"
+                      value={formData.languages}
+                      onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                      placeholder="Vietnamese, English"
+                    />
+                  </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Ngôn ngữ</label>
-                  <input
-                    type="text"
-                    value={formData.languages}
-                    onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="Vietnamese, English"
-                  />
-                </div>
+                  {/* Education */}
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Học vấn</label>
+                    <input
+                      type="text"
+                      value={formData.education}
+                      onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                      placeholder="Đại học Công nghệ Thông tin"
+                    />
+                  </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Học vấn</label>
-                  <input
-                    type="text"
-                    value={formData.education}
-                    onChange={(e) => setFormData({ ...formData, education: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder={
-                      isDoctorType ? 'Bác sĩ, Đại học Y Hà Nội' : 'Đại học, chuyên ngành'
-                    }
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Giới thiệu</label>
-                  <textarea
-                    rows={4}
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2"
-                    placeholder="Mô tả ngắn về nhân viên..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Email Invitation Section */}
-            <div className="border-t pt-6">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">Gửi email mời kích hoạt</h2>
-
-              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <div className="flex items-start gap-3">
-                  <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-                  <div className="text-sm text-blue-900">
-                    <p className="mb-1 font-medium">Cách thức hoạt động:</p>
-                    <ul className="list-inside list-disc space-y-1 text-blue-800">
-                      <li>
-                        Tài khoản sẽ được tạo với trạng thái <strong>chưa kích hoạt</strong>
-                      </li>
-                      <li>Email chứa link kích hoạt sẽ được gửi đến địa chỉ email của nhân viên</li>
-                      <li>Nhân viên click vào link, đặt mật khẩu và kích hoạt tài khoản</li>
-                      <li>Sau khi kích hoạt, nhân viên có thể đăng nhập vào hệ thống</li>
-                    </ul>
+                  {/* Bio */}
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Giới thiệu</label>
+                    <textarea
+                      rows={3}
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all resize-none"
+                      placeholder="Mô tả ngắn về quản trị viên..."
+                    />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={formData.sendInvitationEmail}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sendInvitationEmail: e.target.checked })
-                  }
-                  className="text-primary-600 focus:ring-primary-500 h-5 w-5 rounded border-gray-300 focus:ring-2"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-900">
-                    Gửi email mời kích hoạt tài khoản
-                  </span>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Email sẽ được gửi đến <strong>{formData.email || '(chưa nhập email)'}</strong>
-                  </p>
+              {/* Email Invitation Section */}
+              <motion.div variants={fadeInUp} className="border-t border-slate-100 pt-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-slate-100">
+                    <Mail className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-slate-900">Gửi email kích hoạt</h2>
                 </div>
-              </label>
 
-              {!formData.sendInvitationEmail && (
-                <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
-                    <p className="text-xs text-yellow-800">
-                      Nếu không gửi email, bạn cần thông báo thông tin đăng nhập cho nhân viên bằng
-                      cách khác.
+                <div className="rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-teal-50 p-5 mb-5">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-lg bg-cyan-100">
+                      <Info className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <div className="text-sm text-slate-700">
+                      <p className="mb-2 font-semibold text-slate-900">Quy trình kích hoạt tài khoản:</p>
+                      <ul className="list-inside list-disc space-y-1 text-slate-600">
+                        <li>Tài khoản được tạo với trạng thái <span className="font-medium text-cyan-700">chưa kích hoạt</span></li>
+                        <li>Email chứa link kích hoạt sẽ được gửi tự động</li>
+                        <li>Quản trị viên click link, đặt mật khẩu và kích hoạt</li>
+                        <li>Sau khi kích hoạt, có thể đăng nhập với quyền Admin</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <label className="flex cursor-pointer items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/50 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={formData.sendInvitationEmail}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sendInvitationEmail: e.target.checked })
+                    }
+                    className="h-5 w-5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 focus:ring-2 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-slate-900">
+                      Gửi email mời kích hoạt tài khoản
+                    </span>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Email sẽ được gửi đến{' '}
+                      <span className="font-medium text-cyan-600">
+                        {formData.email || '(chưa nhập email)'}
+                      </span>
                     </p>
                   </div>
-                </div>
-              )}
-            </div>
+                </label>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3 border-t pt-4">
-              <Link
-                href="/admin/staff"
-                className="rounded-lg border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-50"
+                <AnimatePresence>
+                  {!formData.sendInvitationEmail && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                        <p className="text-sm text-amber-800">
+                          Nếu không gửi email, bạn cần thông báo thông tin đăng nhập cho quản trị viên bằng cách khác.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* Actions */}
+              <motion.div
+                variants={fadeInUp}
+                className="flex items-center justify-end gap-3 border-t border-slate-100 pt-6"
               >
-                Hủy
-              </Link>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="bg-primary-600 hover:bg-primary-700 flex items-center gap-2 rounded-lg px-4 py-2 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    {formData.sendInvitationEmail ? 'Tạo và gửi email' : 'Tạo tài khoản'}
-                  </>
-                )}
-              </button>
+                <Link
+                  href="/admin/staff"
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 hover:border-slate-300 transition-all"
+                >
+                  Hủy
+                </Link>
+                <motion.button
+                  type="submit"
+                  disabled={isLoading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-medium shadow-lg shadow-cyan-500/25 hover:from-cyan-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      {formData.sendInvitationEmail ? 'Tạo và gửi email' : 'Tạo tài khoản'}
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </form>
-      </div>
+      </motion.div>
     </DashboardLayout>
+  );
+}
+
+/**
+ * Admin - Thêm quản trị viên mới
+ * Route: /admin/staff/add?role=admin
+ */
+export default function AddStaffPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+        </div>
+      </DashboardLayout>
+    }>
+      <AddStaffPageContent />
+    </Suspense>
   );
 }

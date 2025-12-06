@@ -5,7 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Mail, Phone, MapPin, Edit, Users, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
-import { getDepartmentById, getDepartmentStaff, type Department } from '@/lib/api/departments.service';
+import {
+  getDepartmentById,
+  getDepartmentHead,
+  getDepartmentStaff,
+  type Department,
+} from '@/lib/api/departments.service';
 
 /**
  * Department Details Page
@@ -18,7 +23,9 @@ export default function DepartmentDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'about' | 'staff' | 'services'>('about');
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [departmentHead, setDepartmentHead] = useState<any | null>(null);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [isLoadingHead, setIsLoadingHead] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -32,6 +39,8 @@ export default function DepartmentDetailsPage() {
       const response = await getDepartmentById(id);
       if (response.success) {
         setDepartment(response.data);
+        fetchHead(id);
+        fetchStaff(id);
       }
     } catch (error) {
       console.error('Error fetching department:', error);
@@ -40,17 +49,65 @@ export default function DepartmentDetailsPage() {
     }
   };
 
+  const normalizeStaff = (staff: any) => {
+    const personalInfo = staff.personalInfo || staff.personal_info || {};
+    const professionalInfo = staff.professionalInfo || staff.professional_info || {};
+
+    const fullName =
+      personalInfo.fullName || personalInfo.full_name || personalInfo.name || 'Không có tên';
+
+    const email =
+      personalInfo.email ||
+      personalInfo.contact?.email ||
+      staff.email ||
+      professionalInfo.contact?.email ||
+      '';
+
+    return {
+      ...staff,
+      staffId: staff.staffId || staff.staff_id,
+      personalInfo: {
+        ...personalInfo,
+        fullName,
+        email,
+      },
+      professionalInfo: {
+        ...professionalInfo,
+      },
+      isActive: typeof staff.isActive === 'boolean' ? staff.isActive : staff.status === 'active',
+      registrationDate: staff.registrationDate || staff.registration_date,
+    };
+  };
+
   const fetchStaff = async (departmentId: string) => {
     try {
       setIsLoadingStaff(true);
       const response = await getDepartmentStaff(departmentId);
       if (response.success) {
-        setStaffList(response.data.slice(0, 4)); // Only show first 4 staff
+        const normalized = (response.data || []).map(normalizeStaff);
+        setStaffList(normalized);
       }
     } catch (error) {
       console.error('Error fetching staff:', error);
     } finally {
       setIsLoadingStaff(false);
+    }
+  };
+
+  const fetchHead = async (departmentId: string) => {
+    try {
+      setIsLoadingHead(true);
+      const response = await getDepartmentHead(departmentId);
+      if (response.success && response.data) {
+        setDepartmentHead(normalizeStaff(response.data));
+      } else {
+        setDepartmentHead(null);
+      }
+    } catch (error) {
+      console.error('Error fetching department head:', error);
+      setDepartmentHead(null);
+    } finally {
+      setIsLoadingHead(false);
     }
   };
 
@@ -60,6 +117,26 @@ export default function DepartmentDetailsPage() {
       fetchStaff(params.id as string);
     }
   }, [activeTab, params.id]);
+
+  const getStaffInitials = (staff: any, fallback: string) => {
+    const name = staff.personalInfo?.fullName;
+    if (name) {
+      return name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    }
+    return fallback;
+  };
+
+  const getFormattedDescription = () => {
+    if (department?.description && department.description.trim().length > 0) {
+      return department.description;
+    }
+    return `Khoa ${department?.nameVi} cung cấp dịch vụ chuyên môn cho bệnh nhân.`;
+  };
 
   if (isLoading) {
     return (
@@ -74,7 +151,7 @@ export default function DepartmentDetailsPage() {
   if (!department) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
+        <div className="py-12 text-center">
           <p>Không tìm thấy khoa</p>
         </div>
       </DashboardLayout>
@@ -88,35 +165,44 @@ export default function DepartmentDetailsPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
             title="Quay lại"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{department.nameVi}</h1>
-            <p className="text-gray-500 mt-1">{department.nameEn}</p>
+            <p className="mt-1 text-gray-500">{department.nameEn}</p>
           </div>
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Column - Department Information */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Thông tin khoa</h2>
-              <p className="text-gray-500 mb-8">Chi tiết về khoa {department.nameVi}</p>
+            <div className="rounded-lg border border-gray-200 bg-white p-8">
+              <h2 className="mb-2 text-2xl font-bold text-gray-900">Thông tin khoa</h2>
+              <p className="mb-8 text-gray-500">Chi tiết về khoa {department.nameVi}</p>
 
-              <div className="space-y-4 mb-8">
+              <div className="mb-8 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-gray-400" />
+                  <p className="text-sm text-gray-900">
+                    <span className="font-medium">Trưởng khoa:</span>{' '}
+                    {isLoadingHead
+                      ? 'Đang tải...'
+                      : departmentHead?.personalInfo?.fullName || 'Chưa có'}
+                  </p>
+                </div>
                 {/* Established */}
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-gray-400" />
                   <p className="text-sm text-gray-900">
                     <span className="font-medium">Established:</span>{' '}
-                    {department.createdAt 
-                      ? new Date(department.createdAt).toLocaleDateString('en-US', { 
+                    {department.createdAt
+                      ? new Date(department.createdAt).toLocaleDateString('en-US', {
                           month: 'long',
-                          year: 'numeric'
+                          year: 'numeric',
                         })
                       : 'N/A'}
                   </p>
@@ -158,14 +244,14 @@ export default function DepartmentDetailsPage() {
               <div className="space-y-3">
                 <Link
                   href={`/admin/departments/${department.id}/edit`}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-gray-300 rounded-full hover:bg-gray-50 text-sm font-medium transition-colors"
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 px-4 py-3 text-sm font-medium transition-colors hover:bg-gray-50"
                 >
                   <Edit className="h-4 w-4" />
                   Chỉnh sửa khoa
                 </Link>
                 <Link
                   href={`/admin/departments/${department.id}/staff`}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gray-900 text-white rounded-full hover:bg-gray-800 text-sm font-medium transition-colors"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-gray-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800"
                 >
                   <Users className="h-4 w-4" />
                   Quản lý nhân viên
@@ -176,9 +262,9 @@ export default function DepartmentDetailsPage() {
 
           {/* Right Column - Department Overview */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900 mb-1">Tổng quan khoa</h2>
+            <div className="rounded-lg border border-gray-200 bg-white">
+              <div className="border-b border-gray-200 p-6">
+                <h2 className="mb-1 text-xl font-semibold text-gray-900">Tổng quan khoa</h2>
                 <p className="text-sm text-gray-500">Thông tin chính và số liệu thống kê</p>
               </div>
 
@@ -187,7 +273,7 @@ export default function DepartmentDetailsPage() {
                 <div className="flex gap-6 px-6">
                   <button
                     onClick={() => setActiveTab('about')}
-                    className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`border-b-2 py-3 text-sm font-medium transition-colors ${
                       activeTab === 'about'
                         ? 'border-gray-900 text-gray-900'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -197,7 +283,7 @@ export default function DepartmentDetailsPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('staff')}
-                    className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`border-b-2 py-3 text-sm font-medium transition-colors ${
                       activeTab === 'staff'
                         ? 'border-gray-900 text-gray-900'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -207,7 +293,7 @@ export default function DepartmentDetailsPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('services')}
-                    className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`border-b-2 py-3 text-sm font-medium transition-colors ${
                       activeTab === 'services'
                         ? 'border-gray-900 text-gray-900'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -223,38 +309,53 @@ export default function DepartmentDetailsPage() {
                 {activeTab === 'about' && (
                   <div className="space-y-6">
                     <div>
-                      <p className="text-gray-700 leading-relaxed">
-                        Khoa {department.nameVi} tại phòng khám của chúng tôi cam kết cung cấp dịch vụ chăm sóc đặc biệt trong lĩnh vực y học. 
-                        Đội ngũ chuyên gia của chúng tôi làm việc cộng tác để cung cấp các kế hoạch điều trị toàn diện phù hợp với nhu cầu riêng của từng bệnh nhân.
-                      </p>
+                      <p className="leading-relaxed text-gray-700">{getFormattedDescription()}</p>
                     </div>
 
                     <div>
-                      <p className="text-gray-700 leading-relaxed">
-                        Được thành lập vào năm {department.createdAt ? new Date(department.createdAt).getFullYear() : 'N/A'}, khoa đã phát triển để trở thành trung tâm xuất sắc, 
-                        được trang bị công nghệ hiện đại và cơ sở vật chất tiên tiến. Chúng tôi tự hào về việc luôn đi đầu trong những tiến bộ y học 
-                        và thực hiện các phương pháp dựa trên bằng chứng.
-                      </p>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="rounded-lg bg-gray-50 p-4">
+                          <p className="text-xs font-medium text-gray-500 uppercase">Mã khoa</p>
+                          <p className="text-lg font-semibold text-gray-900">{department.code}</p>
+                        </div>
+                        <div className="rounded-lg bg-gray-50 p-4">
+                          <p className="text-xs font-medium text-gray-500 uppercase">Trạng thái</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {department.isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Mục tiêu của khoa</h3>
+                      <h3 className="mb-3 text-lg font-semibold text-gray-900">
+                        Mục tiêu của khoa
+                      </h3>
                       <ul className="space-y-2">
                         <li className="flex items-start gap-2">
-                          <span className="text-blue-600 mt-1">•</span>
-                          <span className="text-gray-700">Cung cấp dịch vụ chăm sóc bệnh nhân đặc biệt với sự tận tâm và chuyên môn</span>
+                          <span className="mt-1 text-blue-600">•</span>
+                          <span className="text-gray-700">
+                            Cung cấp dịch vụ chăm sóc bệnh nhân đặc biệt với sự tận tâm và chuyên
+                            môn
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-blue-600 mt-1">•</span>
-                          <span className="text-gray-700">Nâng cao kiến thức y học thông qua nghiên cứu và đổi mới</span>
+                          <span className="mt-1 text-blue-600">•</span>
+                          <span className="text-gray-700">
+                            Nâng cao kiến thức y học thông qua nghiên cứu và đổi mới
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-blue-600 mt-1">•</span>
-                          <span className="text-gray-700">Đào tạo thế hệ chuyên gia y tế tiếp theo</span>
+                          <span className="mt-1 text-blue-600">•</span>
+                          <span className="text-gray-700">
+                            Đào tạo thế hệ chuyên gia y tế tiếp theo
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-blue-600 mt-1">•</span>
-                          <span className="text-gray-700">Tham gia với cộng đồng để thúc đẩy sức khỏe và hạnh phúc</span>
+                          <span className="mt-1 text-blue-600">•</span>
+                          <span className="text-gray-700">
+                            Tham gia với cộng đồng để thúc đẩy sức khỏe và hạnh phúc
+                          </span>
                         </li>
                       </ul>
                     </div>
@@ -264,23 +365,28 @@ export default function DepartmentDetailsPage() {
                 {activeTab === 'staff' && (
                   <div>
                     {isLoadingStaff ? (
-                      <div className="text-center py-12">
-                        <Loader2 className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-2" />
+                      <div className="py-12 text-center">
+                        <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-gray-400" />
                         <p className="text-gray-500">Đang tải danh sách nhân viên...</p>
                       </div>
                     ) : staffList.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-900 font-medium">Chưa có thông tin nhân viên</p>
-                        <p className="text-gray-500 text-sm mt-1">Thông tin nhân viên chính sẽ được hiển thị ở đây</p>
+                      <div className="py-12 text-center">
+                        <Users className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+                        <p className="font-medium text-gray-900">Chưa có thông tin nhân viên</p>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Thông tin nhân viên chính sẽ được hiển thị ở đây
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {staffList.map((staff, index) => (
-                          <div key={staff.id || index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="flex-shrink-0 w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                        {staffList.slice(0, 4).map((staff, index) => (
+                          <div
+                            key={staff.staffId || index}
+                            className="flex items-center gap-4 rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                          >
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gray-200">
                               <span className="text-sm font-semibold text-gray-600">
-                                {staff.personalInfo?.fullName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'S' + (index + 1)}
+                                {getStaffInitials(staff, `S${index + 1}`)}
                               </span>
                             </div>
                             <div className="flex-1">
@@ -288,16 +394,18 @@ export default function DepartmentDetailsPage() {
                                 {staff.personalInfo?.fullName || 'Không có tên'}
                               </h3>
                               <p className="text-sm text-gray-500">
-                                {staff.professionalInfo?.title || staff.professionalInfo?.position || 'Nhân viên'}
+                                {staff.professionalInfo?.title ||
+                                  staff.professionalInfo?.position ||
+                                  'Nhân viên'}
                               </p>
                             </div>
                           </div>
                         ))}
-                        
+
                         {/* View All Staff Button */}
                         <Link
                           href={`/admin/departments/${department?.id}/staff`}
-                          className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors mt-4"
+                          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium transition-colors hover:bg-gray-50"
                         >
                           <Users className="h-4 w-4" />
                           Xem tất cả nhân viên
@@ -308,9 +416,11 @@ export default function DepartmentDetailsPage() {
                 )}
 
                 {activeTab === 'services' && (
-                  <div className="text-center py-12">
-                    <p className="text-gray-900 font-medium">Chưa có thông tin dịch vụ</p>
-                    <p className="text-gray-500 text-sm mt-1">Danh sách dịch vụ của khoa sẽ được hiển thị ở đây</p>
+                  <div className="py-12 text-center">
+                    <p className="font-medium text-gray-900">Chưa có thông tin dịch vụ</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Danh sách dịch vụ của khoa sẽ được hiển thị ở đây
+                    </p>
                   </div>
                 )}
               </div>

@@ -14,8 +14,11 @@ import {
   GetDepartmentByIdUseCase,
   GetDepartmentByCodeUseCase,
   UpdateDepartmentUseCase,
+  GetDepartmentHeadUseCase,
+  GetDepartmentStaffUseCase,
 } from "../../application/use-cases/departments";
 import { IDepartmentRepository } from "../../domain/repositories/IDepartmentRepository";
+import { IProviderStaffRepository } from "../../domain/repositories/IProviderStaffRepository";
 import { IEventBus } from "../../application/interfaces/IEventBus";
 
 export class DepartmentController {
@@ -24,9 +27,12 @@ export class DepartmentController {
   private getDepartmentByIdUseCase: GetDepartmentByIdUseCase;
   private getDepartmentByCodeUseCase: GetDepartmentByCodeUseCase;
   private updateDepartmentUseCase: UpdateDepartmentUseCase;
+  private getDepartmentHeadUseCase: GetDepartmentHeadUseCase;
+  private getDepartmentStaffUseCase: GetDepartmentStaffUseCase;
 
   constructor(
     departmentRepository: IDepartmentRepository,
+    staffRepository: IProviderStaffRepository,
     eventBus?: IEventBus,
   ) {
     this.createDepartmentUseCase = new CreateDepartmentUseCase(
@@ -45,6 +51,14 @@ export class DepartmentController {
     this.updateDepartmentUseCase = new UpdateDepartmentUseCase(
       departmentRepository,
       eventBus,
+    );
+    this.getDepartmentHeadUseCase = new GetDepartmentHeadUseCase(
+      departmentRepository,
+      staffRepository
+    );
+    this.getDepartmentStaffUseCase = new GetDepartmentStaffUseCase(
+      departmentRepository,
+      staffRepository
     );
   }
 
@@ -252,6 +266,79 @@ export class DepartmentController {
       });
     } catch (error: any) {
       console.error("[DepartmentController] Error in update:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * GET /api/v1/departments/:id/head
+   * Get department head by ID
+   */
+  async getHead(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const result = await this.getDepartmentHeadUseCase.execute({ departmentId: id });
+
+      if (!result.success) {
+        const statusCode = result.error === "Department not found" ? 404 : 500;
+        res.status(statusCode).json({
+          success: false,
+          message: result.error,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.data || null,
+        department: result.department?.toJSON()
+      });
+    } catch (error: any) {
+      console.error("[DepartmentController] Error in getHead:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * GET /api/v1/departments/:id/staff
+   * Get department staff
+   */
+  async getStaff(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const includeInactive = req.query.includeInactive === "true";
+
+      const result = await this.getDepartmentStaffUseCase.execute({
+        departmentId: id,
+        includeInactive
+      });
+
+      if (!result.success) {
+        const statusCode = result.error === "Department not found" ? 404 : 500;
+        res.status(statusCode).json({
+          success: false,
+          message: result.error,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.data || [],
+        total: result.total || 0,
+        department: result.department?.toJSON()
+      });
+    } catch (error: any) {
+      console.error("[DepartmentController] Error in getStaff:", error.message);
       res.status(500).json({
         success: false,
         message: "Internal server error",
