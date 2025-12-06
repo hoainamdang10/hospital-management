@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { DashboardLayout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -198,182 +197,180 @@ export default function AdminStaffPage() {
   }, [pagination]);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Quản lý Admin</h1>
-            <p className="mt-2 text-gray-600">
-              Theo dõi và quản trị các tài khoản quản trị hệ thống.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={isLoading || isRefreshing}
-              className="gap-2"
-            >
-              {isRefreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Làm mới
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Quản lý Admin</h1>
+          <p className="mt-2 text-gray-600">
+            Theo dõi và quản trị các tài khoản quản trị hệ thống.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing}
+            className="gap-2"
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Làm mới
+          </Button>
+          <Link href="/admin/staff/add?role=admin">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Thêm admin
             </Button>
-            <Link href="/admin/staff/add?role=admin">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Thêm admin
-              </Button>
-            </Link>
-          </div>
+          </Link>
         </div>
+      </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <StatCard
-            title="Tổng admin"
-            value={stats.total}
-            subtitle="Tất cả quyền quản trị"
-            icon={<Shield className="h-5 w-5" />}
-            accent="violet"
-          />
-          <StatCard
-            title="Đang hoạt động"
-            value={stats.active}
-            subtitle="Có thể đăng nhập"
-            icon={<CheckCircle2 className="h-5 w-5" />}
-            accent="emerald"
-          />
-          <StatCard
-            title="Đã vô hiệu hóa"
-            value={stats.inactive}
-            subtitle="Cần kích hoạt lại"
-            icon={<AlertTriangle className="h-5 w-5" />}
-            accent="amber"
-          />
-        </div>
+      <div className="grid gap-6 md:grid-cols-3">
+        <StatCard
+          title="Tổng admin"
+          value={stats.total}
+          subtitle="Tất cả quyền quản trị"
+          icon={<Shield className="h-5 w-5" />}
+          accent="violet"
+        />
+        <StatCard
+          title="Đang hoạt động"
+          value={stats.active}
+          subtitle="Có thể đăng nhập"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          accent="emerald"
+        />
+        <StatCard
+          title="Đã vô hiệu hóa"
+          value={stats.inactive}
+          subtitle="Cần kích hoạt lại"
+          icon={<AlertTriangle className="h-5 w-5" />}
+          accent="amber"
+        />
+      </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              })}
-              placeholder="Tìm theo tên, email..."
-              className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-4 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-            />
-          </div>
-          <select
-            value={statusFilter}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
             onChange={(e) => {
-              setStatusFilter(e.target.value as StatusFilter);
+              setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            placeholder="Tìm theo tên, email..."
+            className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-4 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value as StatusFilter);
+            setCurrentPage(1);
+          }}
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+        >
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Danh sách admin</p>
+              <p className="text-xs text-slate-500">
+                {pagination.total} tài khoản quản trị
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-700">Danh sách admin</p>
-                <p className="text-xs text-slate-500">
-                  {pagination.total} tài khoản quản trị
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100">
-              <thead className="bg-slate-50">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-100">
+            <thead className="bg-slate-50">
+              <tr>
+                <TableHead>Admin</TableHead>
+                <TableHead>Liên hệ</TableHead>
+                <TableHead>Trạng thái & vai trò</TableHead>
+                <TableHead>Hoạt động</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {isLoading ? (
                 <tr>
-                  <TableHead>Admin</TableHead>
-                  <TableHead>Liên hệ</TableHead>
-                  <TableHead>Trạng thái & vai trò</TableHead>
-                  <TableHead>Hoạt động</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  <td colSpan={5} className="py-16 text-center text-slate-500">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-violet-500" />
+                    <p className="mt-2 text-sm">Đang tải dữ liệu admin...</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="py-16 text-center text-slate-500">
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-violet-500" />
-                      <p className="mt-2 text-sm">Đang tải dữ liệu admin...</p>
-                    </td>
-                  </tr>
-                ) : admins.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-16 text-center text-slate-500">
-                      <UserCog className="mx-auto mb-3 h-8 w-8 text-slate-300" />
-                      {error ?? 'Không có admin nào khớp với bộ lọc.'}
-                    </td>
-                  </tr>
-                ) : (
-                  admins.map((admin) => (
-                    <AdminRow
-                      key={admin.id}
-                      admin={admin}
-                      actionLoading={actionLoading === admin.id}
-                      onDeactivate={() => handleDeactivate(admin)}
-                      onReactivate={() => handleReactivate(admin)}
-                      onUnlock={() => handleUnlock(admin)}
-                    />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              ) : admins.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-16 text-center text-slate-500">
+                    <UserCog className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+                    {error ?? 'Không có admin nào khớp với bộ lọc.'}
+                  </td>
+                </tr>
+              ) : (
+                admins.map((admin) => (
+                  <AdminRow
+                    key={admin.id}
+                    admin={admin}
+                    actionLoading={actionLoading === admin.id}
+                    onDeactivate={() => handleDeactivate(admin)}
+                    onReactivate={() => handleReactivate(admin)}
+                    onUnlock={() => handleUnlock(admin)}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
-            <p>
-              Hiển thị{' '}
-              <span className="font-semibold text-slate-900">
-                {paginationInfo.start} - {paginationInfo.end}
-              </span>{' '}
-              trên tổng số{' '}
-              <span className="font-semibold text-slate-900">{pagination.total}</span> admin
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pagination.page <= 1}
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              >
-                Trước
-              </Button>
-              <span className="text-slate-500">
-                Trang {pagination.page}/{pagination.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pagination.page >= pagination.totalPages}
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))
-                }
-              >
-                Sau
-              </Button>
-            </div>
+        <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+          <p>
+            Hiển thị{' '}
+            <span className="font-semibold text-slate-900">
+              {paginationInfo.start} - {paginationInfo.end}
+            </span>{' '}
+            trên tổng số{' '}
+            <span className="font-semibold text-slate-900">{pagination.total}</span> admin
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pagination.page <= 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            >
+              Trước
+            </Button>
+            <span className="text-slate-500">
+              Trang {pagination.page}/{pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))
+              }
+            >
+              Sau
+            </Button>
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 
@@ -467,9 +464,8 @@ function AdminRow({
             Vai trò: {admin.roles.join(', ').toUpperCase()}
           </span>
           <span
-            className={`rounded-full px-2.5 py-1 text-xs ${
-              admin.isEmailVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-            }`}
+            className={`rounded-full px-2.5 py-1 text-xs ${admin.isEmailVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+              }`}
           >
             {admin.isEmailVerified ? 'Email đã xác minh' : 'Chưa xác minh email'}
           </span>

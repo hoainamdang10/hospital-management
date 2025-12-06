@@ -99,7 +99,7 @@ export class PatientEventConsumer {
    * Handle patient registered event
    */
   private async handlePatientRegistered(event: any): Promise<void> {
-    const payload = event.payload || event.data;
+    const payload = this.extractPayload(event);
 
     if (!payload || !payload.patientId) {
       throw new Error("Invalid patient.registered event: missing patientId");
@@ -128,7 +128,7 @@ export class PatientEventConsumer {
    * Handle patient updated event
    */
   private async handlePatientUpdated(event: any): Promise<void> {
-    const payload = event.payload || event.data;
+    const payload = this.extractPayload(event);
 
     if (!payload || !payload.patientId) {
       throw new Error("Invalid patient.updated event: missing patientId");
@@ -157,7 +157,7 @@ export class PatientEventConsumer {
    * Handle patient deactivated event
    */
   private async handlePatientDeactivated(event: any): Promise<void> {
-    const payload = event.payload || event.data;
+    const payload = this.extractPayload(event);
 
     if (!payload || !payload.patientId) {
       throw new Error("Invalid patient.deactivated event: missing patientId");
@@ -176,7 +176,7 @@ export class PatientEventConsumer {
    * Handle patient deleted event
    */
   private async handlePatientDeleted(event: any): Promise<void> {
-    const payload = event.payload || event.data;
+    const payload = this.extractPayload(event);
 
     if (!payload || !payload.patientId) {
       throw new Error("Invalid patient.deleted event: missing patientId");
@@ -256,5 +256,27 @@ export class PatientEventConsumer {
 
   private extractAddress(payload: any): any {
     return payload.contactInfo?.address || payload.address || undefined;
+  }
+
+  private extractPayload(event: any): any {
+    if (!event) {
+      return undefined;
+    }
+
+    if (typeof event.getEventData === "function") {
+      try {
+        const data = event.getEventData();
+        if (data) {
+          return data;
+        }
+      } catch (error) {
+        console.error(
+          "[PatientEventConsumer] Failed to extract event data via getEventData",
+          error,
+        );
+      }
+    }
+
+    return event.eventData || event.payload || event.data || event;
   }
 }
