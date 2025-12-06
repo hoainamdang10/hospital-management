@@ -98,6 +98,26 @@ export interface WalletPaymentResult {
   errors?: string[];
 }
 
+export interface SearchInvoicesParams {
+  patientId?: string;
+  status?: string;
+  fromDate?: string;
+  toDate?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+  doctorId?: string;
+  departmentId?: string;
+}
+
+export interface RevenueReportParams {
+  fromDate: string;
+  toDate: string;
+  groupBy?: 'day' | 'month';
+  departmentId?: string;
+  doctorId?: string;
+}
+
 class BillingService {
   private baseUrl = '/v1/billing/invoices';
 
@@ -203,14 +223,35 @@ class BillingService {
   /**
    * Search invoices
    */
-  async searchInvoices(criteria: {
-    patientId?: string;
-    status?: string;
-    fromDate?: string;
-    toDate?: string;
-  }): Promise<Invoice[]> {
+  async searchInvoices(criteria: SearchInvoicesParams = {}): Promise<Invoice[]> {
     const response = await apiClient.get(`${this.baseUrl}/search`, {
       params: criteria,
+    });
+    const payload = response.data;
+    const rawInvoices =
+      payload?.data?.invoices ?? payload?.data ?? payload?.invoices ?? payload ?? [];
+    if (!Array.isArray(rawInvoices)) {
+      return [];
+    }
+    return rawInvoices.map((invoice: any) => this.normalizeInvoice(invoice));
+  }
+
+  /**
+   * Raw search result (keep original response shape)
+   */
+  async searchInvoicesRaw(criteria: SearchInvoicesParams = {}) {
+    const response = await apiClient.get(`${this.baseUrl}/search`, {
+      params: criteria,
+    });
+    return response.data;
+  }
+
+  /**
+   * Revenue report
+   */
+  async getRevenueReport(params: RevenueReportParams) {
+    const response = await apiClient.get(`${this.baseUrl}/reports/revenue`, {
+      params,
     });
     return response.data;
   }
@@ -263,11 +304,26 @@ class BillingService {
       paidAmount = Math.max(0, totalAmount - outstandingAmount);
     }
 
+    const metadata = invoice?.metadata || invoice?.meta || {};
+    const metadataPatientName =
+      metadata?.patientName ||
+      metadata?.patient_name ||
+      metadata?.patientFullName ||
+      metadata?.patient_full_name ||
+      metadata?.patientDisplayName ||
+      metadata?.patient_display_name ||
+      metadata?.patient?.fullName ||
+      metadata?.patient?.name ||
+      metadata?.patientInfo?.fullName ||
+      metadata?.patient_info?.fullName ||
+      metadata?.patientInfo?.name ||
+      metadata?.patient_info?.name;
+
     return {
       ...invoice,
       id: normalizedId.toString(),
-      metadata: invoice?.metadata || invoice?.meta || {},
-      patientName: invoice?.patientName || invoice?.patient_name || invoice?.metadata?.patientName,
+      metadata,
+      patientName: invoice?.patientName || invoice?.patient_name || metadataPatientName,
       items: invoice?.items || [],
       invoiceNumber:
         invoice?.invoiceNumber ||

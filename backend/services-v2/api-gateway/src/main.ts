@@ -412,6 +412,18 @@ class ApiGatewayApplication {
       // Focus on core features: Identity, Patient, Provider, Appointments, Billing
       // Will be re-enabled post-MVP
 
+      // Billing Service - Public webhook endpoints (VNPAY/PayOS IPN callbacks)
+      ServiceRoute.create({
+        serviceName: "billing-service",
+        baseUrl:
+          process.env.BILLING_SERVICE_URL ||
+          (process.env.NODE_ENV === "production"
+            ? "http://billing-service:3009"
+            : "http://localhost:3009"),
+        pathPrefix: "/api/v1/billing/invoices/payos",
+        requiresAuth: false, // Webhook must bypass authentication
+      }),
+
       // Billing Service - Self-service invoice operations (patient/staff view)
       ServiceRoute.create({
         serviceName: "billing-service",

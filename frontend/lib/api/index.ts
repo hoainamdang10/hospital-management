@@ -1,10 +1,10 @@
 /**
  * API Services Export
- * 
+ *
  * MIGRATION NOTICE:
  * - Primary axios instance: './axios' (session-based auth with HTTP-only cookies)
  * - Legacy axios instance: './client' (DEPRECATED - localStorage-based auth)
- * 
+ *
  * All new code should use './axios' or the specific service files.
  */
 
@@ -24,3 +24,4 @@ export * from './auth.service';
 export * from './patient.service';
 export * from './availability.service';
 export * from './notifications.service';
+export * from './admin-users.service';

@@ -3,7 +3,11 @@
  * API calls for admin dashboard statistics and data
  */
 
-import { appointmentsClient, patientClient, staffClient, billingClient } from './clients';
+import { appointmentsClient, patientClient, staffClient } from './clients';
+import {
+  billingService as sharedBillingService,
+  type Invoice as SharedInvoice,
+} from '@/modules/billing/services/billing.service';
 
 export interface AdminDashboardStats {
   totalRevenue: number;
@@ -73,21 +77,25 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 
     // Fetch data from multiple services in parallel
     const [appointmentsResp, patientsResp, staffResp, invoicesResp] = await Promise.all([
-      appointmentsClient.get('/v1/appointments', {
-        params: { page: 1, pageSize: 1000, sortBy: 'appointmentDateTime', sortOrder: 'desc' },
-      }).catch(() => ({ data: { data: { appointments: [], total: 0 } } })),
+      appointmentsClient
+        .get('/v1/appointments', {
+          params: { page: 1, pageSize: 1000, sortBy: 'appointmentDateTime', sortOrder: 'desc' },
+        })
+        .catch(() => ({ data: { data: { appointments: [], total: 0 } } })),
 
-      patientClient.get('/v1/patients', {
-        params: { page: 1, pageSize: 1000, sortBy: 'createdAt', sortOrder: 'desc' },
-      }).catch(() => ({ data: { data: { patients: [], total: 0 } } })),
+      patientClient
+        .get('/v1/patients', {
+          params: { page: 1, pageSize: 1000, sortBy: 'createdAt', sortOrder: 'desc' },
+        })
+        .catch(() => ({ data: { data: { patients: [], total: 0 } } })),
 
-      staffClient.get('/v1/staff/search', {
-        params: { page: 1, pageSize: 1000 },
-      }).catch(() => ({ data: { data: { items: [], pagination: { total: 0 } } } })),
+      staffClient
+        .get('/v1/staff/search', {
+          params: { page: 1, pageSize: 1000 },
+        })
+        .catch(() => ({ data: { data: { items: [], pagination: { total: 0 } } } })),
 
-      billingClient.get('/v1/billing/invoices/search', {
-        params: { pageSize: 1000 },
-      }).catch((err) => {
+      sharedBillingService.searchInvoicesRaw({ limit: 1000 }).catch((err) => {
         console.error('Failed to fetch invoices for stats:', err);
         return { data: { invoices: [] } };
       }),
@@ -122,7 +130,11 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     });
 
     // 2. Revenue (From Invoices)
-    const invoices = invoicesResp.data?.invoices || invoicesResp.data?.data?.invoices || invoicesResp.data?.data || [];
+    const invoices =
+      invoicesResp?.data?.invoices ||
+      invoicesResp?.data?.data?.invoices ||
+      invoicesResp?.data?.data ||
+      [];
     let thisMonthRevenue = 0;
     let lastMonthRevenue = 0;
 
@@ -266,7 +278,9 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
     const appointments = response.data?.data?.appointments || [];
 
     // Group by month
-    const monthlyData: { [key: string]: { patients: Set<string>; appointments: number; revenue: number } } = {};
+    const monthlyData: {
+      [key: string]: { patients: Set<string>; appointments: number; revenue: number };
+    } = {};
 
     appointments.forEach((apt: any) => {
       let date: Date;
@@ -316,42 +330,63 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
     console.error('[AdminDashboardService] Failed to fetch monthly stats:', error);
 
     // Return empty data
-    return ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'].map(month => ({
-      month,
-      patients: 0,
-      revenue: 0,
-      appointments: 0,
-    }));
+    return ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'].map(
+      (month) => ({
+        month,
+        patients: 0,
+        revenue: 0,
+        appointments: 0,
+      })
+    );
   }
 }
 
 /**
  * Get invoice status summary and today's revenue breakdown
  */
-export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSummary; todayRevenue: { payos: number; cash: number } }> {
+export async function getInvoiceSummary(): Promise<{
+  summary: InvoiceStatusSummary;
+  todayRevenue: { payos: number; cash: number };
+}> {
   try {
-    const invoicesResp = await billingClient.get('/v1/billing/invoices/search', {
-      params: { page: 1, pageSize: 1000 },
+    const invoices = await sharedBillingService.searchInvoices({
+      limit: 1000,
     });
-    const invoices = invoicesResp.data?.data?.invoices || invoicesResp.data?.data || [];
-    const payments: any[] = [];
 
     const summary: InvoiceStatusSummary = {
-      paid: invoices.filter((i: any) => i.status?.toUpperCase() === 'PAID').length,
-      pending: invoices.filter((i: any) => i.status?.toUpperCase() === 'PENDING').length,
-      failed: invoices.filter((i: any) => i.status?.toUpperCase() === 'FAILED').length,
-      refunded: invoices.filter((i: any) => i.status?.toUpperCase() === 'REFUNDED').length,
+      paid: invoices.filter((i) => (i.status || '').toUpperCase() === 'PAID').length,
+      pending: invoices.filter((i) => (i.status || '').toUpperCase() === 'PENDING').length,
+      failed: invoices.filter((i) => (i.status || '').toUpperCase() === 'FAILED').length,
+      refunded: invoices.filter((i) => (i.status || '').toUpperCase() === 'REFUNDED').length,
     };
 
-    const todayRevenue = payments.reduce(
-      (acc: { payos: number; cash: number }, p: any) => {
-        const created = new Date(p.createdAt || p.paymentDate);
-        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-        const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-        if (created >= todayStart && created <= todayEnd && String(p.status).toUpperCase() === 'PAID') {
-          const method = String(p.method || p.paymentMethod || '').toLowerCase();
-          const amount = Number(p.amount || p.totalAmount || 0);
-          if (method.includes('payos')) acc.payos += amount; else acc.cash += amount;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayRevenue = invoices.reduce(
+      (acc: { payos: number; cash: number }, invoice) => {
+        const createdAt = new Date(invoice.createdAt);
+        if (
+          createdAt >= todayStart &&
+          createdAt <= todayEnd &&
+          (invoice.status || '').toUpperCase() === 'PAID'
+        ) {
+          const payments = invoice.payments || [];
+          if (payments.length === 0) {
+            acc.payos += invoice.totalAmount || 0;
+            return acc;
+          }
+          payments.forEach((payment) => {
+            const method = String(payment.method || '').toLowerCase();
+            const amount = Number(payment.amount || invoice.totalAmount || 0);
+            if (method.includes('wallet') || method.includes('cash')) {
+              acc.cash += amount;
+            } else {
+              acc.payos += amount;
+            }
+          });
         }
         return acc;
       },
@@ -361,23 +396,30 @@ export async function getInvoiceSummary(): Promise<{ summary: InvoiceStatusSumma
     return { summary, todayRevenue };
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch invoice summary:', error);
-    return { summary: { paid: 0, pending: 0, failed: 0, refunded: 0 }, todayRevenue: { payos: 0, cash: 0 } };
+    return {
+      summary: { paid: 0, pending: 0, failed: 0, refunded: 0 },
+      todayRevenue: { payos: 0, cash: 0 },
+    };
   }
 }
 
 /**
  * Get revenue trend by day for the last 14 days
  */
-export async function getRevenueTrend(days: number = 14): Promise<{ date: string; amount: number }[]> {
+export async function getRevenueTrend(
+  days: number = 14
+): Promise<{ date: string; amount: number }[]> {
   try {
-    const resp = await billingClient.get('/v1/billing/invoices/search', {
-      params: { status: 'paid' },
+    const invoices = await sharedBillingService.searchInvoices({
+      status: 'paid',
+      limit: 1000,
     });
-    const invoices = resp.data?.invoices || resp.data?.data?.invoices || resp.data?.data || [];
-    const end = new Date(); end.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
     const trend: Record<string, number> = {};
     for (let i = 0; i < days; i++) {
-      const d = new Date(end); d.setDate(end.getDate() - i);
+      const d = new Date(end);
+      d.setDate(end.getDate() - i);
       const key = d.toISOString().slice(0, 10);
       trend[key] = 0;
     }
@@ -393,11 +435,15 @@ export async function getRevenueTrend(days: number = 14): Promise<{ date: string
       .map(([date, amount]) => ({ date, amount }));
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch revenue trend:', error);
-    const end = new Date(); end.setHours(0, 0, 0, 0);
-    return Array.from({ length: days }).map((_, i) => {
-      const d = new Date(end); d.setDate(end.getDate() - i);
-      return { date: d.toISOString().slice(0, 10), amount: 0 };
-    }).reverse();
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    return Array.from({ length: days })
+      .map((_, i) => {
+        const d = new Date(end);
+        d.setDate(end.getDate() - i);
+        return { date: d.toISOString().slice(0, 10), amount: 0 };
+      })
+      .reverse();
   }
 }
 
@@ -406,15 +452,14 @@ export async function getRevenueTrend(days: number = 14): Promise<{ date: string
  */
 export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSummary> {
   try {
-    const resp = await billingClient.get('/v1/billing/invoices/search', {
-      params: {},
+    const invoices = await sharedBillingService.searchInvoices({
+      limit: 1000,
     });
-    const invoices = resp.data?.invoices || resp.data?.data?.invoices || resp.data?.data || [];
     return {
-      paid: invoices.filter((i: any) => i.status?.toUpperCase() === 'PAID').length,
-      pending: invoices.filter((i: any) => i.status?.toUpperCase() === 'PENDING').length,
-      failed: invoices.filter((i: any) => i.status?.toUpperCase() === 'FAILED').length,
-      refunded: invoices.filter((i: any) => i.status?.toUpperCase() === 'REFUNDED').length,
+      paid: invoices.filter((i) => (i.status || '').toUpperCase() === 'PAID').length,
+      pending: invoices.filter((i) => (i.status || '').toUpperCase() === 'PENDING').length,
+      failed: invoices.filter((i) => (i.status || '').toUpperCase() === 'FAILED').length,
+      refunded: invoices.filter((i) => (i.status || '').toUpperCase() === 'REFUNDED').length,
     };
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch invoice status distribution:', error);
@@ -427,39 +472,43 @@ export async function getInvoiceStatusDistribution(): Promise<InvoiceStatusSumma
  */
 export async function getRecentPayments(limit: number = 10): Promise<PaymentRecord[]> {
   try {
-    // 1. Fetch Invoices
-    const resp = await billingClient.get('/v1/billing/invoices/search', {
-      params: { status: 'paid', pageSize: limit },
+    const invoices = await sharedBillingService.searchInvoices({
+      status: 'paid',
+      limit,
     });
-    const invoices = resp.data?.invoices || resp.data?.data?.invoices || resp.data?.data || [];
 
     if (invoices.length === 0) return [];
 
     // 2. Fetch Patients (to get names)
     // Note: In a real app, we should fetch only specific IDs, but for MVP/Dashboard we fetch a batch
-    const patientsResp = await patientClient.get('/v1/patients', {
-      params: { page: 1, pageSize: 1000 },
-    }).catch(() => ({ data: { data: { patients: [] } } }));
+    const patientsResp = await patientClient
+      .get('/v1/patients', {
+        params: { page: 1, pageSize: 1000 },
+      })
+      .catch(() => ({ data: { data: { patients: [] } } }));
 
     const patients = patientsResp.data?.data?.patients || [];
-    const patientMap = new Map(patients.map((p: any) => [
-      p.id || p.patient_id,
-      p.personalInfo?.fullName || p.personal_info?.fullName || p.fullName || 'Bệnh nhân'
-    ]));
+    const patientMap = new Map(
+      patients.map((p: any) => [
+        p.id || p.patient_id,
+        p.personalInfo?.fullName || p.personal_info?.fullName || p.fullName || 'Bệnh nhân',
+      ])
+    );
 
     // 3. Fetch Appointments (to get type/description)
-    const appointmentsResp = await appointmentsClient.get('/v1/appointments', {
-      params: { page: 1, pageSize: 1000 },
-    }).catch(() => ({ data: { data: { appointments: [] } } }));
+    const appointmentsResp = await appointmentsClient
+      .get('/v1/appointments', {
+        params: { page: 1, pageSize: 1000 },
+      })
+      .catch(() => ({ data: { data: { appointments: [] } } }));
 
     const appointments = appointmentsResp.data?.data?.appointments || [];
-    const appointmentMap = new Map(appointments.map((apt: any) => [
-      apt.appointmentId || apt.id,
-      apt
-    ]));
+    const appointmentMap = new Map(
+      appointments.map((apt: any) => [apt.appointmentId || apt.id, apt])
+    );
 
     // 4. Map Data
-    return invoices.map((inv: any) => {
+    return invoices.map((inv: SharedInvoice) => {
       const patientName = patientMap.get(inv.patientId) || inv.patientName || 'Bệnh nhân';
       const appointment = appointmentMap.get(inv.appointmentId) as any;
 
@@ -475,11 +524,15 @@ export async function getRecentPayments(limit: number = 10): Promise<PaymentReco
       return {
         invoiceId: inv.invoiceId || inv.invoiceNumber || inv.id,
         patientName: patientName,
-        amount: Number(inv.totalAmount || inv.amount || 0),
+        amount: Number(inv.totalAmount || (inv as any).amount || 0),
         status: 'PAID',
-        method: (String(inv.paymentMethod || 'PayOS').toLowerCase().includes('cash') ? 'Cash' : 'PayOS'),
+        method: String(inv.paymentMethod || 'PayOS')
+          .toLowerCase()
+          .includes('cash')
+          ? 'Cash'
+          : 'PayOS',
         createdAt: inv.paidAt || inv.updatedAt || inv.createdAt,
-        description: description
+        description: description,
       };
     });
   } catch (error) {
@@ -505,15 +558,23 @@ export async function getRecentWebhooks(limit: number = 10): Promise<WebhookEven
  */
 export async function getTodayCheckInCount(): Promise<{ checkedIn: number; total: number }> {
   try {
-    const resp = await appointmentsClient.get('/v1/appointments', { params: { page: 1, pageSize: 1000 } });
+    const resp = await appointmentsClient.get('/v1/appointments', {
+      params: { page: 1, pageSize: 1000 },
+    });
     const apts = resp.data?.data?.appointments || [];
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
     const todayApts = apts.filter((apt: any) => {
       const d = new Date(apt.appointmentDateTime);
       return d >= today && d < tomorrow;
     });
-    const checkedIn = todayApts.filter((apt: any) => String(apt.status).toUpperCase() === 'CONFIRMED' || String(apt.status).toUpperCase() === 'COMPLETED').length;
+    const checkedIn = todayApts.filter(
+      (apt: any) =>
+        String(apt.status).toUpperCase() === 'CONFIRMED' ||
+        String(apt.status).toUpperCase() === 'COMPLETED'
+    ).length;
     return { checkedIn, total: todayApts.length };
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch check-in count:', error);

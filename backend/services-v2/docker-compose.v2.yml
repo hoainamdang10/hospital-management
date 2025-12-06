@@ -510,8 +510,8 @@ services:
       - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}
       - PAYOS_API_KEY=${PAYOS_API_KEY}
       - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY}
-      - PAYOS_RETURN_URL=http://localhost:3000/patient/billing/payment/success
-      - PAYOS_CANCEL_URL=http://localhost:3000/patient/billing/payment/cancel
+      - PAYOS_RETURN_URL=${PAYOS_RETURN_URL}
+      - PAYOS_CANCEL_URL=${PAYOS_CANCEL_URL}
       # VNPAY Configuration
       - VNPAY_TMN_CODE=${VNPAY_TMN_CODE}
       - VNPAY_HASH_SECRET=${VNPAY_HASH_SECRET}

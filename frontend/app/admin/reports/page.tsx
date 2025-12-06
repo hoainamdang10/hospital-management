@@ -190,28 +190,30 @@ export default function AdminReportsPage() {
 
       // Process Revenue Data
       if (revenueRes.status === 'fulfilled' && revenueRes.value?.success) {
-        const data = revenueRes.value.data || [];
-        const totalRevenue = data.reduce(
-          (sum: number, item: any) => sum + (item.totalAmount || 0),
-          0
-        );
+        const report = revenueRes.value.data || {};
+        const breakdown = Array.isArray(report.breakdown) ? report.breakdown : [];
+        const summary = report.summary || {};
+        const totalRevenue = summary.totalRevenue || 0;
+
+        const breakdownMap = new Map(breakdown.map((item: any) => [item.period, item]));
 
         const days = eachDayOfInterval({
           start: dateRange.fromDate,
           end: dateRange.toDate,
         });
         const dailyData = days.map((day) => {
-          const dayData = data.find((d: any) => isSameDay(new Date(d.date), day));
+          const isoKey = format(day, 'yyyy-MM-dd');
+          const dayData = breakdownMap.get(isoKey);
           return {
             date: format(day, 'dd/MM'),
             fullDate: format(day, 'EEEE, dd/MM/yyyy', { locale: vi }),
-            amount: dayData ? dayData.totalAmount : 0,
+            amount: dayData ? dayData.totalRevenue || 0 : 0,
           };
         });
 
         setRevenueData({
           total: totalRevenue,
-          previousPeriod: totalRevenue * 0.85,
+          previousPeriod: summary.previousPeriod || totalRevenue * 0.85,
           dailyData: dailyData.slice(-14),
         });
       }
@@ -221,26 +223,20 @@ export default function AdminReportsPage() {
         const appointments = appointmentsRes.value.appointments || [];
         const stats: AppointmentStats = {
           total: appointments.length,
-          completed: appointments.filter(
-            (a: any) => a.status?.toLowerCase() === 'completed'
-          ).length,
-          cancelled: appointments.filter(
-            (a: any) => a.status?.toLowerCase() === 'cancelled'
-          ).length,
+          completed: appointments.filter((a: any) => a.status?.toLowerCase() === 'completed')
+            .length,
+          cancelled: appointments.filter((a: any) => a.status?.toLowerCase() === 'cancelled')
+            .length,
           pending: appointments.filter(
             (a: any) =>
-              a.status?.toLowerCase() === 'pending' ||
-              a.status?.toLowerCase() === 'confirmed'
+              a.status?.toLowerCase() === 'pending' || a.status?.toLowerCase() === 'confirmed'
           ).length,
-          inProgress: appointments.filter(
-            (a: any) => a.status?.toLowerCase() === 'in_progress'
-          ).length,
+          inProgress: appointments.filter((a: any) => a.status?.toLowerCase() === 'in_progress')
+            .length,
         };
         setAppointmentStats(stats);
 
-        const uniquePatients = new Set(
-          appointments.map((a: any) => a.patientId || a.patient_id)
-        );
+        const uniquePatients = new Set(appointments.map((a: any) => a.patientId || a.patient_id));
         const patientsWithMultiple = appointments.reduce((acc: any, apt: any) => {
           const pid = apt.patientId || apt.patient_id;
           acc[pid] = (acc[pid] || 0) + 1;
@@ -340,9 +336,7 @@ export default function AdminReportsPage() {
   };
 
   // Progress data for radial chart
-  const progressData = [
-    { name: 'Hoàn thành', value: completionRate, fill: '#10B981' },
-  ];
+  const progressData = [{ name: 'Hoàn thành', value: completionRate, fill: '#10B981' }];
 
   const appointmentBarData = [
     { name: 'Hoàn thành', value: appointmentStats.completed, fill: '#10B981' },
@@ -379,9 +373,7 @@ export default function AdminReportsPage() {
                 </motion.div>
                 <div>
                   <h1 className="text-2xl font-bold sm:text-3xl">Báo cáo & Thống kê</h1>
-                  <p className="mt-1 text-blue-100">
-                    Phân tích hoạt động và hiệu suất bệnh viện
-                  </p>
+                  <p className="mt-1 text-blue-100">Phân tích hoạt động và hiệu suất bệnh viện</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -426,10 +418,11 @@ export default function AdminReportsPage() {
                 <button
                   key={option.value}
                   onClick={() => setTimeRange(option.value)}
-                  className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${timeRange === option.value
+                  className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                    timeRange === option.value
                       ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                  }`}
                 >
                   {option.label}
                 </button>
@@ -515,7 +508,7 @@ export default function AdminReportsPage() {
                     transition={{ delay: 0.2 }}
                     className="group relative col-span-2 overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg transition-all hover:shadow-xl"
                   >
-                    <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/10 to-indigo-500/10 blur-2xl transition-all group-hover:scale-150" />
+                    <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500/10 to-indigo-500/10 blur-2xl transition-all group-hover:scale-150" />
 
                     <div className="relative mb-6 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -527,9 +520,16 @@ export default function AdminReportsPage() {
                           <p className="text-sm text-slate-500">Biến động theo ngày</p>
                         </div>
                       </div>
-                      <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium ${revenueChange >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                        {revenueChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {revenueChange >= 0 ? '+' : ''}{revenueChange.toFixed(1)}%
+                      <div
+                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium ${revenueChange >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}
+                      >
+                        {revenueChange >= 0 ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                        {revenueChange >= 0 ? '+' : ''}
+                        {revenueChange.toFixed(1)}%
                       </div>
                     </div>
 
@@ -544,14 +544,28 @@ export default function AdminReportsPage() {
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                            <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => formatCompact(value)} />
+                            <XAxis
+                              dataKey="date"
+                              stroke="#94A3B8"
+                              fontSize={11}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="#94A3B8"
+                              fontSize={11}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(value) => formatCompact(value)}
+                            />
                             <Tooltip
                               content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                   return (
                                     <div className="rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-sm">
-                                      <p className="text-sm text-slate-500">{payload[0].payload.fullDate}</p>
+                                      <p className="text-sm text-slate-500">
+                                        {payload[0].payload.fullDate}
+                                      </p>
                                       <p className="text-lg font-bold text-indigo-600">
                                         {formatCurrency(payload[0].value as number)}
                                       </p>
@@ -561,7 +575,13 @@ export default function AdminReportsPage() {
                                 return null;
                               }}
                             />
-                            <Area type="monotone" dataKey="amount" stroke="#6366F1" strokeWidth={3} fill="url(#revenueGradient2)" />
+                            <Area
+                              type="monotone"
+                              dataKey="amount"
+                              stroke="#6366F1"
+                              strokeWidth={3}
+                              fill="url(#revenueGradient2)"
+                            />
                           </AreaChart>
                         </ResponsiveContainer>
                       ) : (
@@ -579,7 +599,7 @@ export default function AdminReportsPage() {
                     transition={{ delay: 0.3 }}
                     className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg"
                   >
-                    <div className="absolute -left-16 -bottom-16 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-500/10 to-green-500/10 blur-2xl" />
+                    <div className="absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-500/10 to-green-500/10 blur-2xl" />
 
                     <div className="relative mb-6 flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25">
@@ -596,13 +616,23 @@ export default function AdminReportsPage() {
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={appointmentBarData} layout="vertical">
                             <XAxis type="number" hide />
-                            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              width={80}
+                              tick={{ fontSize: 12 }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
                             <Tooltip
                               content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                   return (
                                     <div className="rounded-xl border border-slate-200 bg-white/95 px-4 py-2 shadow-xl backdrop-blur-sm">
-                                      <p className="font-medium" style={{ color: payload[0].payload.fill }}>
+                                      <p
+                                        className="font-medium"
+                                        style={{ color: payload[0].payload.fill }}
+                                      >
                                         {payload[0].value} lịch hẹn
                                       </p>
                                     </div>
@@ -634,7 +664,7 @@ export default function AdminReportsPage() {
                   transition={{ delay: 0.4 }}
                   className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg"
                 >
-                  <div className="absolute -right-32 -top-32 h-64 w-64 rounded-full bg-gradient-to-br from-violet-500/5 to-purple-500/5 blur-3xl" />
+                  <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-gradient-to-br from-violet-500/5 to-purple-500/5 blur-3xl" />
 
                   <div className="relative mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -705,7 +735,9 @@ function CompactStatCard({ title, value, icon: Icon, color }: CompactStatCardPro
       animate={{ opacity: 1, scale: 1 }}
       className="group cursor-pointer rounded-2xl border border-slate-200/50 bg-white p-4 shadow-md transition-all hover:shadow-lg"
     >
-      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradients[color]} text-white shadow-lg`}>
+      <div
+        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradients[color]} text-white shadow-lg`}
+      >
         <Icon className="h-5 w-5" />
       </div>
       <p className="text-2xl font-bold text-slate-900">{value}</p>
@@ -738,18 +770,22 @@ function DoctorCard({ doctor, rank, formatCurrency }: DoctorCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: rank * 0.1 }}
-      className={`group cursor-pointer rounded-2xl border border-slate-200/50 bg-white p-4 shadow-md transition-all hover:shadow-lg ${rankStyles[rank as keyof typeof rankStyles] || ''
-        }`}
+      className={`group cursor-pointer rounded-2xl border border-slate-200/50 bg-white p-4 shadow-md transition-all hover:shadow-lg ${
+        rankStyles[rank as keyof typeof rankStyles] || ''
+      }`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold shadow-lg ${rankBadge[rank as keyof typeof rankBadge] || 'bg-slate-200 text-slate-600'
-          }`}>
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold shadow-lg ${
+            rankBadge[rank as keyof typeof rankBadge] || 'bg-slate-200 text-slate-600'
+          }`}
+        >
           {rank}
         </div>
         <Heart className="h-4 w-4 text-rose-400" />
       </div>
-      <h4 className="mb-1 font-semibold text-slate-900 line-clamp-1">{doctor.doctorName}</h4>
-      <p className="mb-3 text-xs text-slate-500 line-clamp-1">{doctor.department}</p>
+      <h4 className="mb-1 line-clamp-1 font-semibold text-slate-900">{doctor.doctorName}</h4>
+      <p className="mb-3 line-clamp-1 text-xs text-slate-500">{doctor.department}</p>
       <div className="flex items-baseline justify-between border-t border-slate-100 pt-3">
         <span className="text-lg font-bold text-indigo-600">{doctor.appointmentCount}</span>
         <span className="text-xs text-slate-500">lịch hẹn</span>

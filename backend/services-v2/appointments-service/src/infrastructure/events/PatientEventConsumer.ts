@@ -1,29 +1,29 @@
 /**
  * Patient Event Consumer
  * Consumes events from Patient Registry Service to maintain local read model
- * 
+ *
  * @author Hospital Management Team
  * @version 1.0.0
  * @compliance Event-Driven Architecture, CQRS, Eventual Consistency
  */
 
-import { PatientReadModelRepository } from '../repositories/PatientReadModelRepository';
-import { InboxRepository } from '../inbox/InboxRepository';
+import { PatientReadModelRepository } from "../repositories/PatientReadModelRepository";
+import { InboxRepository } from "../inbox/InboxRepository";
 
 /**
  * Patient Event Consumer
- * 
+ *
  * Subscribed Events:
  * - patient.patient.registered
  * - patient.patient.updated
  * - patient.patient.deactivated
- * 
+ *
  * Pattern: Inbox Pattern for idempotency
  */
 export class PatientEventConsumer {
   constructor(
     private readonly patientReadRepo: PatientReadModelRepository,
-    private readonly inboxRepo: InboxRepository
+    private readonly inboxRepo: InboxRepository,
   ) {}
 
   /**
@@ -32,56 +32,65 @@ export class PatientEventConsumer {
   async handle(event: any): Promise<void> {
     // Extract event metadata
     const eventId = event.eventId || event.id || event.metadata?.eventId;
-    const eventType = event.eventType || event.type;
+    const eventType = event.eventType || event.type || event.name;
+    const routingKey = event.routingKey || event.metadata?.routingKey;
+    const normalizedType = (eventType || routingKey || "").toLowerCase();
 
     if (!eventId) {
-      console.error('[PatientEventConsumer] Missing eventId, cannot process:', event);
+      console.error(
+        "[PatientEventConsumer] Missing eventId, cannot process:",
+        event,
+      );
       return;
     }
 
     // Idempotency check
     if (await this.inboxRepo.exists(eventId)) {
-      console.debug(`[PatientEventConsumer] Duplicate event ${eventId}, skipping`);
+      console.debug(
+        `[PatientEventConsumer] Duplicate event ${eventId}, skipping`,
+      );
       return;
     }
 
-    console.log(`[PatientEventConsumer] Processing event: ${eventType} (${eventId})`);
+    console.log(
+      `[PatientEventConsumer] Processing event: ${eventType} (${eventId})`,
+      routingKey ? `(routingKey=${routingKey})` : "",
+    );
 
     try {
-      // Route to handler based on event type
-      switch (eventType) {
-        case 'patient.patient.registered':
-          await this.handlePatientRegistered(event);
-          break;
-        
-        case 'patient.patient.updated':
-          await this.handlePatientUpdated(event);
-          break;
-        
-        case 'patient.patient.deactivated':
-          await this.handlePatientDeactivated(event);
-          break;
-        
-        case 'patient.patient.deleted':
-          await this.handlePatientDeleted(event);
-          break;
-        
-        default:
-          console.warn(`[PatientEventConsumer] Unknown event type: ${eventType}`);
-          // Still save to inbox to avoid reprocessing
+      // Route to handler based on event type (accept both legacy and new routing keys)
+      if (normalizedType.includes("patientregistered")) {
+        await this.handlePatientRegistered(event);
+      } else if (normalizedType.includes("patientupdated")) {
+        await this.handlePatientUpdated(event);
+      } else if (normalizedType.includes("patientdeactivated")) {
+        await this.handlePatientDeactivated(event);
+      } else if (normalizedType.includes("patientdeleted")) {
+        await this.handlePatientDeleted(event);
+      } else {
+        console.warn(
+          `[PatientEventConsumer] Unknown event type: ${eventType}`,
+          routingKey ? `(routingKey=${routingKey})` : "",
+        );
+        // Still save to inbox to avoid reprocessing
       }
 
       // Mark as processed
       await this.inboxRepo.save({
         eventId,
         eventType,
-        sourceService: 'patient-registry',
-        payloadJson: event
+        sourceService: "patient-registry",
+        payloadJson: event,
       });
 
-      console.log(`[PatientEventConsumer] ✓ Event ${eventId} processed successfully`);
+      console.log(
+        `[PatientEventConsumer] ✓ Event ${eventId} processed successfully`,
+      );
     } catch (error) {
-      console.error(`[PatientEventConsumer] Error processing event ${eventId}:`, error);
+      console.error(
+        `[PatientEventConsumer] Error processing event ${eventId}:`,
+        error,
+      );
       throw error; // Let RabbitMQ retry
     }
   }
@@ -93,12 +102,12 @@ export class PatientEventConsumer {
     const payload = event.payload || event.data;
 
     if (!payload || !payload.patientId) {
-      throw new Error('Invalid patient.registered event: missing patientId');
+      throw new Error("Invalid patient.registered event: missing patientId");
     }
 
     await this.patientReadRepo.upsert({
       patientId: payload.patientId,
-      tenantId: payload.tenantId || 'hospital-1',
+      tenantId: payload.tenantId || "hospital-1",
       fullName: this.extractFullName(payload),
       phone: this.extractPhone(payload),
       email: this.extractEmail(payload),
@@ -107,10 +116,12 @@ export class PatientEventConsumer {
       nationalId: this.extractNationalId(payload),
       insuranceNumber: this.extractInsuranceNumber(payload),
       insuranceType: this.extractInsuranceType(payload),
-      address: this.extractAddress(payload)
+      address: this.extractAddress(payload),
     });
 
-    console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} registered in read model`);
+    console.log(
+      `[PatientEventConsumer] ✓ Patient ${payload.patientId} registered in read model`,
+    );
   }
 
   /**
@@ -120,12 +131,12 @@ export class PatientEventConsumer {
     const payload = event.payload || event.data;
 
     if (!payload || !payload.patientId) {
-      throw new Error('Invalid patient.updated event: missing patientId');
+      throw new Error("Invalid patient.updated event: missing patientId");
     }
 
     await this.patientReadRepo.upsert({
       patientId: payload.patientId,
-      tenantId: payload.tenantId || 'hospital-1',
+      tenantId: payload.tenantId || "hospital-1",
       fullName: this.extractFullName(payload),
       phone: this.extractPhone(payload),
       email: this.extractEmail(payload),
@@ -134,10 +145,12 @@ export class PatientEventConsumer {
       nationalId: this.extractNationalId(payload),
       insuranceNumber: this.extractInsuranceNumber(payload),
       insuranceType: this.extractInsuranceType(payload),
-      address: this.extractAddress(payload)
+      address: this.extractAddress(payload),
     });
 
-    console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} updated in read model`);
+    console.log(
+      `[PatientEventConsumer] ✓ Patient ${payload.patientId} updated in read model`,
+    );
   }
 
   /**
@@ -147,14 +160,16 @@ export class PatientEventConsumer {
     const payload = event.payload || event.data;
 
     if (!payload || !payload.patientId) {
-      throw new Error('Invalid patient.deactivated event: missing patientId');
+      throw new Error("Invalid patient.deactivated event: missing patientId");
     }
 
     // Option 1: Keep in read model with deactivated flag (if needed in future)
     // Option 2: Delete from read model
     // For now, we keep the data (appointments history still needs it)
-    
-    console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} deactivated (kept in read model)`);
+
+    console.log(
+      `[PatientEventConsumer] ✓ Patient ${payload.patientId} deactivated (kept in read model)`,
+    );
   }
 
   /**
@@ -164,12 +179,14 @@ export class PatientEventConsumer {
     const payload = event.payload || event.data;
 
     if (!payload || !payload.patientId) {
-      throw new Error('Invalid patient.deleted event: missing patientId');
+      throw new Error("Invalid patient.deleted event: missing patientId");
     }
 
     await this.patientReadRepo.delete(payload.patientId);
 
-    console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} deleted from read model`);
+    console.log(
+      `[PatientEventConsumer] ✓ Patient ${payload.patientId} deleted from read model`,
+    );
   }
 
   // ==========================================================================
@@ -181,8 +198,8 @@ export class PatientEventConsumer {
       payload.personalInfo?.fullName ||
       payload.fullName ||
       payload.full_name ||
-      `${payload.firstName || ''} ${payload.lastName || ''}`.trim() ||
-      'Unknown'
+      `${payload.firstName || ""} ${payload.lastName || ""}`.trim() ||
+      "Unknown"
     );
   }
 
@@ -197,24 +214,17 @@ export class PatientEventConsumer {
   }
 
   private extractEmail(payload: any): string | undefined {
-    return (
-      payload.contactInfo?.email ||
-      payload.email ||
-      undefined
-    );
+    return payload.contactInfo?.email || payload.email || undefined;
   }
 
   private extractDateOfBirth(payload: any): Date | undefined {
-    const dob = payload.personalInfo?.dateOfBirth || payload.dateOfBirth || payload.dob;
+    const dob =
+      payload.personalInfo?.dateOfBirth || payload.dateOfBirth || payload.dob;
     return dob ? new Date(dob) : undefined;
   }
 
   private extractGender(payload: any): string | undefined {
-    return (
-      payload.personalInfo?.gender ||
-      payload.gender ||
-      undefined
-    );
+    return payload.personalInfo?.gender || payload.gender || undefined;
   }
 
   private extractNationalId(payload: any): string | undefined {
@@ -245,10 +255,6 @@ export class PatientEventConsumer {
   }
 
   private extractAddress(payload: any): any {
-    return (
-      payload.contactInfo?.address ||
-      payload.address ||
-      undefined
-    );
+    return payload.contactInfo?.address || payload.address || undefined;
   }
 }

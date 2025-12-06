@@ -193,50 +193,54 @@ export default function AdminBillingReportsPage() {
     }
 
     try {
-      const [revenueRes, appointmentsRes, staffRes, paymentsRes, summaryRes] = await Promise.allSettled([
-        billingService.getRevenueReport({
-          fromDate: dateRange.from,
-          toDate: dateRange.to,
-          groupBy: 'day',
-        }),
-        appointmentsService.list({
-          startDate: dateRange.from,
-          endDate: dateRange.to,
-          pageSize: 1000,
-        }),
-        searchStaff({
-          staffType: 'doctor',
-          status: 'active',
-          limit: 50,
-        }),
-        getRecentPayments(10),
-        getInvoiceSummary(),
-      ]);
+      const [revenueRes, appointmentsRes, staffRes, paymentsRes, summaryRes] =
+        await Promise.allSettled([
+          billingService.getRevenueReport({
+            fromDate: dateRange.from,
+            toDate: dateRange.to,
+            groupBy: 'day',
+          }),
+          appointmentsService.list({
+            startDate: dateRange.from,
+            endDate: dateRange.to,
+            pageSize: 1000,
+          }),
+          searchStaff({
+            staffType: 'doctor',
+            status: 'active',
+            limit: 50,
+          }),
+          getRecentPayments(10),
+          getInvoiceSummary(),
+        ]);
 
       // Process Revenue Data
       if (revenueRes.status === 'fulfilled' && revenueRes.value?.success) {
-        const data = revenueRes.value.data || [];
-        const totalRevenue = data.reduce(
-          (sum: number, item: any) => sum + (item.totalAmount || 0),
-          0
-        );
+        const report = revenueRes.value.data || {};
+        const breakdown = Array.isArray(report.breakdown) ? report.breakdown : [];
+        const summary = report.summary || {};
+        const totalRevenue = summary.totalRevenue || 0;
+
+        const breakdownMap = new Map(breakdown.map((item: any) => [item.period, item]));
 
         const days = eachDayOfInterval({
           start: dateRange.fromDate,
           end: dateRange.toDate,
         });
+
         const dailyData = days.map((day) => {
-          const dayData = data.find((d: any) => isSameDay(new Date(d.date), day));
+          const isoKey = format(day, 'yyyy-MM-dd');
+          const dayData = breakdownMap.get(isoKey);
           return {
             date: format(day, 'dd/MM'),
             fullDate: format(day, 'EEEE, dd/MM/yyyy', { locale: vi }),
-            amount: dayData ? dayData.totalAmount : 0,
+            amount: dayData ? dayData.totalRevenue || 0 : 0,
           };
         });
 
         setRevenueData({
           total: totalRevenue,
-          previousPeriod: totalRevenue * 0.85,
+          previousPeriod: summary.previousPeriod || totalRevenue * 0.85,
           dailyData: dailyData.slice(-14),
         });
       }
@@ -246,26 +250,20 @@ export default function AdminBillingReportsPage() {
         const appointments = appointmentsRes.value.appointments || [];
         const stats: AppointmentStats = {
           total: appointments.length,
-          completed: appointments.filter(
-            (a: any) => a.status?.toLowerCase() === 'completed'
-          ).length,
-          cancelled: appointments.filter(
-            (a: any) => a.status?.toLowerCase() === 'cancelled'
-          ).length,
+          completed: appointments.filter((a: any) => a.status?.toLowerCase() === 'completed')
+            .length,
+          cancelled: appointments.filter((a: any) => a.status?.toLowerCase() === 'cancelled')
+            .length,
           pending: appointments.filter(
             (a: any) =>
-              a.status?.toLowerCase() === 'pending' ||
-              a.status?.toLowerCase() === 'confirmed'
+              a.status?.toLowerCase() === 'pending' || a.status?.toLowerCase() === 'confirmed'
           ).length,
-          inProgress: appointments.filter(
-            (a: any) => a.status?.toLowerCase() === 'in_progress'
-          ).length,
+          inProgress: appointments.filter((a: any) => a.status?.toLowerCase() === 'in_progress')
+            .length,
         };
         setAppointmentStats(stats);
 
-        const uniquePatients = new Set(
-          appointments.map((a: any) => a.patientId || a.patient_id)
-        );
+        const uniquePatients = new Set(appointments.map((a: any) => a.patientId || a.patient_id));
         const patientsWithMultiple = appointments.reduce((acc: any, apt: any) => {
           const pid = apt.patientId || apt.patient_id;
           acc[pid] = (acc[pid] || 0) + 1;
@@ -329,7 +327,9 @@ export default function AdminBillingReportsPage() {
 
       // Process Invoice Summary
       if (summaryRes.status === 'fulfilled') {
-        setInvoiceSummary(summaryRes.value.summary || { paid: 0, pending: 0, failed: 0, refunded: 0 });
+        setInvoiceSummary(
+          summaryRes.value.summary || { paid: 0, pending: 0, failed: 0, refunded: 0 }
+        );
       }
 
       if (showRefreshToast) {
@@ -380,7 +380,7 @@ export default function AdminBillingReportsPage() {
     { name: 'Chờ khám', value: appointmentStats.pending, color: '#F59E0B' },
     { name: 'Đang khám', value: appointmentStats.inProgress, color: '#3B82F6' },
     { name: 'Đã hủy', value: appointmentStats.cancelled, color: '#EF4444' },
-  ].filter(item => item.value > 0);
+  ].filter((item) => item.value > 0);
 
   // Pie chart data for invoice status (prepaid model)
   const invoicePieData = [
@@ -388,7 +388,7 @@ export default function AdminBillingReportsPage() {
     { name: 'Chờ thanh toán', value: invoiceSummary.pending, color: '#F59E0B' },
     { name: 'Thất bại', value: invoiceSummary.failed, color: '#EF4444' },
     { name: 'Đã hoàn tiền', value: invoiceSummary.refunded, color: '#8B5CF6' },
-  ].filter(item => item.value > 0);
+  ].filter((item) => item.value > 0);
 
   // Calculate refund stats
   const refundAmount = useMemo(() => {
@@ -424,9 +424,7 @@ export default function AdminBillingReportsPage() {
                   <BarChart3 className="h-7 w-7" />
                 </motion.div>
                 <div>
-                  <h1 className="text-2xl font-bold sm:text-3xl">
-                    Tổng quan Tài chính
-                  </h1>
+                  <h1 className="text-2xl font-bold sm:text-3xl">Tổng quan Tài chính</h1>
                   <p className="mt-1 text-cyan-100">
                     Thống kê doanh thu và giao dịch thanh toán prepaid
                   </p>
@@ -474,10 +472,11 @@ export default function AdminBillingReportsPage() {
                 <button
                   key={option.value}
                   onClick={() => setTimeRange(option.value)}
-                  className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${timeRange === option.value
-                    ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-lg shadow-cyan-500/25'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                    timeRange === option.value
+                      ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-lg shadow-cyan-500/25'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
                 >
                   {option.label}
                 </button>
@@ -604,7 +603,7 @@ export default function AdminBillingReportsPage() {
                     transition={{ delay: 0.4 }}
                     className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg transition-all hover:shadow-xl"
                   >
-                    <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-gradient-to-br from-cyan-500/10 to-teal-500/10 blur-2xl transition-all group-hover:scale-150" />
+                    <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-gradient-to-br from-cyan-500/10 to-teal-500/10 blur-2xl transition-all group-hover:scale-150" />
 
                     <div className="relative mb-6 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -616,12 +615,21 @@ export default function AdminBillingReportsPage() {
                           <p className="text-sm text-slate-500">Theo ngày</p>
                         </div>
                       </div>
-                      <div className={cn(
-                        'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium',
-                        revenueChange >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
-                      )}>
-                        {revenueChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {revenueChange >= 0 ? '+' : ''}{revenueChange.toFixed(1)}%
+                      <div
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium',
+                          revenueChange >= 0
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'bg-red-50 text-red-600'
+                        )}
+                      >
+                        {revenueChange >= 0 ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                        {revenueChange >= 0 ? '+' : ''}
+                        {revenueChange.toFixed(1)}%
                       </div>
                     </div>
 
@@ -655,7 +663,9 @@ export default function AdminBillingReportsPage() {
                                 if (active && payload && payload.length) {
                                   return (
                                     <div className="rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-sm">
-                                      <p className="text-sm text-slate-500">{payload[0].payload.fullDate}</p>
+                                      <p className="text-sm text-slate-500">
+                                        {payload[0].payload.fullDate}
+                                      </p>
                                       <p className="text-lg font-bold text-cyan-600">
                                         {formatCurrency(payload[0].value as number)}
                                       </p>
@@ -689,7 +699,7 @@ export default function AdminBillingReportsPage() {
                     transition={{ delay: 0.45 }}
                     className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg transition-all hover:shadow-xl"
                   >
-                    <div className="absolute -left-16 -bottom-16 h-32 w-32 rounded-full bg-gradient-to-br from-purple-500/10 to-violet-500/10 blur-2xl transition-all group-hover:scale-150" />
+                    <div className="absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-gradient-to-br from-purple-500/10 to-violet-500/10 blur-2xl transition-all group-hover:scale-150" />
 
                     <div className="relative mb-6 flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/25">
@@ -723,8 +733,13 @@ export default function AdminBillingReportsPage() {
                                 if (active && payload && payload.length) {
                                   return (
                                     <div className="rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-sm">
-                                      <p className="text-sm font-medium text-slate-700">{payload[0].name}</p>
-                                      <p className="text-lg font-bold" style={{ color: payload[0].payload.color }}>
+                                      <p className="text-sm font-medium text-slate-700">
+                                        {payload[0].name}
+                                      </p>
+                                      <p
+                                        className="text-lg font-bold"
+                                        style={{ color: payload[0].payload.color }}
+                                      >
                                         {payload[0].value} giao dịch
                                       </p>
                                     </div>
@@ -761,7 +776,7 @@ export default function AdminBillingReportsPage() {
                     transition={{ delay: 0.5 }}
                     className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg transition-all hover:shadow-xl"
                   >
-                    <div className="absolute -left-16 -bottom-16 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-500/10 to-green-500/10 blur-2xl transition-all group-hover:scale-150" />
+                    <div className="absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-500/10 to-green-500/10 blur-2xl transition-all group-hover:scale-150" />
 
                     <div className="relative mb-6 flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25">
@@ -795,8 +810,13 @@ export default function AdminBillingReportsPage() {
                                 if (active && payload && payload.length) {
                                   return (
                                     <div className="rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-sm">
-                                      <p className="text-sm font-medium text-slate-700">{payload[0].name}</p>
-                                      <p className="text-lg font-bold" style={{ color: payload[0].payload.color }}>
+                                      <p className="text-sm font-medium text-slate-700">
+                                        {payload[0].name}
+                                      </p>
+                                      <p
+                                        className="text-lg font-bold"
+                                        style={{ color: payload[0].payload.color }}
+                                      >
                                         {payload[0].value} lịch hẹn
                                       </p>
                                     </div>
@@ -830,7 +850,7 @@ export default function AdminBillingReportsPage() {
                     transition={{ delay: 0.55 }}
                     className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg transition-all hover:shadow-xl"
                   >
-                    <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-2xl transition-all group-hover:scale-150" />
+                    <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-2xl transition-all group-hover:scale-150" />
 
                     <div className="relative mb-6 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -855,14 +875,16 @@ export default function AdminBillingReportsPage() {
 
                     <div className="relative max-h-72 space-y-3 overflow-y-auto">
                       {recentPayments.length > 0 ? (
-                        recentPayments.slice(0, 5).map((payment, index) => (
-                          <RecentPaymentRow
-                            key={payment.invoiceId}
-                            payment={payment}
-                            index={index}
-                            formatCurrency={formatCurrency}
-                          />
-                        ))
+                        recentPayments
+                          .slice(0, 5)
+                          .map((payment, index) => (
+                            <RecentPaymentRow
+                              key={payment.invoiceId}
+                              payment={payment}
+                              index={index}
+                              formatCurrency={formatCurrency}
+                            />
+                          ))
                       ) : (
                         <div className="flex h-32 items-center justify-center text-slate-400">
                           Chưa có giao dịch
@@ -879,7 +901,7 @@ export default function AdminBillingReportsPage() {
                   transition={{ delay: 0.6 }}
                   className="group relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-6 shadow-lg"
                 >
-                  <div className="absolute -right-32 -top-32 h-64 w-64 rounded-full bg-gradient-to-br from-blue-500/5 to-indigo-500/5 blur-3xl" />
+                  <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-gradient-to-br from-blue-500/5 to-indigo-500/5 blur-3xl" />
 
                   <div className="relative mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -938,7 +960,15 @@ interface PremiumStatCardProps {
   delay?: number;
 }
 
-function PremiumStatCard({ title, value, change, subtitle, icon: Icon, gradient, delay = 0 }: PremiumStatCardProps) {
+function PremiumStatCard({
+  title,
+  value,
+  change,
+  subtitle,
+  icon: Icon,
+  gradient,
+  delay = 0,
+}: PremiumStatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -947,7 +977,9 @@ function PremiumStatCard({ title, value, change, subtitle, icon: Icon, gradient,
       className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-5 shadow-lg transition-all hover:shadow-xl"
     >
       {/* Glow effect */}
-      <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition-all group-hover:opacity-20 group-hover:scale-150`} />
+      <div
+        className={`absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition-all group-hover:scale-150 group-hover:opacity-20`}
+      />
 
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
@@ -957,8 +989,7 @@ function PremiumStatCard({ title, value, change, subtitle, icon: Icon, gradient,
             <div className="mt-2 flex items-center gap-1.5">
               {change >= 0 ? (
                 <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
-                  <TrendingUp className="h-3 w-3" />
-                  +{change.toFixed(1)}%
+                  <TrendingUp className="h-3 w-3" />+{change.toFixed(1)}%
                 </span>
               ) : (
                 <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
@@ -969,11 +1000,11 @@ function PremiumStatCard({ title, value, change, subtitle, icon: Icon, gradient,
               <span className="text-xs text-slate-400">so với kỳ trước</span>
             </div>
           )}
-          {subtitle && (
-            <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
-          )}
+          {subtitle && <p className="mt-2 text-sm text-slate-500">{subtitle}</p>}
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}>
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}
+        >
           <Icon className="h-6 w-6" />
         </div>
       </div>
@@ -995,7 +1026,13 @@ interface QuickActionCardProps {
   onClick: () => void;
 }
 
-function QuickActionCard({ title, description, icon: Icon, gradient, onClick }: QuickActionCardProps) {
+function QuickActionCard({
+  title,
+  description,
+  icon: Icon,
+  gradient,
+  onClick,
+}: QuickActionCardProps) {
   return (
     <motion.button
       whileHover={{ scale: 1.02 }}
@@ -1003,12 +1040,14 @@ function QuickActionCard({ title, description, icon: Icon, gradient, onClick }: 
       onClick={onClick}
       className="group relative flex items-center gap-4 overflow-hidden rounded-xl border border-slate-200/50 bg-white p-4 text-left shadow-md transition-all hover:shadow-lg"
     >
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}>
+      <div
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}
+      >
         <Icon className="h-6 w-6" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-slate-900 truncate">{title}</p>
-        <p className="text-sm text-slate-500 truncate">{description}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-slate-900">{title}</p>
+        <p className="truncate text-sm text-slate-500">{description}</p>
       </div>
       <ArrowRight className="h-5 w-5 text-slate-400 transition-transform group-hover:translate-x-1" />
     </motion.button>
@@ -1047,16 +1086,18 @@ function RecentPaymentRow({ payment, index, formatCurrency }: RecentPaymentRowPr
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md">
         <MethodIcon className="h-5 w-5" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-slate-900 truncate">{payment.patientName}</p>
-        <p className="text-xs text-slate-500 truncate">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-slate-900">{payment.patientName}</p>
+        <p className="truncate text-xs text-slate-500">
           {payment.description || payment.invoiceId}
         </p>
       </div>
-      <div className="text-right shrink-0">
+      <div className="shrink-0 text-right">
         <p className="font-bold text-emerald-600">{formatCurrency(payment.amount)}</p>
         <p className="text-xs text-slate-400">
-          {payment.createdAt ? format(new Date(payment.createdAt), 'HH:mm dd/MM', { locale: vi }) : '-'}
+          {payment.createdAt
+            ? format(new Date(payment.createdAt), 'HH:mm dd/MM', { locale: vi })
+            : '-'}
         </p>
       </div>
     </motion.div>
@@ -1070,7 +1111,12 @@ interface DoctorPerformanceRowProps {
   formatCurrency: (amount: number) => string;
 }
 
-function DoctorPerformanceRow({ doctor, rank, maxAppointments, formatCurrency }: DoctorPerformanceRowProps) {
+function DoctorPerformanceRow({
+  doctor,
+  rank,
+  maxAppointments,
+  formatCurrency,
+}: DoctorPerformanceRowProps) {
   const percentage = (doctor.appointmentCount / maxAppointments) * 100;
 
   const rankStyles = {
@@ -1087,8 +1133,9 @@ function DoctorPerformanceRow({ doctor, rank, maxAppointments, formatCurrency }:
       className="group flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition-all hover:border-slate-200 hover:bg-white hover:shadow-md"
     >
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold ${rankStyles[rank as keyof typeof rankStyles] || 'bg-slate-200 text-slate-600'
-          }`}
+        className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold ${
+          rankStyles[rank as keyof typeof rankStyles] || 'bg-slate-200 text-slate-600'
+        }`}
       >
         {rank}
       </div>

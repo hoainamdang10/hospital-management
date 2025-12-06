@@ -254,8 +254,8 @@ export class PatientRegisteredEvent extends DomainEvent {
     public override readonly userId: string,
     public readonly patientIdCode: string, // PAT-YYYYMM-XXX
     public readonly fullName: string,
-    public readonly dateOfBirth: Date,
-    public readonly phoneNumber: string,
+    public readonly dateOfBirth?: Date | string,
+    public readonly phoneNumber?: string,
     public readonly email?: string,
     public readonly insuranceType?: string,
   ) {
@@ -285,7 +285,7 @@ export class PatientRegisteredEvent extends DomainEvent {
       userId: this.userId,
       patientIdCode: this.patientIdCode,
       fullName: this.fullName,
-      dateOfBirth: this.dateOfBirth.toISOString(),
+      dateOfBirth: this.formatDate(this.dateOfBirth),
       phoneNumber: this.phoneNumber,
       email: this.email,
       insuranceType: this.insuranceType,
@@ -298,6 +298,17 @@ export class PatientRegisteredEvent extends DomainEvent {
 
   getPatientId(): string | null {
     return this.patientId;
+  }
+
+  private formatDate(value?: Date | string): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
   }
 }
 
