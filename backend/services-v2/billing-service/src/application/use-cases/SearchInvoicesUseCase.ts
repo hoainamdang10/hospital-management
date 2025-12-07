@@ -10,6 +10,7 @@ export interface SearchInvoicesRequest {
   minAmount?: number;
   maxAmount?: number;
   invoiceNumber?: string;
+  dateField?: "created_at" | "paid_at" | "updated_at";
 }
 
 export interface InvoiceSummary {

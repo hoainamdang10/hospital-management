@@ -44,6 +44,7 @@ export interface Invoice {
   dueDate?: string;
   issueDate?: string;
   finalizedAt?: string;
+  paidAt?: string;
   cancelledAt?: string;
   cancellationReason?: string;
   metadata?: Record<string, any>;
@@ -108,6 +109,7 @@ export interface SearchInvoicesParams {
   search?: string;
   doctorId?: string;
   departmentId?: string;
+  dateField?: 'created_at' | 'paid_at' | 'updated_at';
 }
 
 export interface RevenueReportParams {
@@ -305,6 +307,9 @@ class BillingService {
     }
 
     const metadata = invoice?.metadata || invoice?.meta || {};
+    const firstPaymentWithPaidAt = (invoice?.payments || []).find(
+      (payment: any) => payment?.paidAt || payment?.paid_at
+    );
     const metadataPatientName =
       metadata?.patientName ||
       metadata?.patient_name ||
@@ -380,6 +385,11 @@ class BillingService {
       finalizedAt: invoice?.finalizedAt ?? invoice?.finalized_at,
       cancelledAt: invoice?.cancelledAt ?? invoice?.cancelled_at,
       cancellationReason: invoice?.cancellationReason ?? invoice?.cancellation_reason,
+      paidAt:
+        invoice?.paidAt ??
+        invoice?.paid_at ??
+        firstPaymentWithPaidAt?.paidAt ??
+        firstPaymentWithPaidAt?.paid_at,
     };
   }
 }

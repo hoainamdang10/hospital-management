@@ -7,6 +7,13 @@ import { Invoice } from "../../domain/aggregates/Invoice";
 import { InvoiceMapper } from "../mappers/InvoiceMapper";
 import type { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
 
+const ALLOWED_INVOICE_DATE_FIELDS = [
+  "created_at",
+  "paid_at",
+  "updated_at",
+] as const;
+type InvoiceDateField = (typeof ALLOWED_INVOICE_DATE_FIELDS)[number];
+
 export class SupabaseInvoiceRepository implements IInvoiceRepository {
   private readonly invoicesTable = "invoices";
   private readonly itemsTable = "billing_items";
@@ -448,6 +455,7 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
   }
 
   async search(criteria: SearchCriteria): Promise<Invoice[]> {
+    const dateField = this.resolveDateField(criteria.dateField);
     let query = this.supabase.from(this.invoicesTable).select("*");
 
     // Filter by status
@@ -477,7 +485,7 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
         criteria.fromDate instanceof Date
           ? criteria.fromDate.toISOString()
           : criteria.fromDate;
-      query = query.gte("created_at", fromDateStr);
+      query = query.gte(dateField, fromDateStr);
     }
 
     if (criteria.toDate) {
@@ -485,7 +493,7 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
         criteria.toDate instanceof Date
           ? criteria.toDate.toISOString()
           : criteria.toDate;
-      query = query.lte("created_at", toDateStr);
+      query = query.lte(dateField, toDateStr);
     }
 
     // Filter by amount range
@@ -664,5 +672,14 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
 
   private isPatientCode(value: string): boolean {
     return /^PAT-\d{6}-\d{3}$/i.test(value);
+  }
+
+  private resolveDateField(field?: string): InvoiceDateField {
+    if (!field) {
+      return "created_at";
+    }
+    return ALLOWED_INVOICE_DATE_FIELDS.includes(field as InvoiceDateField)
+      ? (field as InvoiceDateField)
+      : "created_at";
   }
 }
