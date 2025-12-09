@@ -66,6 +66,8 @@ backend/*/logs/
 
 # Docker
 docker-compose.override.yml
+docker-compose.v2.yml
+**/docker-compose.v2.yml
 
 # IDEs and editors
 .idea

@@ -64,7 +64,7 @@ export class StaffController {
     private updateEmploymentStatusUseCase: UpdateEmploymentStatusUseCase,
     private updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
     // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-  ) {}
+  ) { }
 
   /**
    * Register new staff
@@ -460,6 +460,7 @@ export class StaffController {
           searchTerm: effectiveSearchTerm,
           filters: {
             staffType: toStaffType(queryParams.staffType),
+            department: queryParams.department, // Filter by professionalInfo.department name
             departmentId:
               queryParams.departmentCode || queryParams.departmentId,
             status: toStaffStatus(queryParams.status),
@@ -474,9 +475,9 @@ export class StaffController {
           },
           sorting: sortField
             ? {
-                field: sortField,
-                direction: resolvedSortDirection,
-              }
+              field: sortField,
+              direction: resolvedSortDirection,
+            }
             : undefined,
           requestedBy,
           requestedByRole,

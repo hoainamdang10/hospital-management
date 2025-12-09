@@ -413,8 +413,8 @@ export const appointmentsService = {
    * Start appointment
    * POST /api/v1/appointments/:id/start
    */
-  async startAppointment(id: string): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/start`);
+  async startAppointment(id: string, payload: { roomId?: string } = {}): Promise<SuccessResponse> {
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/start`, payload);
     return response.data;
   },
 
@@ -423,7 +423,7 @@ export const appointmentsService = {
    * POST /api/v1/appointments/:id/complete
    */
   async completeAppointment(id: string): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/complete`);
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/complete`, {});
     return response.data;
   },
 
@@ -432,7 +432,7 @@ export const appointmentsService = {
    * POST /api/v1/appointments/:id/no-show
    */
   async markNoShow(id: string): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/no-show`);
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/no-show`, {});
     return response.data;
   },
 };

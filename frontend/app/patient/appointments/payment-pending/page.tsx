@@ -21,6 +21,8 @@ import type { Invoice } from '@/modules/billing/services/billing.service';
 import { useAuth } from '@/hooks/useAuth';
 import { showErrorToast } from '@/lib/utils/error-toast';
 import { formatCurrency } from '@/lib/utils';
+import { SmartSuggestions } from '@/components/ChatBot/SmartSuggestions';
+import ChatBot, { type ChatBotHandle } from '@/components/ChatBot';
 
 /**
  * Payment Pending Page
@@ -64,8 +66,9 @@ function PaymentPendingPageContent() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // seconds
   const [isExpired, setIsExpired] = useState(false);
 
-  // Ref to prevent duplicate payment link creation
+  // Refs
   const isCreatingPaymentLinkRef = useRef(false);
+  const chatBotRef = useRef<ChatBotHandle>(null);
 
   const getPatientLiability = useCallback((target: Invoice | null) => {
     if (!target) return 0;
@@ -616,12 +619,53 @@ function PaymentPendingPageContent() {
             </Button>
           </div>
 
+          {/* Smart Suggestions - AI Powered */}
+          <div className="mt-6">
+            <SmartSuggestions
+              pagePath="/patient/appointments/payment-pending"
+              contextData={{
+                invoiceId: invoice?.id,
+                appointmentId: appointmentId,
+                totalAmount: invoice?.totalAmount ?? 0,
+                outstandingAmount: getOutstandingAmount(invoice),
+                insuranceCoverage: invoice?.insuranceCoverage,
+                paymentStatus: invoice?.status ?? 'pending',
+              }}
+              onOpenChat={(message: string) => {
+                chatBotRef.current?.openWithMessage(message);
+              }}
+              onCallFunction={(functionName: string) => {
+                if (functionName === 'scrollToPayment' && paymentLink) {
+                  window.location.href = paymentLink;
+                }
+              }}
+            />
+          </div>
+
           {/* Help Text */}
           <p className="mt-8 text-center text-xs text-gray-400">
             Mọi thắc mắc vui lòng liên hệ hotline 1900-xxxx để được hỗ trợ
           </p>
         </motion.div>
       </div>
+
+      {/* ChatBot with Context */}
+      <ChatBot
+        ref={chatBotRef}
+        context={{
+          page: '/patient/appointments/payment-pending',
+          data: {
+            invoiceId: invoice?.id ?? '',
+            invoiceNumber: invoice?.invoiceNumber,
+            appointmentId: appointmentId ?? '',
+            totalAmount: invoice?.totalAmount ?? 0,
+            outstandingAmount: getOutstandingAmount(invoice),
+            insuranceCoverage: invoice?.insuranceCoverage,
+            paymentStatus: (invoice?.status ?? 'pending') as 'pending' | 'paid' | 'cancelled' | 'expired',
+            currency: invoice?.currency ?? 'VND',
+          },
+        }}
+      />
     </DashboardLayout>
   );
 }

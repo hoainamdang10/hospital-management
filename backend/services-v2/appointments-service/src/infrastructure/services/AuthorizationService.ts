@@ -236,7 +236,14 @@ export class AuthorizationService implements IAuthorizationService {
     appointmentId: string,
     appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
+    console.log("[AuthorizationService] canStartAppointment called:", {
+      userId,
+      appointmentId,
+      appointmentDoctorId: appointment.doctorId,
+    });
+
     const role = await this.getUserRole(userId);
+    console.log("[AuthorizationService] User role:", role);
 
     if (!role) {
       throw new AuthorizationError(
@@ -249,16 +256,24 @@ export class AuthorizationService implements IAuthorizationService {
 
     // Admins can start any appointment (override)
     if (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN) {
+      console.log("[AuthorizationService] Admin - authorized");
       return true;
     }
 
     // Doctors can only start their own appointments
     if (role === UserRole.DOCTOR) {
       const userDoctorId = await this.resolveUserIdToDoctorId(userId);
+      console.log("[AuthorizationService] Doctor check:", {
+        userId,
+        userDoctorId,
+        appointmentDoctorId: appointment.doctorId,
+        match: userDoctorId === appointment.doctorId,
+      });
       return userDoctorId === appointment.doctorId;
     }
 
     // Nurses and patients cannot start appointments
+    console.log("[AuthorizationService] Role not authorized to start:", role);
     return false;
   }
 

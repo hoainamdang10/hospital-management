@@ -310,6 +310,15 @@ class ApiGatewayApplication {
         // No requiredPermissions - authorization handled by downstream service
       }),
 
+      // Provider/Staff Service - Public staff search (used by booking + chatbot suggestions)
+      ServiceRoute.create({
+        serviceName: "provider-staff-service",
+        baseUrl:
+          process.env.PROVIDER_STAFF_SERVICE_URL || "http://localhost:3003",
+        pathPrefix: "/api/v1/staff/search",
+        requiresAuth: false,
+      }),
+
       // Provider/Staff Service - Doctor/Staff Management (internal port 3003, external 3003)
       // Note: /search endpoint is PUBLIC (no auth required) for appointment booking
       // Other staff endpoints require authentication

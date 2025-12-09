@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, Minimize2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePathname } from 'next/navigation';
+import type { ChatBotProps } from './ChatBot/types';
+import { getContextualWelcomeMessage } from './ChatBot/contextPromptBuilder';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -12,47 +14,145 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatBot() {
+/**
+ * ChatBot Handle interface for imperative control
+ */
+export interface ChatBotHandle {
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+  sendMessage: (message: string) => void;
+  openWithMessage: (message: string) => void;
+}
+
+/**
+ * ChatBot Component with Context Awareness
+ * Hỗ trợ context từ trang hiện tại để AI có thể đưa ra câu trả lời phù hợp
+ */
+const ChatBot = forwardRef<ChatBotHandle, ChatBotProps>(function ChatBot(
+  { context, onAction: _onAction, initialMessage },
+  ref
+) {
+  // Note: onAction is reserved for future use (e.g., navigate, cancel appointment)
+  void _onAction;
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        'Xin chào! Tôi là AI Assistant của bệnh viện. Tôi có thể giúp bạn đặt lịch khám, tìm bác sĩ, hoặc xem lịch hẹn. Bạn cần hỗ trợ gì?',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
 
+  // Initialize welcome message based on context
+  useEffect(() => {
+    if (!hasInitialized) {
+      const welcomeMessage = getContextualWelcomeMessage(context);
+      setMessages([
+        {
+          role: 'assistant',
+          content: welcomeMessage,
+          timestamp: new Date(),
+        },
+      ]);
+      setHasInitialized(true);
+    }
+  }, [context, hasInitialized]);
+
+  // Update welcome message when context data changes (e.g., invoice loads)
+  // Only update if we still have just the welcome message (no conversation yet)
+  const contextDataKey = context?.data
+    ? JSON.stringify({
+        page: context.page,
+        amount: (context.data as any)?.outstandingAmount || (context.data as any)?.totalAmount,
+        status: (context.data as any)?.paymentStatus,
+      })
+    : '';
+
+  useEffect(() => {
+    if (hasInitialized && messages.length === 1 && contextDataKey) {
+      const welcomeMessage = getContextualWelcomeMessage(context);
+      if (messages[0].content !== welcomeMessage) {
+        setMessages([
+          {
+            role: 'assistant',
+            content: welcomeMessage,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    }
+  }, [contextDataKey]);
+
   // Auto scroll to bottom
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
+
+  // Focus input when opening
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, isMinimized]);
+
+  // Handle initial message (from SmartSuggestions)
+  useEffect(() => {
+    if (initialMessage && isOpen && !isLoading) {
+      setInput(initialMessage);
+    }
+  }, [initialMessage, isOpen]);
+
+  // Imperative handle for external control
+  useImperativeHandle(ref, () => ({
+    open: () => setIsOpen(true),
+    close: () => setIsOpen(false),
+    toggle: () => setIsOpen((prev) => !prev),
+    sendMessage: (message: string) => {
+      setInput(message);
+      // Trigger send after state update
+      setTimeout(() => {
+        handleSend(message);
+      }, 0);
+    },
+    openWithMessage: (message: string) => {
+      setIsOpen(true);
+      setIsMinimized(false);
+      setInput(message);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    },
+  }));
 
   // Hide chatbot on appointment detail pages where there is a doctor-patient chat
-  // We want to keep it on the booking page (/patient/appointments/book)
-  const isAppointmentDetail =
-    pathname?.startsWith('/patient/appointments/') && !pathname.includes('/book');
+  // But keep it on booking and payment-pending pages
+  const shouldHide =
+    pathname?.startsWith('/patient/appointments/') &&
+    !pathname.includes('/book') &&
+    !pathname.includes('/payment-pending') &&
+    // Check if it's a UUID path (appointment detail)
+    /\/patient\/appointments\/[a-f0-9-]{36}$/i.test(pathname || '');
 
-  if (isAppointmentDetail) {
+  if (shouldHide) {
     return null;
   }
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (messageOverride?: string) => {
+    const messageToSend = messageOverride || input.trim();
+    if (!messageToSend || isLoading) return;
 
     const userMessage: Message = {
       role: 'user',
-      content: input.trim(),
+      content: messageToSend,
       timestamp: new Date(),
     };
 
@@ -71,7 +171,15 @@ export default function ChatBot() {
             role: msg.role,
             content: msg.content,
           })),
-          userId: user?.id || null,
+          userId: user?.id || user?.userId || null,
+          patientId: user?.patientId || null,
+          // Pass context to API for dynamic prompt
+          context: context
+            ? {
+                page: context.page,
+                data: context.data,
+              }
+            : undefined,
         }),
       });
 
@@ -106,7 +214,7 @@ export default function ChatBot() {
       console.error('Chat error:', error);
       const errorMessage: Message = {
         role: 'assistant',
-        content: `Xin lỗi, đã có lỗi xảy ra: ${error instanceof Error ? error.message : 'Unknown error'}. Vui lòng kiểm tra console để biết chi tiết.`,
+        content: `Xin lỗi, đã có lỗi xảy ra: ${error instanceof Error ? error.message : 'Unknown error'}. Vui lòng thử lại sau.`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -284,6 +392,7 @@ export default function ChatBot() {
                 <div className="border-t border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
                   <div className="flex items-end gap-2">
                     <textarea
+                      ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
@@ -294,7 +403,7 @@ export default function ChatBot() {
                       style={{ maxHeight: '120px' }}
                     />
                     <button
-                      onClick={handleSend}
+                      onClick={() => handleSend()}
                       disabled={!input.trim() || isLoading}
                       className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white transition-all hover:shadow-lg hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -317,4 +426,6 @@ export default function ChatBot() {
       </AnimatePresence>
     </>
   );
-}
+});
+
+export default ChatBot;

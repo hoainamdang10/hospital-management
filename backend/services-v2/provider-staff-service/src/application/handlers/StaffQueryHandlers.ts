@@ -66,6 +66,7 @@ export interface SearchStaffQuery {
     searchTerm?: string;
     filters?: {
       staffType?: StaffType;
+      department?: string; // Filter by professionalInfo.department name
       departmentId?: string;
       status?: StaffStatus;
       isActive?: boolean;
@@ -134,7 +135,7 @@ export class StaffQueryHandlers {
     private readonly searchStaffUseCase: SearchStaffUseCase,
     private readonly staffRepository: IProviderStaffRepository,
     private readonly logger: ILogger,
-  ) {}
+  ) { }
 
   /**
    * Handle GetStaffProfile query
@@ -342,7 +343,7 @@ export class StaffQueryHandlers {
       const searchRequest: SearchStaffRequest = {
         searchQuery: searchTerm.length > 0 ? searchTerm : undefined,
         staffType: filters.staffType,
-        department: undefined,
+        department: filters.department, // Pass department name for professionalInfo filter
         departmentId: filters.departmentId,
         status: filters.status,
         isActive: filters.isActive,

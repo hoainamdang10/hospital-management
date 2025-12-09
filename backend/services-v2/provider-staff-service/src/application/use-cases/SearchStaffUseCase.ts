@@ -159,11 +159,28 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<
 
       // 5. Apply additional filters
       if (request.department) {
-        allStaff = allStaff.filter((staff) =>
-          staff.professionalInfo.department
-            .toLowerCase()
-            .includes(request.department!.toLowerCase()),
-        );
+        const deptSearchTerm = request.department.toLowerCase();
+        allStaff = allStaff.filter((staff) => {
+          // Check professional info
+          const inProfessionalInfo = staff.professionalInfo.department
+            ?.toLowerCase()
+            .includes(deptSearchTerm);
+
+          // Check department assignments (more reliable for full names like "Cardiology")
+          const inAssignments = staff.getCurrentDepartmentAssignments().some(
+            (assignment) =>
+              (assignment.departmentNameEn &&
+                assignment.departmentNameEn
+                  .toLowerCase()
+                  .includes(deptSearchTerm)) ||
+              (assignment.departmentNameVi &&
+                assignment.departmentNameVi
+                  .toLowerCase()
+                  .includes(deptSearchTerm)),
+          );
+
+          return inProfessionalInfo || inAssignments;
+        });
       }
 
       if (request.departmentId) {

@@ -51,7 +51,7 @@ export class AppointmentController {
     private readonly createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase,
     private readonly transferAppointmentUseCase: TransferAppointmentUseCase,
     private readonly createRecurringSeriesUseCase: CreateRecurringAppointmentSeriesUseCase,
-  ) { }
+  ) {}
 
   /**
    * POST /api/appointments
@@ -163,7 +163,9 @@ export class AppointmentController {
         appointmentDate,
         appointmentTime,
         durationMinutes: 30,
-        type: Object.values(AppointmentType).includes(appointmentType?.toLowerCase() as AppointmentType)
+        type: Object.values(AppointmentType).includes(
+          appointmentType?.toLowerCase() as AppointmentType,
+        )
           ? (appointmentType.toLowerCase() as AppointmentType)
           : AppointmentType.CONSULTATION,
         priority: AppointmentPriority.NORMAL,
@@ -673,19 +675,6 @@ export class AppointmentController {
       const userRole = user?.role;
       if (!userId) {
         res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-      }
-
-      // Doctor can only start own appointments
-      if (
-        userRole === "doctor" &&
-        req.body?.doctorId &&
-        req.body.doctorId !== userId
-      ) {
-        res.status(403).json({
-          success: false,
-          message: "Forbidden: doctor can only start own appointments",
-        });
         return;
       }
 

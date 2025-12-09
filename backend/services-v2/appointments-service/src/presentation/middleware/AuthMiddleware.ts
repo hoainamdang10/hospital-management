@@ -86,6 +86,7 @@ export class AuthMiddleware {
       // 3. Attach user info to request (include mapped patientId if present in metadata)
       const rawRole =
         data.user.user_metadata?.role || data.user.app_metadata?.role;
+      const resolvedRole = await this.resolveUserRole(data.user.id, rawRole);
       const patientId =
         data.user.user_metadata?.patientId ||
         data.user.user_metadata?.patient_id ||
@@ -95,7 +96,7 @@ export class AuthMiddleware {
       req.user = {
         id: data.user.id,
         email: data.user.email,
-        role: rawRole ? rawRole.toUpperCase() : undefined, // Normalize to uppercase
+        role: resolvedRole,
         sub: data.user.id,
         patientId: typeof patientId === "string" ? patientId : undefined,
       };
@@ -186,6 +187,46 @@ export class AuthMiddleware {
       next();
     }
   };
+  /**
+   * Resolve canonical role for user. Falls back to user_profiles when JWT
+   * metadata does not include role info (common for legacy tokens).
+   */
+  private async resolveUserRole(
+    userId: string,
+    rawRole?: string,
+  ): Promise<string | undefined> {
+    if (rawRole) {
+      return rawRole.toUpperCase();
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .schema("auth_schema")
+        .from("user_profiles")
+        .select("role_type")
+        .eq("id", userId)
+        .single();
+
+      if (error || !data?.role_type) {
+        logger.warn("Cannot resolve role from user_profiles", {
+          userId,
+          error: error?.message,
+        });
+        return undefined;
+      }
+
+      return String(data.role_type).toUpperCase();
+    } catch (err) {
+      logger.error(
+        "Error resolving role from user_profiles",
+        err instanceof Error ? err : undefined,
+        {
+          userId,
+        },
+      );
+      return undefined;
+    }
+  }
 }
 
 // Export singleton instance
