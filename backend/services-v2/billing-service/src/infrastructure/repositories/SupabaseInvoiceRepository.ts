@@ -372,7 +372,7 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
       .from(this.invoicesTable)
       .select("*")
       .in("status", ["pending", "partially_paid"])
-      .gt("patient_payment_amount", 0)
+      .gt("outstanding_amount", 0)
       .not("finalized_at", "is", null);
 
     // If daysOverdue specified, filter by creation date

@@ -26,6 +26,9 @@ import {
   Banknote,
   Heart,
   Sparkles,
+  XCircle,
+  UserX,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +44,15 @@ import { DashboardLayout } from '@/components/layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -55,13 +67,12 @@ type AppointmentLegacyFields = AppointmentReadModel & {
 
 // Status configuration with updated colors
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  ARRIVED: { label: 'Đã check-in', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: MapPin },
-  CHECKED_IN: { label: 'Đã check-in', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: MapPin },
   IN_PROGRESS: { label: 'Đang khám', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: Activity },
   COMPLETED: { label: 'Hoàn thành', color: 'text-slate-700', bg: 'bg-slate-100 border-slate-200', icon: CheckCircle },
-  CONFIRMED: { label: 'Chờ khám', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Clock },
-  SCHEDULED: { label: 'Chờ khám', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Clock },
+  CONFIRMED: { label: 'Chờ khám', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: Clock },
+  SCHEDULED: { label: 'Đã đặt', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Calendar },
   CANCELLED: { label: 'Đã hủy', color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', icon: AlertCircle },
+  NO_SHOW: { label: 'Vắng mặt', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', icon: UserX },
 };
 
 const containerVariants = {
@@ -93,6 +104,13 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Doctor actions: Cancel & No-show
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showNoShowDialog, setShowNoShowDialog] = useState(false);
+  const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
 
   useEffect(() => {
     params.then(({ id }) => setAppointmentId(id));
@@ -156,6 +174,45 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
       toast.error('Thao tác thất bại');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Handler: Doctor Cancel (hoàn tiền 100% cho bệnh nhân)
+  const handleDoctorCancel = async () => {
+    if (!cancelReason.trim()) {
+      toast.error('Vui lòng nhập lý do hủy');
+      return;
+    }
+    setIsCancelling(true);
+    try {
+      await appointmentsService.cancel(appointmentId, {
+        cancellationReason: `[Bác sĩ hủy] ${cancelReason}`,
+      });
+      toast.success('Đã hủy lịch hẹn. Bệnh nhân sẽ được hoàn tiền 100%');
+      setShowCancelDialog(false);
+      setCancelReason('');
+      router.push('/doctor/appointments');
+    } catch (error: any) {
+      console.error('Doctor cancel failed', error);
+      toast.error(error?.message || 'Không thể hủy lịch hẹn');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  // Handler: Mark No-show (bệnh nhân vắng mặt - không hoàn tiền)
+  const handleMarkNoShow = async () => {
+    setIsMarkingNoShow(true);
+    try {
+      await appointmentsService.markNoShow(appointmentId);
+      toast.success('Đã đánh dấu bệnh nhân vắng mặt');
+      setShowNoShowDialog(false);
+      await load();
+    } catch (error: any) {
+      console.error('Mark no-show failed', error);
+      toast.error(error?.message || 'Không thể đánh dấu vắng mặt');
+    } finally {
+      setIsMarkingNoShow(false);
     }
   };
 
@@ -406,7 +463,8 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                     {statusInfo.label}
                   </Badge>
 
-                  {(status === 'CONFIRMED' || status === 'SCHEDULED' || status === 'ARRIVED' || status === 'CHECKED_IN') && (
+                  {/* Bắt đầu khám - Hiện cho CONFIRMED/SCHEDULED */}
+                  {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
                     <Button
                       className="bg-white text-cyan-700 hover:bg-cyan-50 shadow-lg transition-all hover:scale-105"
                       disabled={actionLoading}
@@ -424,6 +482,32 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                     >
                       <CheckSquare className="mr-2 h-4 w-4" />
                       Hoàn thành
+                    </Button>
+                  )}
+
+                  {/* Doctor Cancel Button - Hiện khi chưa bắt đầu khám */}
+                  {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
+                    <Button
+                      variant="outline"
+                      className="border-rose-300 text-rose-700 hover:bg-rose-50 shadow-lg transition-all hover:scale-105"
+                      disabled={actionLoading || isCancelling}
+                      onClick={() => setShowCancelDialog(true)}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Hủy lịch
+                    </Button>
+                  )}
+
+                  {/* No-show Button - Chỉ hiện khi CONFIRMED/SCHEDULED + đã quá giờ 15 phút */}
+                  {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
+                    <Button
+                      variant="outline"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-50 shadow-lg transition-all hover:scale-105"
+                      disabled={actionLoading || isMarkingNoShow}
+                      onClick={() => setShowNoShowDialog(true)}
+                    >
+                      <UserX className="mr-2 h-4 w-4" />
+                      BN vắng mặt
                     </Button>
                   )}
                 </div>
@@ -661,6 +745,108 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           </div>
         </motion.div>
       </div>
+
+      {/* Cancel Appointment Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-700">
+              <XCircle className="h-5 w-5" />
+              Hủy lịch hẹn
+            </DialogTitle>
+            <DialogDescription>
+              Bệnh nhân sẽ được hoàn tiền 100%. Vui lòng nhập lý do hủy.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Nhập lý do hủy (bắt buộc)..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCancelDialog(false);
+                setCancelReason('');
+              }}
+              disabled={isCancelling}
+            >
+              Đóng
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDoctorCancel}
+              disabled={isCancelling || !cancelReason.trim()}
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Xác nhận hủy
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* No-show Dialog */}
+      <Dialog open={showNoShowDialog} onOpenChange={setShowNoShowDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-700">
+              <UserX className="h-5 w-5" />
+              Đánh dấu vắng mặt
+            </DialogTitle>
+            <DialogDescription>
+              Bệnh nhân đã check-in nhưng không đến khám. Lịch hẹn sẽ được đánh dấu là No-show và <strong>không được hoàn tiền</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-orange-50 p-4 text-sm text-orange-800">
+              <p className="font-medium">Lưu ý:</p>
+              <ul className="mt-2 list-disc pl-5 space-y-1">
+                <li>Phí khám sẽ không được hoàn trả cho bệnh nhân</li>
+                <li>Hành động này không thể hoàn tác</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowNoShowDialog(false)}
+              disabled={isMarkingNoShow}
+            >
+              Đóng
+            </Button>
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={handleMarkNoShow}
+              disabled={isMarkingNoShow}
+            >
+              {isMarkingNoShow ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <UserX className="mr-2 h-4 w-4" />
+                  Xác nhận vắng mặt
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

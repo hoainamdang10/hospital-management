@@ -33,7 +33,6 @@ function createAppointmentRoutes() {
     router.post('/appointments/:id/cancel', AuthMiddleware_1.authenticate, (0, ValidationMiddleware_1.validateRequest)(ValidationSchemas_1.cancelAppointmentSchema, 'body'), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.cancelAppointment(req, res));
     // Phase 1: Critical Use Cases
     router.post('/appointments/:id/reschedule', AuthMiddleware_1.authenticate, (0, ValidationMiddleware_1.validateRequest)(ValidationSchemas_1.rescheduleAppointmentSchema, 'body'), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.rescheduleAppointment(req, res));
-    router.post('/appointments/:id/check-in', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['RECEPTIONIST', 'NURSE', 'ADMIN']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.checkInAppointment(req, res));
     router.post('/appointments/:id/no-show', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['RECEPTIONIST', 'DOCTOR', 'NURSE', 'ADMIN']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.markAsNoShow(req, res));
     router.post('/appointments/:id/start', AuthMiddleware_1.authenticate, (0, AuthMiddleware_1.requireRole)(['DOCTOR']), IdempotencyMiddleware_1.idempotencyMiddleware, (req, res) => controller.startAppointment(req, res));
     // Phase 3: Nice-to-Have Features

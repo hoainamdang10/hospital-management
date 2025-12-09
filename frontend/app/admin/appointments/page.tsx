@@ -53,6 +53,7 @@ import { Badge } from '@/components/ui/badge';
 import { DashboardLayout } from '@/components/layout';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import type { AppointmentReadModel } from '@/lib/types/appointments';
+import { showErrorToast } from '@/lib/utils/error-toast';
 import { toast } from 'sonner';
 
 interface Appointment {
@@ -134,7 +135,11 @@ export default function AppointmentsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch appointments:', error);
-      toast.error('Không thể tải danh sách lịch hẹn');
+      showErrorToast(error, {
+        title: 'Không thể tải danh sách lịch hẹn',
+        fallbackMessage: 'Không thể tải danh sách lịch hẹn. Vui lòng thử lại sau.',
+        context: 'Admin/Appointments:list',
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -222,7 +227,12 @@ export default function AppointmentsPage() {
         fetchAppointments(true);
       }
     } catch (error) {
-      toast.error('Lỗi cập nhật trạng thái');
+      console.error('[Appointments] Failed to update status', error);
+      showErrorToast(error, {
+        title: 'Lỗi cập nhật trạng thái',
+        fallbackMessage: 'Không thể cập nhật trạng thái lịch hẹn. Vui lòng thử lại.',
+        context: `Admin/Appointments:update:${newStatus}`,
+      });
     }
   };
 

@@ -76,6 +76,8 @@ export declare class PatientReadModelRepository {
      * Check if patient exists
      */
     exists(patientId: string): Promise<boolean>;
+    private shouldHydrateFromFallback;
+    private mergePatientProfiles;
     /**
      * Count patients by tenant
      */

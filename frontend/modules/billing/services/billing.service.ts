@@ -20,6 +20,7 @@ export interface Invoice {
   tax: number;
   insuranceCoverage: number;
   totalAmount: number;
+  patientPaymentAmount?: number;
   outstandingAmount: number;
   paidAmount?: number;
   currency: string;
@@ -138,6 +139,22 @@ class BillingService {
           ? data.data.invoices
           : [];
 
+    return rawInvoices.map((invoice: any) => this.normalizeInvoice(invoice));
+  }
+
+  /**
+   * Get invoices by appointment ID (usually 1:1 for prepaid flow)
+   */
+  async getInvoicesByAppointment(appointmentId: string): Promise<Invoice[]> {
+    const response = await apiClient.get(`${this.baseUrl}/appointments/${appointmentId}`);
+    const payload = response.data;
+    const rawInvoices = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.invoices)
+        ? payload.invoices
+        : Array.isArray(payload?.data?.invoices)
+          ? payload.data.invoices
+          : [];
     return rawInvoices.map((invoice: any) => this.normalizeInvoice(invoice));
   }
 
@@ -293,17 +310,53 @@ class BillingService {
       `invoice-${Date.now()}`;
 
     const totalAmount = toNumber(invoice?.totalAmount ?? invoice?.total_amount);
-    let paidAmount = toNumber(
-      invoice?.paidAmount ?? invoice?.paid_amount ?? invoice?.patient_payment_amount
+    const insuranceCoverage = toNumber(
+      invoice?.insuranceCoverage ??
+        invoice?.insurance_coverage_amount ??
+        invoice?.insuranceCoverageAmount
     );
-    const outstandingAmount = toNumber(
-      invoice?.outstandingAmount ??
-        invoice?.outstanding_amount ??
-        Math.max(0, totalAmount - paidAmount)
+    const patientPaymentAmount = toNumber(
+      invoice?.patientPaymentAmount ?? invoice?.patient_payment_amount,
+      Math.max(0, totalAmount - insuranceCoverage)
     );
-    // Nếu paidAmount không có hoặc đang chứa outstanding, tính paid dựa trên total - outstanding
-    if (!paidAmount && totalAmount) {
-      paidAmount = Math.max(0, totalAmount - outstandingAmount);
+
+    const paymentsList = Array.isArray(invoice?.payments) ? invoice.payments : [];
+    const paidFromPayments = paymentsList
+      .filter((payment: any) => (payment?.method || '').toLowerCase() !== 'refund')
+      .reduce((sum, payment) => {
+        const paymentAmount =
+          typeof payment?.amount === 'number'
+            ? payment.amount
+            : toNumber(payment?.amount?.amount ?? payment?.amount, 0);
+        return sum + Math.max(0, paymentAmount);
+      }, 0);
+    const rawPaidAmount = toNumber(invoice?.paidAmount ?? invoice?.paid_amount, Number.NaN);
+    let paidAmount = Number.isFinite(rawPaidAmount) ? rawPaidAmount : paidFromPayments;
+    if (paidAmount < paidFromPayments) {
+      paidAmount = paidFromPayments;
+    }
+
+    const rawOutstanding = toNumber(
+      invoice?.outstandingAmount ?? invoice?.outstanding_amount,
+      Number.NaN
+    );
+    let outstandingAmount = Number.isFinite(rawOutstanding)
+      ? rawOutstanding
+      : Math.max(patientPaymentAmount - paidFromPayments, 0);
+    if (!Number.isFinite(outstandingAmount)) {
+      outstandingAmount = Math.max(patientPaymentAmount - paidAmount, 0);
+    }
+    if (outstandingAmount > patientPaymentAmount) {
+      outstandingAmount = patientPaymentAmount;
+    }
+    if (outstandingAmount === 0) {
+      const derivedOutstanding = Math.max(patientPaymentAmount - paidAmount, 0);
+      if (derivedOutstanding > 0) {
+        outstandingAmount = derivedOutstanding;
+      }
+    }
+    if (invoice?.status === 'paid') {
+      outstandingAmount = 0;
     }
 
     const metadata = invoice?.metadata || invoice?.meta || {};
@@ -324,7 +377,7 @@ class BillingService {
       metadata?.patientInfo?.name ||
       metadata?.patient_info?.name;
 
-    return {
+    const result = {
       ...invoice,
       id: normalizedId.toString(),
       metadata,
@@ -354,16 +407,14 @@ class BillingService {
         invoice?.department_name,
       subtotal: toNumber(invoice?.subtotal ?? invoice?.subtotalAmount ?? invoice?.subtotal_amount),
       tax: toNumber(invoice?.tax ?? invoice?.taxAmount ?? invoice?.tax_amount),
-      insuranceCoverage: toNumber(
-        invoice?.insuranceCoverage ??
-          invoice?.insurance_coverage_amount ??
-          invoice?.insuranceCoverageAmount
-      ),
+      insuranceCoverage,
+      patientPaymentAmount,
       totalAmount,
       outstandingAmount,
       paidAmount,
       currency: invoice?.currency || invoice?.total_currency || 'VND',
       status: normalizedStatus,
+      insurance: invoice?.insurance,
       payments: invoice?.payments || invoice?.paymentHistory || [],
       createdAt: invoice?.createdAt ?? invoice?.created_at ?? new Date().toISOString(),
       updatedAt: invoice?.updatedAt ?? invoice?.updated_at ?? new Date().toISOString(),
@@ -391,6 +442,9 @@ class BillingService {
         firstPaymentWithPaidAt?.paidAt ??
         firstPaymentWithPaidAt?.paid_at,
     };
+
+    // Debug log for insurance coverage tracking
+    return result;
   }
 }
 

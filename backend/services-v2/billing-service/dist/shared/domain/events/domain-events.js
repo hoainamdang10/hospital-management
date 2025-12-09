@@ -218,7 +218,7 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
             userId: this.userId,
             patientIdCode: this.patientIdCode,
             fullName: this.fullName,
-            dateOfBirth: this.dateOfBirth.toISOString(),
+            dateOfBirth: this.formatDate(this.dateOfBirth),
             phoneNumber: this.phoneNumber,
             email: this.email,
             insuranceType: this.insuranceType,
@@ -229,6 +229,16 @@ class PatientRegisteredEvent extends domain_event_1.DomainEvent {
     }
     getPatientId() {
         return this.patientId;
+    }
+    formatDate(value) {
+        if (!value) {
+            return undefined;
+        }
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
     }
 }
 exports.PatientRegisteredEvent = PatientRegisteredEvent;

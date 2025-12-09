@@ -697,65 +697,6 @@ export class SupabaseProviderStaffRepository
   }
 
   /**
-   * Find staff by specialization
-   */
-  async findBySpecialization(
-    specializationCode: string,
-  ): Promise<ProviderStaff[]> {
-    try {
-      this.logger.info("Finding staff by specialization", {
-        specializationCode,
-        repository: "SupabaseProviderStaffRepository",
-      });
-
-      // Query staff with matching specialization in JSONB array with proper format
-      const { data, error } = await this.supabaseClient
-        .from(this.fullTableName)
-        .select("*")
-        .contains(
-          "specializations",
-          JSON.stringify([{ code: specializationCode }]),
-        )
-        .eq("is_active", true);
-
-      if (error) {
-        this.logger.error("Supabase error finding staff by specialization", {
-          error: error.message,
-          specializationCode,
-        });
-        throw new Error(
-          `Failed to find staff by specialization: ${error.message}`,
-        );
-      }
-
-      if (!data || data.length === 0) {
-        this.logger.info("No staff found with specialization", {
-          specializationCode,
-        });
-        return [];
-      }
-
-      // Map to domain entities
-      const staffList = data.map((row) =>
-        ProviderStaff.fromPersistenceData(row),
-      );
-
-      this.logger.info("Staff found by specialization", {
-        specializationCode,
-        count: staffList.length,
-      });
-
-      return staffList;
-    } catch (error) {
-      this.logger.error("Error finding staff by specialization", {
-        specializationCode,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Find available staff by type and department
    * NOTE: Runtime availability (date/time filtering) belongs to Appointments Service
    */

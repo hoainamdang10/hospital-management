@@ -7,7 +7,7 @@
  * @compliance Event-Driven Architecture, Vietnamese Healthcare Standards
  */
 
-import { IntegrationEvent } from '@shared/domain/base/domain-event';
+import { IntegrationEvent } from "@shared/domain/base/domain-event";
 
 /**
  * Staff Registered Event
@@ -22,31 +22,35 @@ export class StaffRegisteredIntegrationEvent extends IntegrationEvent {
   constructor(data: {
     staffId: string;
     userId: string;
-    staffType: 'doctor' | 'nurse' | 'technician' | 'pharmacist' | 'receptionist' | 'admin';
+    staffType:
+      | "doctor"
+      | "nurse"
+      | "technician"
+      | "pharmacist"
+      | "receptionist"
+      | "admin";
     fullName: string;
     department?: string;
-    specialization?: string;
     licenseNumber?: string;
     registrationDate: Date;
   }) {
     super(
-      'provider.staff.registered',
-      'provider-staff-service',
+      "provider.staff.registered",
+      "provider-staff-service",
       data.staffId,
-      'Staff',
+      "Staff",
       {
         staffId: data.staffId,
         userId: data.userId,
         staffType: data.staffType,
         fullName: data.fullName,
         department: data.department,
-        specialization: data.specialization,
         licenseNumber: data.licenseNumber,
-        registrationDate: data.registrationDate.toISOString()
+        registrationDate: data.registrationDate.toISOString(),
       },
       undefined,
       undefined,
-      data.userId
+      data.userId,
     );
   }
 
@@ -58,9 +62,8 @@ export class StaffRegisteredIntegrationEvent extends IntegrationEvent {
       email: (this as any).email,
       phoneNumber: (this as any).phoneNumber,
       department: (this as any).department,
-      specialization: (this as any).specialization,
       licenseNumber: (this as any).licenseNumber,
-      registrationDate: (this as any).registrationDate
+      registrationDate: (this as any).registrationDate,
     };
   }
 
@@ -76,7 +79,7 @@ export class StaffRegisteredIntegrationEvent extends IntegrationEvent {
 /**
  * Staff Updated Event
  * Published when staff information is updated
- * 
+ *
  * Subscribers:
  * - Scheduling Service: Update doctor availability
  * - Billing Service: Update consultation fee
@@ -92,9 +95,9 @@ export function createStaffUpdatedEvent(data: {
 }): IntegrationEvent {
   return {
     eventId: `staff-updated-${Date.now()}`,
-    eventType: 'provider.staff.updated',
+    eventType: "provider.staff.updated",
     aggregateId: data.staffId,
-    aggregateType: 'Staff',
+    aggregateType: "Staff",
     occurredAt: new Date(),
     eventData: {
       staffId: data.staffId,
@@ -102,25 +105,25 @@ export function createStaffUpdatedEvent(data: {
       updatedFields: data.updatedFields,
       consultationFee: data.consultationFee,
       workSchedule: data.workSchedule,
-      status: data.status
+      status: data.status,
     },
     metadata: {
-      source: 'integration',
-      priority: 'normal',
+      source: "integration",
+      priority: "normal",
       retryable: true,
-      complianceLevel: 'hipaa',
+      complianceLevel: "hipaa",
       containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'staff_update',
-      vietnameseDescription: 'Thông tin nhân viên y tế được cập nhật'
-    }
+      eventCategory: "provider_staff",
+      eventSubcategory: "staff_update",
+      vietnameseDescription: "Thông tin nhân viên y tế được cập nhật",
+    },
   } as any;
 }
 
 /**
  * Doctor Availability Changed Event
  * Published when doctor's availability status changes
- * 
+ *
  * Subscribers:
  * - Scheduling Service: Block/unblock new appointments
  * - Notifications Service: Notify patients
@@ -133,33 +136,33 @@ export function createDoctorAvailabilityChangedEvent(data: {
 }): IntegrationEvent {
   return {
     eventId: `doctor-availability-changed-${Date.now()}`,
-    eventType: 'provider.doctor.availability.changed',
+    eventType: "provider.doctor.availability.changed",
     aggregateId: data.staffId,
-    aggregateType: 'Staff',
+    aggregateType: "Staff",
     occurredAt: new Date(),
     eventData: {
       staffId: data.staffId,
       isAcceptingNewPatients: data.isAcceptingNewPatients,
       reason: data.reason,
-      effectiveDate: data.effectiveDate?.toISOString()
+      effectiveDate: data.effectiveDate?.toISOString(),
     },
     metadata: {
-      source: 'integration',
-      priority: 'high',
+      source: "integration",
+      priority: "high",
       retryable: true,
-      complianceLevel: 'hipaa',
+      complianceLevel: "hipaa",
       containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'availability_change',
-      vietnameseDescription: 'Trạng thái nhận bệnh nhân của bác sĩ thay đổi'
-    }
+      eventCategory: "provider_staff",
+      eventSubcategory: "availability_change",
+      vietnameseDescription: "Trạng thái nhận bệnh nhân của bác sĩ thay đổi",
+    },
   } as any;
 }
 
 /**
  * Staff Status Changed Event
  * Published when staff status changes (active, inactive, suspended)
- * 
+ *
  * Subscribers:
  * - Scheduling Service: Cancel future appointments
  * - Identity Service: Update user status
@@ -175,9 +178,9 @@ export function createStaffStatusChangedEvent(data: {
 }): IntegrationEvent {
   return {
     eventId: `staff-status-changed-${Date.now()}`,
-    eventType: 'provider.staff.status.changed',
+    eventType: "provider.staff.status.changed",
     aggregateId: data.staffId,
-    aggregateType: 'Staff',
+    aggregateType: "Staff",
     occurredAt: new Date(),
     eventData: {
       staffId: data.staffId,
@@ -185,18 +188,18 @@ export function createStaffStatusChangedEvent(data: {
       previousStatus: data.previousStatus,
       newStatus: data.newStatus,
       reason: data.reason,
-      changedBy: data.changedBy
+      changedBy: data.changedBy,
     },
     metadata: {
-      source: 'integration',
-      priority: 'high',
+      source: "integration",
+      priority: "high",
       retryable: true,
-      complianceLevel: 'hipaa',
+      complianceLevel: "hipaa",
       containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'status_change',
-      vietnameseDescription: 'Trạng thái nhân viên y tế thay đổi'
-    }
+      eventCategory: "provider_staff",
+      eventSubcategory: "status_change",
+      vietnameseDescription: "Trạng thái nhân viên y tế thay đổi",
+    },
   } as any;
 }
 
@@ -218,21 +221,21 @@ export class StaffCredentialVerifiedIntegrationEvent extends IntegrationEvent {
     expiryDate?: Date;
   }) {
     super(
-      'provider.staff.credential.added',
-      'provider-staff-service',
+      "provider.staff.credential.added",
+      "provider-staff-service",
       data.staffId,
-      'Staff',
+      "Staff",
       {
         staffId: data.staffId,
         credentialType: data.credentialType,
         credentialNumber: data.credentialNumber,
         issuedBy: data.issuedBy,
         issuedDate: data.issuedDate.toISOString(),
-        expiryDate: data.expiryDate?.toISOString()
+        expiryDate: data.expiryDate?.toISOString(),
       },
       undefined,
       undefined,
-      undefined
+      undefined,
     );
   }
 
@@ -243,7 +246,7 @@ export class StaffCredentialVerifiedIntegrationEvent extends IntegrationEvent {
       credentialNumber: (this as any).credentialNumber,
       issuedBy: (this as any).issuedBy,
       issuedDate: (this as any).issuedDate,
-      expiryDate: (this as any).expiryDate
+      expiryDate: (this as any).expiryDate,
     };
   }
 
@@ -273,20 +276,20 @@ export class StaffScheduleUpdatedIntegrationEvent extends IntegrationEvent {
     assignedBy: string;
   }) {
     super(
-      'provider.staff.department.assigned',
-      'provider-staff-service',
+      "provider.staff.department.assigned",
+      "provider-staff-service",
       data.staffId,
-      'Staff',
+      "Staff",
       {
         staffId: data.staffId,
         departmentId: data.departmentId,
         departmentName: data.departmentName,
         role: data.role,
-        assignedBy: data.assignedBy
+        assignedBy: data.assignedBy,
       },
       undefined,
       undefined,
-      data.assignedBy
+      data.assignedBy,
     );
   }
 
@@ -296,7 +299,7 @@ export class StaffScheduleUpdatedIntegrationEvent extends IntegrationEvent {
       departmentId: (this as any).departmentId,
       departmentName: (this as any).departmentName,
       role: (this as any).role,
-      assignedBy: (this as any).assignedBy
+      assignedBy: (this as any).assignedBy,
     };
   }
 
@@ -308,4 +311,3 @@ export class StaffScheduleUpdatedIntegrationEvent extends IntegrationEvent {
     return null;
   }
 }
-

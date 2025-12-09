@@ -21,7 +21,10 @@ export async function reactivateAccount(payload: {
   userId: string;
   reason?: string;
 }): Promise<AccountActionResponse> {
-  const response = await apiClient.post<AccountActionResponse>('/admin/accounts/reactivate', payload);
+  const response = await apiClient.post<AccountActionResponse>(
+    '/admin/accounts/reactivate',
+    payload
+  );
   return response.data;
 }
 
@@ -30,5 +33,22 @@ export async function unlockAccount(payload: {
   reason: string;
 }): Promise<AccountActionResponse> {
   const response = await apiClient.post<AccountActionResponse>('/admin/accounts/unlock', payload);
+  return response.data;
+}
+
+export async function deleteAccount(payload: {
+  userId: string;
+  reason: string;
+  force?: boolean;
+}): Promise<AccountActionResponse> {
+  const response = await apiClient.delete<AccountActionResponse>(
+    `/admin/accounts/${payload.userId}`,
+    {
+      data: {
+        reason: payload.reason,
+        force: payload.force ?? false,
+      },
+    }
+  );
   return response.data;
 }

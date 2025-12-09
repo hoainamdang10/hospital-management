@@ -38,7 +38,12 @@ export interface GetInvoiceResponse {
   createdAt: Date;
   updatedAt: Date;
   dueDate: Date;
-  // REMOVED (Phase 1): insuranceCoverage, insurance
+  insuranceCoverage: number;
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    coveragePercentage: number;
+  };
 }
 
 export class GetInvoiceUseCase extends BaseHealthcareUseCase<
@@ -79,9 +84,10 @@ export class GetInvoiceUseCase extends BaseHealthcareUseCase<
       { paid: 0, refunded: 0 },
     );
 
+    const insuranceCoverageAmount = invoice.insuranceCoverage?.amount ?? 0;
     const outstandingAmount = Math.max(
       0,
-      invoice.totalAmount.amount - paymentStats.paid,
+      invoice.totalAmount.amount - insuranceCoverageAmount - paymentStats.paid,
     );
     const status =
       paymentStats.refunded > 0 ? "refunded" : invoice.status.value;
@@ -108,7 +114,12 @@ export class GetInvoiceUseCase extends BaseHealthcareUseCase<
       totalAmount: invoice.totalAmount.amount,
       outstandingAmount,
       status,
-      // REMOVED (Phase 1): insuranceCoverage, insurance
+      insuranceCoverage: insuranceCoverageAmount,
+      insurance: invoice.insurance ? {
+        provider: invoice.insurance.provider,
+        policyNumber: invoice.insurance.policyNumber,
+        coveragePercentage: invoice.insurance.coveragePercentage,
+      } : undefined,
       payments: payments.map((p) => ({
         id: p.id,
         amount: p.amount.amount,

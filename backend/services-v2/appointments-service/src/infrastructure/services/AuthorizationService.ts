@@ -1,9 +1,9 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import {
   IAuthorizationService,
   UserRole,
   AuthorizationError,
-} from '../../application/services/IAuthorizationService';
+} from "../../application/services/IAuthorizationService";
 
 /**
  * Authorization Service Implementation
@@ -27,19 +27,22 @@ export class AuthorizationService implements IAuthorizationService {
    */
   async canScheduleAppointment(
     userId: string,
-    patientId: string
+    patientId: string,
   ): Promise<boolean> {
-    console.log('[AuthorizationService] Checking canScheduleAppointment:', { userId, patientId });
-    
+    console.log("[AuthorizationService] Checking canScheduleAppointment:", {
+      userId,
+      patientId,
+    });
+
     const role = await this.getUserRole(userId);
-    console.log('[AuthorizationService] User role:', role);
+    console.log("[AuthorizationService] User role:", role);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'schedule_appointment',
-        patientId
+        "schedule_appointment",
+        patientId,
       );
     }
 
@@ -50,7 +53,7 @@ export class AuthorizationService implements IAuthorizationService {
       role === UserRole.DOCTOR ||
       role === UserRole.NURSE
     ) {
-      console.log('[AuthorizationService] Staff user - authorized');
+      console.log("[AuthorizationService] Staff user - authorized");
       return true;
     }
 
@@ -59,11 +62,16 @@ export class AuthorizationService implements IAuthorizationService {
     if (role === UserRole.PATIENT) {
       const userPatientId = await this.resolveUserIdToPatientId(userId);
       const isAuthorized = userPatientId === patientId;
-      console.log('[AuthorizationService] Patient check:', { userId, userPatientId, patientId, isAuthorized });
+      console.log("[AuthorizationService] Patient check:", {
+        userId,
+        userPatientId,
+        patientId,
+        isAuthorized,
+      });
       return isAuthorized;
     }
 
-    console.log('[AuthorizationService] No matching role - denied');
+    console.log("[AuthorizationService] No matching role - denied");
     return false;
   }
 
@@ -78,16 +86,16 @@ export class AuthorizationService implements IAuthorizationService {
   async canCancelAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'cancel_appointment',
-        appointmentId
+        "cancel_appointment",
+        appointmentId,
       );
     }
 
@@ -123,7 +131,7 @@ export class AuthorizationService implements IAuthorizationService {
   async canRescheduleAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     return this.canCancelAppointment(userId, appointmentId, appointment);
   }
@@ -138,16 +146,16 @@ export class AuthorizationService implements IAuthorizationService {
   async canConfirmAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'confirm_appointment',
-        appointmentId
+        "confirm_appointment",
+        appointmentId,
       );
     }
 
@@ -184,21 +192,25 @@ export class AuthorizationService implements IAuthorizationService {
   async canCompleteAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'complete_appointment',
-        appointmentId
+        "complete_appointment",
+        appointmentId,
       );
     }
 
     // Nurses can complete any appointment
-    if (role === UserRole.NURSE || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) {
+    if (
+      role === UserRole.NURSE ||
+      role === UserRole.ADMIN ||
+      role === UserRole.SUPER_ADMIN
+    ) {
       return true;
     }
 
@@ -222,16 +234,16 @@ export class AuthorizationService implements IAuthorizationService {
   async canStartAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'start_appointment',
-        appointmentId
+        "start_appointment",
+        appointmentId,
       );
     }
 
@@ -260,21 +272,25 @@ export class AuthorizationService implements IAuthorizationService {
   async canCheckInAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'checkin_appointment',
-        appointmentId
+        "checkin_appointment",
+        appointmentId,
       );
     }
 
     // Admins and nurses can check in any appointment
-    if (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN || role === UserRole.NURSE) {
+    if (
+      role === UserRole.SUPER_ADMIN ||
+      role === UserRole.ADMIN ||
+      role === UserRole.NURSE
+    ) {
       return true;
     }
 
@@ -295,23 +311,25 @@ export class AuthorizationService implements IAuthorizationService {
    * - DOCTOR: Can only call from their own queue
    * - PATIENT: Cannot call patients
    */
-  async canCallNextPatient(
-    userId: string,
-    doctorId: string
-  ): Promise<boolean> {
+  async canCallNextPatient(userId: string, doctorId: string): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'call_next_patient',
-        doctorId
+        "call_next_patient",
+        doctorId,
       );
     }
 
     // Admins, nurses, and receptionists can call from any queue
-    if (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN || role === UserRole.NURSE || role === UserRole.RECEPTIONIST) {
+    if (
+      role === UserRole.SUPER_ADMIN ||
+      role === UserRole.ADMIN ||
+      role === UserRole.NURSE ||
+      role === UserRole.RECEPTIONIST
+    ) {
       return true;
     }
 
@@ -332,23 +350,25 @@ export class AuthorizationService implements IAuthorizationService {
    * - DOCTOR: Cannot remove patients from queue
    * - PATIENT: Can only leave their own queue
    */
-  async canLeaveQueue(
-    userId: string,
-    patientId: string
-  ): Promise<boolean> {
+  async canLeaveQueue(userId: string, patientId: string): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'leave_queue',
-        patientId
+        "leave_queue",
+        patientId,
       );
     }
 
     // Admins, nurses, and receptionists can remove any patient from queue
-    if (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN || role === UserRole.NURSE || role === UserRole.RECEPTIONIST) {
+    if (
+      role === UserRole.SUPER_ADMIN ||
+      role === UserRole.ADMIN ||
+      role === UserRole.NURSE ||
+      role === UserRole.RECEPTIONIST
+    ) {
       return true;
     }
 
@@ -372,16 +392,16 @@ export class AuthorizationService implements IAuthorizationService {
   async canTransferAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'transfer_appointment',
-        appointmentId
+        "transfer_appointment",
+        appointmentId,
       );
     }
 
@@ -444,17 +464,15 @@ export class AuthorizationService implements IAuthorizationService {
    * - SUPER_ADMIN/ADMIN/DOCTOR/NURSE: Can create emergency appointments
    * - PATIENT: Cannot create emergency appointments
    */
-  async canCreateEmergencyAppointment(
-    userId: string
-  ): Promise<boolean> {
+  async canCreateEmergencyAppointment(userId: string): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
       throw new AuthorizationError(
-        'User not found or has no role',
+        "User not found or has no role",
         userId,
-        'create_emergency_appointment',
-        'emergency'
+        "create_emergency_appointment",
+        "emergency",
       );
     }
 
@@ -483,7 +501,7 @@ export class AuthorizationService implements IAuthorizationService {
   async canViewAppointmentHistory(
     userId: string,
     patientId?: string,
-    doctorId?: string
+    doctorId?: string,
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
@@ -524,10 +542,7 @@ export class AuthorizationService implements IAuthorizationService {
    * - DOCTOR: Can view statistics for their own appointments
    * - NURSE/PATIENT: Cannot view statistics
    */
-  async canViewStatistics(
-    userId: string,
-    doctorId?: string
-  ): Promise<boolean> {
+  async canViewStatistics(userId: string, doctorId?: string): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
     if (!role) {
@@ -559,7 +574,7 @@ export class AuthorizationService implements IAuthorizationService {
    */
   async canViewAppointment(
     userId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
@@ -600,7 +615,7 @@ export class AuthorizationService implements IAuthorizationService {
    */
   async canManageAppointmentReminders(
     userId: string,
-    patientId: string
+    patientId: string,
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
@@ -638,7 +653,7 @@ export class AuthorizationService implements IAuthorizationService {
   async canViewQueueStatus(
     userId: string,
     patientId?: string,
-    doctorId?: string
+    doctorId?: string,
   ): Promise<boolean> {
     const role = await this.getUserRole(userId);
 
@@ -667,6 +682,13 @@ export class AuthorizationService implements IAuthorizationService {
   }
 
   /**
+   * Public helper to resolve canonical patientId for a given identity user.
+   */
+  async resolvePatientIdForUser(userId: string): Promise<string | null> {
+    return this.resolveUserIdToPatientId(userId);
+  }
+
+  /**
    * Check if user has specific role
    */
   async hasRole(userId: string, role: UserRole): Promise<boolean> {
@@ -690,10 +712,10 @@ export class AuthorizationService implements IAuthorizationService {
   async getUserRole(userId: string): Promise<UserRole | null> {
     try {
       const { data, error } = await this.supabase
-        .schema('auth_schema')
-        .from('user_profiles')
-        .select('role_type')
-        .eq('id', userId)
+        .schema("auth_schema")
+        .from("user_profiles")
+        .select("role_type")
+        .eq("id", userId)
         .single();
 
       if (error || !data) {
@@ -701,13 +723,13 @@ export class AuthorizationService implements IAuthorizationService {
         return null;
       }
 
-      console.log('[getUserRole] Raw DB value:', data.role_type);
+      console.log("[getUserRole] Raw DB value:", data.role_type);
       const upperRole = data.role_type.toUpperCase() as UserRole;
-      console.log('[getUserRole] Converted to:', upperRole);
-      
+      console.log("[getUserRole] Converted to:", upperRole);
+
       return upperRole;
     } catch (error) {
-      console.error('Error getting user role:', error);
+      console.error("Error getting user role:", error);
       return null;
     }
   }
@@ -715,13 +737,15 @@ export class AuthorizationService implements IAuthorizationService {
   /**
    * Resolve user UUID to patient business ID (PAT-XXXXXX-XXX)
    */
-  private async resolveUserIdToPatientId(userId: string): Promise<string | null> {
+  private async resolveUserIdToPatientId(
+    userId: string,
+  ): Promise<string | null> {
     try {
       const { data, error } = await this.supabase
-        .schema('patient_schema')
-        .from('patients')
-        .select('patient_id')
-        .eq('user_id', userId)
+        .schema("patient_schema")
+        .from("patients")
+        .select("patient_id")
+        .eq("user_id", userId)
         .single();
 
       if (error || !data) {
@@ -731,7 +755,7 @@ export class AuthorizationService implements IAuthorizationService {
 
       return data.patient_id;
     } catch (error) {
-      console.error('Error resolving patient ID:', error);
+      console.error("Error resolving patient ID:", error);
       return null;
     }
   }
@@ -739,14 +763,16 @@ export class AuthorizationService implements IAuthorizationService {
   /**
    * Resolve user UUID to doctor business ID (DEPT-DOC-XXXXXX-XXX)
    */
-  private async resolveUserIdToDoctorId(userId: string): Promise<string | null> {
+  private async resolveUserIdToDoctorId(
+    userId: string,
+  ): Promise<string | null> {
     try {
       const { data, error } = await this.supabase
-        .schema('provider_schema')
-        .from('staff_profiles')
-        .select('staff_id')
-        .eq('user_id', userId)
-        .eq('staff_type', 'doctor')
+        .schema("provider_schema")
+        .from("staff_profiles")
+        .select("staff_id")
+        .eq("user_id", userId)
+        .eq("staff_type", "doctor")
         .single();
 
       if (error || !data) {
@@ -756,7 +782,7 @@ export class AuthorizationService implements IAuthorizationService {
 
       return data.staff_id;
     } catch (error) {
-      console.error('Error resolving doctor ID:', error);
+      console.error("Error resolving doctor ID:", error);
       return null;
     }
   }

@@ -11,7 +11,7 @@ import { AppointmentScheduledEvent } from '../../domain/events/AppointmentSchedu
 import { AppointmentRescheduledEvent } from '../../domain/events/AppointmentRescheduledEvent';
 import { AppointmentCancelledEvent } from '../../domain/events/AppointmentCancelledEvent';
 import { AppointmentCompletedEvent } from '../../domain/events/AppointmentCompletedEvent';
-import { AppointmentCheckedInEvent } from '../../domain/events/AppointmentCheckedInEvent';
+
 import { AppointmentReminderScheduledEvent } from '../../domain/events/AppointmentReminderScheduledEvent';
 import { AppointmentConfirmedEvent } from '../../domain/events/AppointmentConfirmedEvent';
 import { AppointmentStartedEvent } from '../../domain/events/AppointmentStartedEvent';
@@ -109,20 +109,7 @@ export class DomainEventMapper {
       };
     }
 
-    if (event instanceof AppointmentCheckedInEvent) {
-      return {
-        eventId: event.eventId,
-        eventType: 'appointment.checked-in',
-        aggregateId: event.aggregateId,
-        aggregateType: event.aggregateType,
-        occurredAt: event.occurredAt,
-        version: 1,
-        payload: event.getEventData(),
-        metadata: {
-          correlationId: event.eventId,
-        },
-      };
-    }
+
 
     if (event instanceof AppointmentReminderScheduledEvent) {
       return {
@@ -248,9 +235,7 @@ export class DomainEventMapper {
     if (event instanceof AppointmentCompletedEvent) {
       return 'appointment.completed';
     }
-    if (event instanceof AppointmentCheckedInEvent) {
-      return 'appointment.checked-in';
-    }
+
     if (event instanceof AppointmentReminderScheduledEvent) {
       return 'appointment.reminder-scheduled';
     }

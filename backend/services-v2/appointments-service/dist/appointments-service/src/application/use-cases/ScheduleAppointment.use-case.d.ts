@@ -97,5 +97,6 @@ export declare class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<Sc
      * Get patient ID
      */
     getPatientId(request: ScheduleAppointmentRequest): string | null;
+    private resolvePatientIdentifier;
 }
 //# sourceMappingURL=ScheduleAppointment.use-case.d.ts.map

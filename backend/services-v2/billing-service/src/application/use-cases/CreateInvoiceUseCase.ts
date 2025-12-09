@@ -16,7 +16,13 @@ export interface CreateInvoiceRequest {
     quantity: number;
     unitPrice: number;
   }>;
-  // REMOVED (Phase 1 Prepaid Model): insurance
+  // Insurance support - re-enabled
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    coveragePercentage: number;
+  };
+  insuranceCoverageAmount?: number; // Pre-calculated insurance coverage amount
 }
 
 export interface CreateInvoiceResponse {
@@ -56,13 +62,25 @@ export class CreateInvoiceUseCase extends BaseHealthcareUseCase<
       ),
     );
 
-    // Create invoice (Phase 1 Prepaid Model: no insurance)
+    // Create invoice with insurance support
     const isWalletTopUp = Boolean(
       request.metadata?.walletTopUp ?? request.metadata?.wallet_top_up,
     );
 
+    // Build insurance value object if provided
+    const { Insurance } = await import("../../domain/value-objects/Insurance");
+    const insurance = request.insurance
+      ? Insurance.create(
+        request.insurance.provider,
+        request.insurance.policyNumber,
+        request.insurance.coveragePercentage,
+      )
+      : undefined;
+
     const invoice = Invoice.create(request.patientId, items, {
       taxRate: isWalletTopUp ? 0 : undefined,
+      insurance,
+      insuranceCoverageAmount: request.insuranceCoverageAmount ?? 0,
     });
 
     // Set appointment ID if provided

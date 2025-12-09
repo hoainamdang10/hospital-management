@@ -16,7 +16,6 @@ const express_1 = __importDefault(require("express"));
 const node_cron_1 = __importDefault(require("node-cron"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
 // Infrastructure
 const optimized_supabase_client_1 = require("../../shared/infrastructure/database/optimized-supabase-client");
@@ -31,6 +30,7 @@ const GetInvoiceUseCase_1 = require("./application/use-cases/GetInvoiceUseCase")
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 const ProcessPaymentUseCase_1 = require("./application/use-cases/ProcessPaymentUseCase");
 const GetPatientInvoicesUseCase_1 = require("./application/use-cases/GetPatientInvoicesUseCase");
+const GetInvoicesByAppointmentUseCase_1 = require("./application/use-cases/GetInvoicesByAppointmentUseCase");
 // REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase
 const RefundPaymentUseCase_1 = require("./application/use-cases/RefundPaymentUseCase");
 const CompleteRefundUseCase_1 = require("./application/use-cases/CompleteRefundUseCase");
@@ -138,6 +138,7 @@ class BillingServiceApp {
         // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase initialization
         this.processPaymentUseCase = new ProcessPaymentUseCase_1.ProcessPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger);
         this.getPatientInvoicesUseCase = new GetPatientInvoicesUseCase_1.GetPatientInvoicesUseCase(this.invoiceRepository, logger_1.logger);
+        this.getInvoicesByAppointmentUseCase = new GetInvoicesByAppointmentUseCase_1.GetInvoicesByAppointmentUseCase(this.invoiceRepository, logger_1.logger);
         // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase initialization
         this.refundPaymentUseCase = new RefundPaymentUseCase_1.RefundPaymentUseCase(this.invoiceRepository, this.eventBus, logger_1.logger, {
             useGatewayRefund: (process.env.USE_GATEWAY_REFUND || "").toLowerCase() === "true",
@@ -172,6 +173,10 @@ class BillingServiceApp {
                 "appointments.cancelled_late",
                 "appointments.no_show",
                 "appointments.rescheduled",
+                // Additional wildcard bindings to catch prefixed keys from outbox/publisher
+                "appointments.#",
+                "appointments-service.#",
+                "scheduling-service.#",
             ],
             prefetchCount: 10,
             retryAttempts: 3,
@@ -210,7 +215,7 @@ class BillingServiceApp {
         });
         logger_1.logger.info("Refund gateway worker initialized (VNPAY integration)");
         // Initialize Controllers - Phase 1 (Prepaid Model)
-        this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase, this.payInvoiceWithWalletUseCase);
+        this.invoiceController = new InvoiceController_1.InvoiceController(this.createInvoiceUseCase, this.getInvoiceUseCase, this.processPaymentUseCase, this.getPatientInvoicesUseCase, this.getInvoicesByAppointmentUseCase, this.searchInvoicesUseCase, this.getOverdueInvoicesUseCase, this.getPatientBillingSummaryUseCase, this.getRevenueReportUseCase, this.createPaymentLinkUseCase, this.handlePayOSWebhookUseCase, this.payInvoiceWithWalletUseCase);
         this.walletController = new WalletController_1.WalletController(this.walletService, this.createWalletTopUpLinkUseCase);
         // Initialize Middleware
         this.errorHandlingMiddleware = new ErrorHandlingMiddleware_1.ErrorHandlingMiddleware(logger_1.logger);
@@ -237,17 +242,7 @@ class BillingServiceApp {
         // Body parsing
         this.app.use(express_1.default.json({ limit: "10mb" }));
         this.app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
-        // Rate limiting
-        if (process.env.NODE_ENV !== "test") {
-            const limiter = (0, express_rate_limit_1.default)({
-                windowMs: 15 * 60 * 1000,
-                max: 100,
-                message: "Too many requests from this IP",
-                standardHeaders: true,
-                legacyHeaders: false,
-            });
-            this.app.use("/api/", limiter);
-        }
+        // Rate limiting disabled (handled at gateway level)
         // Request logging
         this.app.use((req, _res, next) => {
             logger_1.logger.info("Incoming request", {

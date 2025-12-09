@@ -21,7 +21,6 @@ import {
 import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
 import { ProfessionalInfo } from "../../domain/value-objects/ProfessionalInfo";
 import { WorkSchedule } from "../../domain/value-objects/WorkSchedule";
-import { Specialization } from "../../domain/entities/Specialization";
 import { IEventBus } from "@shared/events/event-bus.interface";
 import { ILogger } from "../interfaces/ILogger";
 
@@ -68,12 +67,6 @@ export interface RegisterStaffRequest {
   contractEndDate?: string;
   yearsOfExperience: number;
   consultationFee?: number; // For doctors
-  specializations?: Array<{
-    code: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-  }>;
   vietnameseHealthcareLicense?: string;
   mohRegistrationNumber?: string; // Ministry of Health registration
   requestedBy: string;
@@ -198,22 +191,7 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
         buildSafeWorkSchedule(request.workSchedule),
       );
 
-      // 5. Create specializations if provided
-      const specializations: Specialization[] = [];
-      if (request.specializations) {
-        for (const spec of request.specializations) {
-          specializations.push(
-            Specialization.create({
-              code: spec.code,
-              name: spec.name,
-              description: spec.description,
-              isActive: spec.isActive,
-            }),
-          );
-        }
-      }
-
-      // 6. Create staff aggregate
+      // 5. Create staff aggregate
       const staff = ProviderStaff.create(
         request.userId,
         request.staffType,
@@ -224,19 +202,19 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
         request.employmentType,
         new Date(request.hireDate),
         request.yearsOfExperience,
-        specializations,
         request.vietnameseHealthcareLicense,
         request.mohRegistrationNumber,
+        request.professionalInfo?.department,
       );
 
-      // 7. Set additional properties
+      // 6. Set additional properties
       // Note: Direct props access should be replaced with public methods
       // For now, keeping minimal changes to avoid breaking functionality
       if (request.consultationFee && request.staffType === "doctor") {
         staff.updateConsultationFee(request.consultationFee);
       }
 
-      // 8. Vietnamese healthcare compliance validation
+      // 7. Vietnamese healthcare compliance validation
       if (!staff.isVietnameseHealthcareCompliant()) {
         return {
           success: false,
@@ -244,7 +222,7 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
         };
       }
 
-      // 9. HIPAA compliance validation
+      // 8. HIPAA compliance validation
       if (!staff.isHIPAACompliant()) {
         this.logger.warn("Staff registration lacks HIPAA compliance", {
           staffId: staff.id,
@@ -252,10 +230,10 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
         });
       }
 
-      // 10. Save staff
+      // 9. Save staff
       await this.staffRepository.save(staff);
 
-      // 11. Publish domain events (best effort)
+      // 10. Publish domain events (best effort)
       try {
         await this.publishDomainEvents(staff);
       } catch (eventError) {
@@ -272,7 +250,7 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
         );
       }
 
-      // 12. HIPAA audit logging
+      // 11. HIPAA audit logging
       await this.auditStaffRegistration(staff, request);
 
       this.logger.info("Staff registration completed successfully", {
@@ -336,12 +314,11 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
     }
 
     // Staff type validation (scope reduced to 2 types)
-    const validStaffTypes: StaffType[] = [
-      "doctor",
-      "receptionist",
-    ];
+    const validStaffTypes: StaffType[] = ["doctor", "receptionist"];
     if (!validStaffTypes.includes(request.staffType)) {
-      errors.push("Loại nhân viên không hợp lệ. Chỉ hỗ trợ: doctor, receptionist");
+      errors.push(
+        "Loại nhân viên không hợp lệ. Chỉ hỗ trợ: doctor, receptionist",
+      );
     }
 
     // Personal info validation
@@ -415,10 +392,6 @@ export class RegisterStaffUseCase extends BaseHealthcareUseCase<
 
     // Doctor-specific validation
     if (request.staffType === "doctor") {
-      if (!request.specializations || request.specializations.length === 0) {
-        errors.push("Bác sĩ phải có ít nhất một chuyên khoa");
-      }
-
       if (
         request.consultationFee !== undefined &&
         request.consultationFee < 0

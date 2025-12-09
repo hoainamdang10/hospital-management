@@ -26,7 +26,7 @@ class AuthorizationError extends Error {
         this.userId = userId;
         this.action = action;
         this.resource = resource;
-        this.name = 'AuthorizationError';
+        this.name = "AuthorizationError";
     }
 }
 exports.AuthorizationError = AuthorizationError;

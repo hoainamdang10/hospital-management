@@ -30,14 +30,13 @@ export declare enum AppointmentPriority {
     EMERGENCY = "emergency"
 }
 export declare enum AppointmentStatus {
-    SCHEDULED = "scheduled",
-    PENDING_PAYMENT = "pending_payment",// ✅ ADDED for prepaid flow
-    CONFIRMED = "confirmed",
-    ARRIVED = "arrived",
-    IN_PROGRESS = "in_progress",
-    COMPLETED = "completed",
-    CANCELLED = "cancelled",
-    NO_SHOW = "no_show",
+    SCHEDULED = "scheduled",// Offline booking, post-reschedule
+    PENDING_PAYMENT = "pending_payment",// Online prepaid flow
+    CONFIRMED = "confirmed",// Ready for consultation
+    IN_PROGRESS = "in_progress",// Actively consulting
+    COMPLETED = "completed",// Consultation finished
+    CANCELLED = "cancelled",// Cancelled by patient/doctor/admin
+    NO_SHOW = "no_show",// Patient didn't show up
     RESCHEDULED = "reschedule_required"
 }
 /**
@@ -66,10 +65,10 @@ export interface AppointmentProps {
     consultationFee: number;
     paymentStatus?: 'pending' | 'paid' | 'refunded';
     paymentDeadline?: Date;
-    checkedInAt?: Date;
     startedAt?: Date;
     completedAt?: Date;
     cancelledAt?: Date;
+    noShowAt?: Date;
     cancellationReason?: string;
     cancelledBy?: string;
     followUpAppointmentId?: string;
@@ -121,10 +120,10 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
      * Get payment deadline (Flow 3 - Prepaid Model)
      */
     get paymentDeadline(): Date | undefined;
-    getCheckedInAt(): Date | undefined;
     getStartedAt(): Date | undefined;
     getCompletedAt(): Date | undefined;
     getCancelledAt(): Date | undefined;
+    getNoShowAt(): Date | undefined;
     getCancellationReason(): string | undefined;
     getCancelledBy(): string | undefined;
     getFollowUpAppointmentId(): string | undefined;
@@ -170,17 +169,14 @@ export declare class Appointment extends HealthcareAggregateRoot<AppointmentProp
      */
     confirm(confirmedBy: string, notes?: string): void;
     /**
-     * Check in patient
-     */
-    checkIn(checkInTime?: Date): void;
-    /**
      * Start appointment
+     * Simplified flow: Doctor can start directly from CONFIRMED/SCHEDULED
+     * No check-in step required for 3-role system (Patient, Doctor, Admin)
      */
     start(startTime?: Date): void;
     /**
      * Complete appointment
-     * Hybrid Approach: Allow completion from both ARRIVED and IN_PROGRESS status
-     * Auto-starts appointment if currently ARRIVED (for flexibility)
+     * Simplified: Only allow from IN_PROGRESS (must start first)
      */
     complete(): void;
     /**

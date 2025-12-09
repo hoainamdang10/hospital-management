@@ -1117,9 +1117,10 @@ class SupabaseAppointmentRepository {
             paymentDeadline: record.payment_deadline
                 ? new Date(record.payment_deadline)
                 : undefined,
-            checkedInAt: record.checked_in_at
-                ? new Date(record.checked_in_at)
-                : undefined,
+            // Simplified 3-role flow doesn't use check-in
+            // checkedInAt: record.checked_in_at
+            //   ? new Date(record.checked_in_at)
+            //   : undefined,
             startedAt: record.started_at ? new Date(record.started_at) : undefined,
             completedAt: record.completed_at
                 ? new Date(record.completed_at)

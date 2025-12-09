@@ -110,16 +110,16 @@ class PatientMapper {
             let communicationPreference;
             if (patientRecord.communication_preference) {
                 const preference = patientRecord.communication_preference;
-                const language = preference.language || 'vi';
+                const language = preference.language || "vi";
                 const contactMethod = preference.contactMethod ||
                     preference.preferredChannel ||
                     patientRecord.contact_info
                         .preferredContactMethod ||
-                    'phone';
-                const preferred = typeof preference.preferred === 'boolean'
+                    "phone";
+                const preferred = typeof preference.preferred === "boolean"
                     ? preference.preferred
                     : true;
-                const timezone = preference.timezone || 'Asia/Ho_Chi_Minh';
+                const timezone = preference.timezone || "Asia/Ho_Chi_Minh";
                 communicationPreference = CommunicationPreference_1.CommunicationPreference.create({
                     language,
                     preferred,
@@ -152,7 +152,7 @@ class PatientMapper {
             return Patient_1.Patient.reconstitute(patientProps, patientRecord.id);
         }
         catch (error) {
-            throw new Error(`Failed to map patient to domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new Error(`Failed to map patient to domain: ${error instanceof Error ? error.message : "Unknown error"}`);
         }
     }
     /**
@@ -167,7 +167,7 @@ class PatientMapper {
             user_id: props.userId,
             personal_info: {
                 fullName: props.personalInfo.fullName,
-                dateOfBirth: props.personalInfo.dateOfBirth.toISOString().split('T')[0],
+                dateOfBirth: props.personalInfo.dateOfBirth.toISOString().split("T")[0],
                 gender: props.personalInfo.gender,
                 nationalId: props.personalInfo.nationalId,
                 nationality: props.personalInfo.nationality,
@@ -201,14 +201,23 @@ class PatientMapper {
         // Map insurance info
         let insuranceRecord;
         if (props.insuranceInfo) {
+            // Normalize dates to Date objects to avoid toISOString errors
+            const normalizeDate = (value) => {
+                if (value instanceof Date)
+                    return value;
+                const d = new Date(value);
+                return Number.isNaN(d.getTime()) ? new Date() : d;
+            };
+            const validFrom = normalizeDate(props.insuranceInfo.validFrom);
+            const validTo = normalizeDate(props.insuranceInfo.validTo);
             insuranceRecord = {
                 id: props.insuranceInfo.id,
                 patient_id: props.id.getValue(),
                 provider: props.insuranceInfo.provider,
                 policy_number: props.insuranceInfo.policyNumber,
                 group_number: props.insuranceInfo.groupNumber || null,
-                valid_from: props.insuranceInfo.validFrom.toISOString().split('T')[0],
-                valid_to: props.insuranceInfo.validTo.toISOString().split('T')[0],
+                valid_from: validFrom.toISOString().split("T")[0],
+                valid_to: validTo.toISOString().split("T")[0],
                 coverage_type: props.insuranceInfo.coverageType,
                 is_vietnamese_insurance: props.insuranceInfo.isVietnameseInsurance,
                 bhyt_number: props.insuranceInfo.bhytNumber || null,

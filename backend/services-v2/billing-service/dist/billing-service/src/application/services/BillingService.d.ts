@@ -160,6 +160,8 @@ export declare class BillingService {
     private getServiceTypeDescription;
     private getServiceTypeCode;
     private getAppointmentServiceName;
+    private readonly COVERAGE_BY_TYPE;
+    private getCoveragePercentByType;
     private calculateInsuranceCoverage;
 }
 //# sourceMappingURL=BillingService.d.ts.map

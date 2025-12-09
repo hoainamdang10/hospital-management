@@ -234,16 +234,7 @@ export class EventSubscriptions {
       "[EventSubscriptions] ✅ Subscribed to AppointmentStatusChanged",
     );
 
-    // 6b. Subscribe to intermediate status events and update read model
-    await this.eventBus.subscribe(
-      "AppointmentCheckedIn",
-      new AppointmentStatusChangedEventHandler(this.readModelHandler),
-      `${this.config.serviceName}.appointment.checked_in`,
-    );
-    console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentCheckedIn (Read Model)",
-    );
-
+    // 6b. Subscribe to AppointmentStarted events and update read model
     await this.eventBus.subscribe(
       "AppointmentStarted",
       new AppointmentStatusChangedEventHandler(this.readModelHandler),

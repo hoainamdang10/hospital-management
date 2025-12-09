@@ -14,7 +14,6 @@ import { CompleteAppointmentUseCase } from "../../application/use-cases/Complete
 import { GetAppointmentUseCase } from "../../application/use-cases/GetAppointment.use-case";
 import { ListAppointmentsUseCase } from "../../application/use-cases/ListAppointments.use-case";
 import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
-import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
 import { MarkAsNoShowUseCase } from "../../application/use-cases/MarkAsNoShow.use-case";
 import { StartAppointmentUseCase } from "../../application/use-cases/StartAppointment.use-case";
 import { GetAppointmentHistoryUseCase } from "../../application/use-cases/GetAppointmentHistory.use-case";
@@ -30,7 +29,6 @@ export declare class AppointmentController {
     private readonly getAppointmentUseCase;
     private readonly listAppointmentsUseCase;
     private readonly rescheduleAppointmentUseCase;
-    private readonly checkInAppointmentUseCase;
     private readonly markAsNoShowUseCase;
     private readonly startAppointmentUseCase;
     private readonly getAppointmentHistoryUseCase;
@@ -38,7 +36,7 @@ export declare class AppointmentController {
     private readonly createEmergencyAppointmentUseCase;
     private readonly transferAppointmentUseCase;
     private readonly createRecurringSeriesUseCase;
-    constructor(scheduleAppointmentUseCase: ScheduleAppointmentUseCase, cancelAppointmentUseCase: CancelAppointmentUseCase, confirmAppointmentUseCase: ConfirmAppointmentUseCase, completeAppointmentUseCase: CompleteAppointmentUseCase, getAppointmentUseCase: GetAppointmentUseCase, listAppointmentsUseCase: ListAppointmentsUseCase, rescheduleAppointmentUseCase: RescheduleAppointmentUseCase, checkInAppointmentUseCase: CheckInAppointmentUseCase, markAsNoShowUseCase: MarkAsNoShowUseCase, startAppointmentUseCase: StartAppointmentUseCase, getAppointmentHistoryUseCase: GetAppointmentHistoryUseCase, getAppointmentStatisticsUseCase: GetAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase, transferAppointmentUseCase: TransferAppointmentUseCase, createRecurringSeriesUseCase: CreateRecurringAppointmentSeriesUseCase);
+    constructor(scheduleAppointmentUseCase: ScheduleAppointmentUseCase, cancelAppointmentUseCase: CancelAppointmentUseCase, confirmAppointmentUseCase: ConfirmAppointmentUseCase, completeAppointmentUseCase: CompleteAppointmentUseCase, getAppointmentUseCase: GetAppointmentUseCase, listAppointmentsUseCase: ListAppointmentsUseCase, rescheduleAppointmentUseCase: RescheduleAppointmentUseCase, markAsNoShowUseCase: MarkAsNoShowUseCase, startAppointmentUseCase: StartAppointmentUseCase, getAppointmentHistoryUseCase: GetAppointmentHistoryUseCase, getAppointmentStatisticsUseCase: GetAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase: CreateEmergencyAppointmentUseCase, transferAppointmentUseCase: TransferAppointmentUseCase, createRecurringSeriesUseCase: CreateRecurringAppointmentSeriesUseCase);
     /**
      * POST /api/appointments
      * Schedule a new appointment
@@ -87,8 +85,9 @@ export declare class AppointmentController {
     /**
      * POST /api/appointments/:id/check-in
      * Check in patient for appointment
+     * DISABLED: Simplified 3-role flow doesn't use check-in
+     * Doctors can start appointments directly
      */
-    checkInAppointment(req: Request, res: Response): Promise<void>;
     /**
      * POST /api/appointments/:id/no-show
      * Mark appointment as no-show

@@ -4,24 +4,31 @@
 
 ## 📊 **PROJECT STATUS**
 
-**Version**: 2.0.0-alpha  
-**Architecture**: Clean Architecture + DDD + CQRS + Event-Driven  
-**Status**: 🚧 In Active Development (40-50% Complete)
+**Version**: 2.0.0  
+**Architecture**: Clean Architecture + 3-Tier + Microservices + Event-Driven  
+**Status**: ✅ Production Ready (Deployed to VPS)  
+**Last Updated**: 08/12/2024
 
-### **✅ Completed Services (3/7)**
-- **Identity Service** - Authentication & Authorization (Port 3001)
-- **Patient Registry** - Patient management with HIPAA compliance (Port 3002)
-- **Provider/Staff** - Doctor/Staff management (Port 3003)
+### **✅ Completed Backend Services (8/8)**
+- **API Gateway** - Unified entry point, routing & session management (Port 4000)
+- **Identity Service** - Authentication, Authorization, RBAC (Port 3001)
+- **Appointments Service** - Booking, Queue Management, Calendar (Port 3002)
+- **Staff Service** - Doctor/Staff management, Scheduling (Port 3003)
+- **Billing Service** - VNPay/PayOS integration, Invoices, Wallet (Port 3004)
+- **Chat Service** - Realtime messaging via Supabase (Port 3005)
+- **Patient Registry Service** - Patient demographics, Medical history (Port 3006)
+- **Notification Service** - Email notifications, Reminders (Port 3007)
 
-### **🔄 In Development (4/7)**
-- **Appointments Service** - Appointments & Queue Management (Port 3004)
-- **Clinical EMR Service** - Medical Records & FHIR compliance (Port 3005)
-- **Billing Service** - Payments & Insurance (Port 3006)
-- **Notifications Service** - Multi-channel alerts (Port 3007)
+### **✅ Completed Frontend**
+- **Patient Portal** - Appointment booking, Payment, Profile management
+- **Doctor Portal** - Dashboard, Calendar, Patient consultations
+- **Admin Portal** - Staff management, Departments, Reports, Analytics
+- **Public Pages** - Landing, Services, Doctors, FAQ, Contact, etc.
 
-### **❌ Not Started**
-- **API Gateway V2** - Unified entry point (Port 3009)
-- **Department Service** - Department management (Port 3008)
+### **✅ Deployment**
+- Successfully deployed to VPS with Docker Compose
+- HTTPS enabled via Nginx reverse proxy
+- Production database on Supabase
 
 ---
 
@@ -44,28 +51,26 @@
 ```
 hospital-management-V2/
 ├── backend/
-│   └── services-v2/              # 🎯 Clean Architecture V2 Services
-│       ├── identity-service/           # ✅ Auth & User Management
-│       ├── patient-registry-service/   # ✅ Patient Management
-│       ├── provider-staff-service/     # ✅ Doctor/Staff Management
-│       ├── appointments-service/       # 🔄 Appointments & Scheduling
-│       ├── clinical-emr-service/       # 🔄 Medical Records & FHIR
-│       ├── billing-service/            # 🔄 Payments & Billing
-│       ├── notifications-service/      # 🔄 Notifications
-│       ├── identity-service-consolidated/ # 🔄 Consolidated Identity (In Progress)
-│       ├── shared/                     # Shared domain primitives
-│       ├── scripts/                    # Deployment & validation scripts
-│       └── docker-compose.v2.yml       # V2 orchestration
+│   └── services-v2/              # 🎯 Microservices Backend
+│       ├── api-gateway/              # ✅ API Gateway & Routing
+│       ├── identity-service/         # ✅ Auth & User Management
+│       ├── appointments-service/     # ✅ Appointments & Calendar
+│       ├── staff-service/            # ✅ Doctor/Staff Management
+│       ├── billing-service/          # ✅ Payments (VNPay/PayOS)
+│       ├── chat-service/             # ✅ Realtime Chat
+│       ├── patient-registry-service/ # ✅ Patient Management
+│       ├── notification-service/     # ✅ Email Notifications
+│       ├── shared/                   # Shared domain primitives
+│       └── docker-compose.yml        # Production orchestration
 │
-├── frontend/                     # Next.js 15 + React 18 + TypeScript
-│   ├── app/                     # Next.js App Router
-│   ├── components/              # React components
-│   ├── lib/                     # Frontend utilities (⚠️ Still connects to V1)
+├── frontend/                     # Next.js 14 + React 18 + TypeScript
+│   ├── app/                     # Next.js App Router (Patient/Doctor/Admin)
+│   ├── components/              # React components + Framer Motion
+│   ├── lib/                     # API services & utilities
 │   └── middleware.ts            # Auth middleware
 │
+├── docs/                        # 📚 API & Flow Documentation
 ├── AGENTS.md                    # 🤖 Coding agent guidelines
-├── DEVELOPMENT_RULES.md         # 📋 Development standards
-├── V2-QUICK-START.md           # 🚀 Quick start guide (See this first!)
 └── README.md                    # 📖 This file
 ```
 
@@ -162,28 +167,30 @@ Each service has its own README:
 
 ## 🎯 **DEVELOPMENT ROADMAP**
 
-### **Phase 1: Foundation (Weeks 1-2)** ✅ COMPLETED
+### **Phase 1: Foundation** ✅ COMPLETED
 - [x] Identity Service with Clean Architecture
 - [x] Patient Registry Service with DDD patterns
-- [x] Provider/Staff Service
+- [x] Staff/Provider Service
 - [x] Database schema-per-service design
 - [x] Event-driven architecture foundation
 
-### **Phase 2: Core Services (Weeks 3-5)** 🔄 IN PROGRESS
-- [ ] API Gateway V2 implementation
-- [ ] Appointments Service completion
-- [ ] Clinical EMR Service with FHIR compliance
-- [ ] Identity Service consolidation
+### **Phase 2: Core Services** ✅ COMPLETED
+- [x] API Gateway implementation with session management
+- [x] Appointments Service with calendar & queue management
+- [x] Billing Service with VNPay/PayOS integration
+- [x] Chat Service with Supabase Realtime
 
-### **Phase 3: Business Services (Weeks 6-7)** ⏳ PLANNED
-- [ ] Billing Service with BHYT/BHTN integration
-- [ ] Notifications Service with multi-channel delivery
-- [ ] Service integration testing
+### **Phase 3: Frontend Development** ✅ COMPLETED
+- [x] Patient Portal - Booking, Payments, Profile
+- [x] Doctor Portal - Dashboard, Calendar, Consultations
+- [x] Admin Portal - Staff, Departments, Reports
+- [x] Public Pages - Landing, Services, FAQ, Contact
 
-### **Phase 4: Frontend Migration (Week 8)** ⏳ PLANNED
-- [ ] Frontend migration to V2 API Gateway
-- [ ] Update all API calls from V1 to V2
-- [ ] End-to-end testing
+### **Phase 4: Deployment & Production** ✅ COMPLETED
+- [x] Docker containerization for all services
+- [x] VPS deployment with Nginx reverse proxy
+- [x] HTTPS configuration
+- [x] Production database setup on Supabase
 
 ---
 
@@ -274,15 +281,15 @@ This project is developed for educational purposes as part of a graduation thesi
 
 ## 📈 **PROJECT METRICS**
 
-- **Services Completed**: 3/7 (43%)
-- **Code Coverage**: ~60% (Target: 90%+)
-- **Documentation**: Comprehensive architecture docs available
-- **HIPAA Compliance**: 100% (for completed services)
-- **FHIR R4 Support**: Planned for Clinical EMR service
-- **Vietnamese Standards**: Full compliance
+- **Backend Services**: 8/8 (100%) ✅
+- **Frontend Pages**: ~80 pages across 3 portals ✅
+- **API Endpoints**: ~97 endpoints documented
+- **Payment Integration**: VNPay + PayOS ✅
+- **Realtime Features**: Chat via Supabase Realtime ✅
+- **Vietnamese Standards**: Full compliance ✅
 
 ---
 
-**Last Updated**: October 1, 2025  
-**Project Lead**: Hospital Management System V2 Team  
-**Architecture**: Clean Architecture + DDD + CQRS + Event-Driven Microservices
+**Last Updated**: 08/12/2024  
+**Project**: Đồ án Tốt nghiệp - Hệ Thống Quản Lý Bệnh Viện  
+**Architecture**: 3-Tier + Clean Architecture + Microservices

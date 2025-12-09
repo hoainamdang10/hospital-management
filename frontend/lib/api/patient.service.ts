@@ -438,12 +438,18 @@ class PatientService {
 
   async addInsurance(patientId: string, insurance: Insurance): Promise<void> {
     const resolvedId = await this.resolvePatientId(patientId);
+    const normalizeDate = (value: string | Date | undefined): string | undefined => {
+      if (!value) return undefined;
+      const d = typeof value === 'string' ? new Date(value) : value;
+      return Number.isNaN(d.getTime()) ? undefined : d.toISOString().split('T')[0];
+    };
+
     const payload = {
       provider: insurance.provider,
       policyNumber: insurance.policyNumber,
       groupNumber: insurance.groupNumber,
-      validFrom: insurance.validFrom,
-      validTo: insurance.validTo,
+      validFrom: normalizeDate(insurance.validFrom),
+      validTo: normalizeDate(insurance.validTo),
       coverageType: insurance.coverageType,
       isVietnameseInsurance: ['BHYT', 'BHTN'].includes(insurance.coverageType),
       bhytNumber: insurance.bhytNumber,
@@ -455,7 +461,21 @@ class PatientService {
 
   async updateInsurance(patientId: string, insurance: Insurance): Promise<void> {
     const resolvedId = await this.resolvePatientId(patientId);
+    const normalizeDate = (value: string | Date | undefined): string | undefined => {
+      if (!value) return undefined;
+      const d = typeof value === 'string' ? new Date(value) : value;
+      return Number.isNaN(d.getTime()) ? undefined : d.toISOString().split('T')[0];
+    };
+
     const payload = {
+      provider: insurance.provider,
+      policyNumber: insurance.policyNumber,
+      groupNumber: insurance.groupNumber,
+      validFrom: normalizeDate(insurance.validFrom),
+      validTo: normalizeDate(insurance.validTo),
+      coverageType: insurance.coverageType,
+      isVietnameseInsurance: ['BHYT', 'BHTN'].includes(insurance.coverageType),
+      bhytNumber: insurance.bhytNumber,
       isActive: insurance.isActive ?? true,
       isPrimary: insurance.isPrimary ?? true,
     };

@@ -134,7 +134,6 @@ export default function DoctorsListPage() {
 
         items.forEach((doc: any) => {
           const specialization =
-            doc.specializations?.[0]?.name ||
             doc.professionalInfo?.department ||
             doc.professionalInfo?.title ||
             'Khác';
@@ -567,22 +566,14 @@ export default function DoctorsListPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1.5">
-                            {doctor.specializations && doctor.specializations.length > 0 ? (
-                              doctor.specializations.slice(0, 2).map((spec, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center rounded-lg border border-cyan-200/80 bg-gradient-to-r from-cyan-50 to-teal-50 px-2.5 py-1 text-xs font-medium text-cyan-700 transition-all duration-200 group-hover:shadow-sm"
-                                >
-                                  {spec.name}
-                                </span>
-                              ))
+                            {doctor.professionalInfo?.department ? (
+                              <span
+                                className="inline-flex items-center rounded-lg border border-cyan-200/80 bg-gradient-to-r from-cyan-50 to-teal-50 px-2.5 py-1 text-xs font-medium text-cyan-700 transition-all duration-200 group-hover:shadow-sm"
+                              >
+                                {doctor.professionalInfo.department}
+                              </span>
                             ) : (
                               <span className="text-xs text-slate-400 italic">Chưa cập nhật</span>
-                            )}
-                            {doctor.specializations && doctor.specializations.length > 2 && (
-                              <span className="inline-flex items-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-                                +{doctor.specializations.length - 2}
-                              </span>
                             )}
                           </div>
                         </td>

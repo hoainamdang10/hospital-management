@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { authService } from '@/lib/api/auth.service';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 type ChangePasswordDialogProps = {
   /**
@@ -104,7 +105,11 @@ export function ChangePasswordDialog({
         err?.response?.data?.error ||
         'Đổi mật khẩu thất bại. Vui lòng thử lại.';
       setError(message);
-      toast.error('Đổi mật khẩu thất bại', { description: message });
+      showErrorToast(err, {
+        title: 'Đổi mật khẩu thất bại',
+        fallbackMessage: message,
+        context: 'Patient/Profile:change-password',
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -4,6 +4,7 @@ import { GetInvoiceUseCase } from "../../application/use-cases/GetInvoiceUseCase
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 import { ProcessPaymentUseCase } from "../../application/use-cases/ProcessPaymentUseCase";
 import { GetPatientInvoicesUseCase } from "../../application/use-cases/GetPatientInvoicesUseCase";
+import { GetInvoicesByAppointmentUseCase } from "../../application/use-cases/GetInvoicesByAppointmentUseCase";
 // REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase, RefundPaymentUseCase
 import { SearchInvoicesUseCase } from "../../application/use-cases/SearchInvoicesUseCase";
 import { GetOverdueInvoicesUseCase } from "../../application/use-cases/GetOverdueInvoicesUseCase";
@@ -14,6 +15,9 @@ import { HandlePayOSWebhookUseCase } from "../../application/use-cases/HandlePay
 import { PayInvoiceWithWalletUseCase } from "../../application/use-cases/PayInvoiceWithWalletUseCase";
 // REMOVED: SendInvoiceEmailUseCase, CreatePaymentReminderUseCase - Out of scope for Phase 1
 import { AuthenticatedRequest } from "../middleware/AuthenticationMiddleware";
+import { SupabasePatientRepository } from "../../infrastructure/repositories/SupabasePatientRepository";
+import { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimized-supabase-client";
+import { logger } from "@infrastructure/logging/logger";
 
 export class InvoiceController {
   constructor(
@@ -21,6 +25,7 @@ export class InvoiceController {
     private readonly getInvoiceUseCase: GetInvoiceUseCase,
     private readonly processPaymentUseCase: ProcessPaymentUseCase,
     private readonly getPatientInvoicesUseCase: GetPatientInvoicesUseCase,
+    private readonly getInvoicesByAppointmentUseCase: GetInvoicesByAppointmentUseCase,
     private readonly searchInvoicesUseCase: SearchInvoicesUseCase,
     private readonly getOverdueInvoicesUseCase: GetOverdueInvoicesUseCase,
     private readonly getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase,
@@ -28,6 +33,7 @@ export class InvoiceController {
     private readonly createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase,
     private readonly handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase,
     private readonly payInvoiceWithWalletUseCase: PayInvoiceWithWalletUseCase,
+    private readonly patientRepository?: SupabasePatientRepository,
     // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
   ) {}
 
@@ -36,7 +42,58 @@ export class InvoiceController {
     res: Response,
   ): Promise<void> => {
     try {
-      const result = await this.createInvoiceUseCase.execute(req.body);
+      const payload = { ...req.body };
+
+      // Fallback: nếu không có insurance input thì tự fetch từ patient
+      if (
+        !payload.insurance &&
+        !payload.insuranceCoverageAmount &&
+        payload.patientId
+      ) {
+        try {
+          if (this.patientRepository) {
+            const patient = await this.patientRepository.findById(
+              payload.patientId,
+            );
+            if (patient?.insuranceInfo) {
+              payload.insurance = {
+                provider:
+                  patient.insuranceInfo.provider ||
+                  patient.insuranceInfo.providerName,
+                policyNumber: patient.insuranceInfo.policyNumber,
+                coveragePercentage:
+                  patient.insuranceInfo.coveragePercentage ||
+                  patient.insuranceInfo.coverage?.consultationCoverage ||
+                  80,
+              };
+              const coveragePct = payload.insurance.coveragePercentage || 0;
+              // Nếu có đơn giá line item, tính sơ bộ coverageAmount
+              if (payload.items?.[0]?.unitPrice && coveragePct > 0) {
+                payload.insuranceCoverageAmount = Math.round(
+                  payload.items[0].unitPrice * (coveragePct / 100),
+                );
+              }
+            }
+          } else {
+            logger.warn(
+              "Patient repository not available for insurance fallback",
+              {
+                patientId: payload.patientId,
+              },
+            );
+          }
+        } catch (err) {
+          logger.warn(
+            "Failed to fetch insurance info in createInvoice fallback",
+            {
+              patientId: payload.patientId,
+              error: err instanceof Error ? err.message : "Unknown error",
+            },
+          );
+        }
+      }
+
+      const result = await this.createInvoiceUseCase.execute(payload);
       res.status(201).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -104,6 +161,20 @@ export class InvoiceController {
     try {
       const result = await this.getPatientInvoicesUseCase.execute({
         patientId: req.params.patientId,
+      });
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  public getInvoicesByAppointment = async (
+    req: Request,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const result = await this.getInvoicesByAppointmentUseCase.execute({
+        appointmentId: req.params.appointmentId,
       });
       res.status(200).json(result);
     } catch (error: any) {

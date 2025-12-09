@@ -1,4 +1,4 @@
-import { IAuthorizationService, UserRole } from '../../application/services/IAuthorizationService';
+import { IAuthorizationService, UserRole } from "../../application/services/IAuthorizationService";
 /**
  * Authorization Service Implementation
  * Uses Supabase to check user roles from identity service
@@ -152,6 +152,10 @@ export declare class AuthorizationService implements IAuthorizationService {
      * Patient can view their own queue, Staff can view any queue
      */
     canViewQueueStatus(userId: string, patientId?: string, doctorId?: string): Promise<boolean>;
+    /**
+     * Public helper to resolve canonical patientId for a given identity user.
+     */
+    resolvePatientIdForUser(userId: string): Promise<string | null>;
     /**
      * Check if user has specific role
      */

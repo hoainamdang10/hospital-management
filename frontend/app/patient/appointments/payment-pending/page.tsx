@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Clock,
@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 import { billingService } from '@/modules/billing/services/billing.service';
 import type { Invoice } from '@/modules/billing/services/billing.service';
 import { useAuth } from '@/hooks/useAuth';
+import { showErrorToast } from '@/lib/utils/error-toast';
+import { formatCurrency } from '@/lib/utils';
 
 /**
  * Payment Pending Page
@@ -27,18 +29,19 @@ import { useAuth } from '@/hooks/useAuth';
  * Displayed after scheduling appointment with prepaid payment model
  * Query params:
  * - appointmentId (required) - ID của appointment vừa tạo
- * - paymentLink (optional) - PayOS checkout URL từ backend response
+ * - paymentLink (optional) - VNPay checkout URL từ backend response
  * - paymentDeadline (optional) - ISO string cho countdown timer
  * - invoiceId (optional) - Invoice ID để track payment status
  *
  * Features:
  * - Countdown timer (10 minutes)
- * - Payment link button (redirect to PayOS)
+ * - Payment link button (redirect to VNPay)
  * - Payment status polling (every 10 seconds)
  * - Auto-redirect when payment successful
  * - Graceful degradation if payment link not available
  */
 const PAYMENT_TIMEOUT_SECONDS = 10 * 60; // 10 minutes
+const MAX_PAYMENT_LINK_POLLS = 10;
 
 function PaymentPendingPageContent() {
   const router = useRouter();
@@ -46,10 +49,10 @@ function PaymentPendingPageContent() {
   const { user } = useAuth();
 
   // URL params
-  const appointmentId = searchParams.get('appointmentId');
-  const initialPaymentLink = searchParams.get('paymentLink');
-  const paymentDeadlineParam = searchParams.get('paymentDeadline');
-  const invoiceIdParam = searchParams.get('invoiceId');
+  const appointmentId = searchParams?.get('appointmentId') || null;
+  const initialPaymentLink = searchParams?.get('paymentLink') || null;
+  const paymentDeadlineParam = searchParams?.get('paymentDeadline') || null;
+  const invoiceIdParam = searchParams?.get('invoiceId') || null;
 
   // State
   const [paymentLink, setPaymentLink] = useState<string | null>(initialPaymentLink);
@@ -60,6 +63,43 @@ function PaymentPendingPageContent() {
   const [pollingAttempts, setPollingAttempts] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // seconds
   const [isExpired, setIsExpired] = useState(false);
+
+  // Ref to prevent duplicate payment link creation
+  const isCreatingPaymentLinkRef = useRef(false);
+
+  const getPatientLiability = useCallback((target: Invoice | null) => {
+    if (!target) return 0;
+    if (typeof target.patientPaymentAmount === 'number') {
+      return Math.max(0, target.patientPaymentAmount);
+    }
+    return Math.max(0, (target.totalAmount ?? 0) - (target.insuranceCoverage ?? 0));
+  }, []);
+
+  const getOutstandingAmount = useCallback(
+    (target: Invoice | null) => {
+      if (!target) return 0;
+      const patientLiability = getPatientLiability(target);
+      const storedOutstanding =
+        typeof target.outstandingAmount === 'number' ? target.outstandingAmount : 0;
+      const paidAmount =
+        typeof target.paidAmount === 'number'
+          ? target.paidAmount
+          : (target.payments?.reduce((sum, payment) => {
+            if ((payment.method || '').toLowerCase() === 'refund') return sum;
+            return sum + Math.max(0, payment.amount ?? 0);
+          }, 0) ?? 0);
+      const derivedOutstanding = Math.max(patientLiability - paidAmount, 0);
+
+      if (storedOutstanding > 0 && storedOutstanding <= patientLiability) {
+        return storedOutstanding;
+      }
+      if (derivedOutstanding > 0) {
+        return derivedOutstanding;
+      }
+      return patientLiability;
+    },
+    [getPatientLiability]
+  );
 
   // Calculate initial time remaining
   useEffect(() => {
@@ -127,49 +167,79 @@ function PaymentPendingPageContent() {
     return 'text-gray-900';
   };
 
+  const resolvePatientIdentifier = useCallback((): string | null => {
+    const preferValue = (value?: string | null) =>
+      value && value.trim().length > 0 ? value : null;
+    try {
+      const cachedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      return (
+        preferValue(user?.patientId) ||
+        preferValue(cachedUser?.patientId) ||
+        preferValue(user?.id) ||
+        preferValue(user?.userId) ||
+        preferValue(cachedUser?.id) ||
+        preferValue(cachedUser?.userId) ||
+        null
+      );
+    } catch {
+      return (
+        preferValue(user?.patientId) || preferValue(user?.id) || preferValue(user?.userId) || null
+      );
+    }
+  }, [user?.patientId, user?.id, user?.userId]);
+
   // Poll for payment link if not available
   const pollForPaymentLink = useCallback(async () => {
-    if (!appointmentId || paymentLink || pollingAttempts >= 5) {
+    // Prevent multiple concurrent calls
+    if (isCreatingPaymentLinkRef.current) {
+      return;
+    }
+
+    if (
+      !appointmentId ||
+      paymentLink ||
+      pollingAttempts >= MAX_PAYMENT_LINK_POLLS
+    ) {
       setIsLoadingPaymentLink(false);
       return;
     }
 
+    let targetInvoice: Invoice | undefined;
+
     try {
       setPollingAttempts((prev) => prev + 1);
 
-      const patientIdentifier = (() => {
-        if (user?.id) {
-          return user.id;
-        }
-        if (user?.userId) {
-          return user.userId;
-        }
-        try {
-          const cachedUser = JSON.parse(localStorage.getItem('user') || '{}');
-          if (cachedUser?.id) {
-            return cachedUser.id;
-          }
-          if (cachedUser?.userId) {
-            return cachedUser.userId;
-          }
-          if (user?.patientId) {
-            return user.patientId;
-          }
-          return cachedUser?.patientId || null;
-        } catch {
-          return user?.patientId || null;
-        }
-      })();
+      const patientIdentifier = resolvePatientIdentifier();
       if (!patientIdentifier) {
         setIsLoadingPaymentLink(false);
         setIsPolling(false);
-        toast.error('Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.');
+        showErrorToast('Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.', {
+          title: 'Thiếu thông tin bệnh nhân',
+          fallbackMessage: 'Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.',
+          context: 'Patient/PaymentPending:patientLookup',
+        });
         return;
       }
 
-      const invoices = await billingService.getPatientInvoices(patientIdentifier);
+      console.log('[PaymentPending] Looking for invoice:', {
+        appointmentId,
+        patientIdentifier,
+        invoiceIdFromUrl: invoiceId,
+        pollingAttempt: pollingAttempts,
+      });
 
-      let targetInvoice: Invoice | undefined;
+      // Fetch all patient invoices (simpler, more reliable)
+      const invoices = await billingService.getPatientInvoices(patientIdentifier);
+      console.log('[PaymentPending] Invoices from patient API:', {
+        count: invoices.length,
+        invoices: invoices.map(inv => ({
+          id: inv.id,
+          appointmentId: inv.appointmentId,
+          status: inv.status,
+        })),
+      });
+
+      // Find target invoice with simple logic (like old working version)
       if (invoiceId) {
         targetInvoice = invoices.find((inv) => inv.id === invoiceId);
       }
@@ -177,42 +247,81 @@ function PaymentPendingPageContent() {
         targetInvoice = invoices.find((inv) => inv.appointmentId === appointmentId);
       }
       if (!targetInvoice) {
+        // Fallback: find any pending invoice
         targetInvoice = invoices.find((inv) => inv.status === 'pending');
       }
 
+      console.log('[PaymentPending] Selected invoice:', targetInvoice ? {
+        id: targetInvoice.id,
+        appointmentId: targetInvoice.appointmentId,
+        status: targetInvoice.status,
+      } : 'none');
+
       if (!targetInvoice) {
-        if (pollingAttempts >= 5) {
+        if (pollingAttempts + 1 >= MAX_PAYMENT_LINK_POLLS) {
           setIsLoadingPaymentLink(false);
-          toast.error(
-            'Không tìm thấy hóa đơn cho lịch hẹn này. Có thể lịch hẹn đã bị hủy hoặc chưa được tạo.'
-          );
+          showErrorToast('Không tìm thấy hóa đơn cho lịch hẹn này.', {
+            title: 'Không tìm thấy hóa đơn',
+            fallbackMessage:
+              'Không tìm thấy hóa đơn cho lịch hẹn này. Có thể lịch hẹn đã bị hủy hoặc chưa được tạo.',
+            context: `Patient/PaymentPending:invoiceLookup:${appointmentId}`,
+            id: 'payment-pending-missing-invoice',
+          });
         }
         return;
       }
 
       setInvoice(targetInvoice);
-      setInvoiceId(targetInvoice.id);
 
-      if (!paymentLink) {
-        const paymentLinkResponse = await billingService.createPayOSPaymentLink(targetInvoice.id, {
-          buyerName: user?.fullName,
-          buyerEmail: user?.email,
-          buyerPhone: user?.phone,
-        });
+      // Invoice is ready immediately when found
+      // Backend will calculate insurance correctly regardless of sync timing
 
-        setPaymentLink(paymentLinkResponse.checkoutUrl);
-        setIsLoadingPaymentLink(false);
-        toast.success('Đã tạo link thanh toán!');
+
+      if (!invoiceId || invoiceId !== targetInvoice.id) {
+        setInvoiceId(targetInvoice.id);
+      }
+
+      if (!paymentLink && !isCreatingPaymentLinkRef.current) {
+        // Mark as creating to prevent duplicate calls
+        isCreatingPaymentLinkRef.current = true;
+
+        try {
+          const paymentLinkResponse = await billingService.createPayOSPaymentLink(targetInvoice.id, {
+            buyerName: user?.fullName,
+            buyerEmail: user?.email,
+            buyerPhone: (user as any)?.phone || '',
+          });
+
+          setPaymentLink(paymentLinkResponse.checkoutUrl);
+          setIsLoadingPaymentLink(false);
+          toast.success('Đã tạo link thanh toán!');
+        } finally {
+          isCreatingPaymentLinkRef.current = false;
+        }
       }
     } catch (error) {
       console.error('[PaymentPending] Failed to poll for payment link:', error);
+      isCreatingPaymentLinkRef.current = false;
 
-      if (pollingAttempts >= 5) {
+      if (pollingAttempts + 1 >= MAX_PAYMENT_LINK_POLLS) {
         setIsLoadingPaymentLink(false);
-        toast.error('Không thể tạo link thanh toán. Vui lòng thử lại sau.');
+        showErrorToast(error, {
+          title: 'Không thể tạo link thanh toán',
+          fallbackMessage: 'Không thể tạo link thanh toán. Vui lòng thử lại sau.',
+          context: `Patient/PaymentPending:createPaymentLink:${targetInvoice?.id || 'unknown'}`,
+          id: 'payment-link-error',
+        });
       }
     }
-  }, [appointmentId, paymentLink, invoiceId, pollingAttempts, user]);
+  }, [
+    appointmentId,
+    paymentLink,
+    pollingAttempts,
+    user?.fullName,
+    user?.email,
+    invoiceId,
+    resolvePatientIdentifier,
+  ]);
 
   // Poll for payment status
   const pollForPaymentStatus = useCallback(async () => {
@@ -236,12 +345,18 @@ function PaymentPendingPageContent() {
       }
     } catch (error) {
       console.error('[PaymentPending] Failed to poll for payment status:', error);
+      showErrorToast(error, {
+        title: 'Không thể kiểm tra trạng thái thanh toán',
+        fallbackMessage: 'Không thể cập nhật trạng thái thanh toán. Vui lòng thử lại.',
+        context: `Patient/PaymentPending:pollStatus:${invoiceId}`,
+        id: 'payment-status-error',
+      });
     }
   }, [invoiceId, isPolling, appointmentId, router]);
 
   // Initial payment link polling
   useEffect(() => {
-    if (isLoadingPaymentLink && pollingAttempts < 5) {
+    if (isLoadingPaymentLink && pollingAttempts < MAX_PAYMENT_LINK_POLLS) {
       const timer = setTimeout(() => {
         pollForPaymentLink();
       }, 2000); // Poll every 2 seconds
@@ -360,7 +475,7 @@ function PaymentPendingPageContent() {
             )}
             {isExpired && (
               <p className="mt-4 inline-block rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-600">
-                ⏰ Hết thời gian thanh toán. Lịch hẹn sẽ bị hủy tự động.
+                Hết thời gian thanh toán. Lịch hẹn sẽ bị hủy tự động.
               </p>
             )}
           </div>
@@ -374,7 +489,7 @@ function PaymentPendingPageContent() {
                   Đang tạo link thanh toán an toàn...
                 </p>
                 <p className="mt-1 text-sm text-gray-500">
-                  Vui lòng không tắt trình duyệt ({pollingAttempts}/5)
+                  Vui lòng không tắt trình duyệt ({pollingAttempts}/{MAX_PAYMENT_LINK_POLLS})
                 </p>
               </div>
             ) : paymentLink ? (
@@ -389,7 +504,7 @@ function PaymentPendingPageContent() {
                   <ExternalLink className="ml-2 h-5 w-5 opacity-70" />
                 </Button>
                 <p className="text-center text-sm text-gray-500">
-                  Bạn sẽ được chuyển đến cổng thanh toán PayOS an toàn
+                  Bạn sẽ được chuyển đến cổng thanh toán VNPay an toàn
                 </p>
               </div>
             ) : (
@@ -425,22 +540,50 @@ function PaymentPendingPageContent() {
                 </span>
               </div>
               <div className="space-y-3 rounded-xl bg-gray-50 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Tổng tiền thanh toán</span>
-                  <span className="text-xl font-bold text-blue-600">
-                    {invoice.totalAmount.toLocaleString('vi-VN')} {invoice.currency}
+                {/* Subtotal */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Phí khám</span>
+                  <span className="font-medium text-gray-900">
+                    {formatCurrency(
+                      typeof invoice.subtotal === 'number' ? invoice.subtotal : invoice.totalAmount
+                    )}{' '}
+                    {invoice.currency}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
+
+                {/* Insurance Coverage */}
+                {invoice.insuranceCoverage && invoice.insuranceCoverage > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1 font-medium text-emerald-700">
+                      🛡️ Bảo hiểm chi trả
+                    </span>
+                    <span className="font-semibold text-emerald-600">
+                      -{formatCurrency(invoice.insuranceCoverage ?? 0)} {invoice.currency}
+                    </span>
+                  </div>
+                )}
+
+                {/* Divider */}
+                <div className="my-2 h-px bg-gray-200" />
+
+                {/* Total to pay */}
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-600">Người bệnh cần thanh toán</span>
+                  <span className="text-xl font-bold text-blue-600">
+                    {formatCurrency(getOutstandingAmount(invoice))} {invoice.currency}
+                  </span>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center justify-between pt-2 text-sm">
                   <span className="text-gray-600">Trạng thái</span>
                   <span
-                    className={`rounded-md px-2 py-0.5 font-medium ${
-                      invoice.status === 'paid'
-                        ? 'bg-green-100 text-green-700'
-                        : invoice.status === 'pending'
-                          ? 'bg-orange-100 text-orange-700'
-                          : 'bg-gray-100 text-gray-700'
-                    }`}
+                    className={`rounded-md px-2 py-0.5 font-medium ${invoice.status === 'paid'
+                      ? 'bg-green-100 text-green-700'
+                      : invoice.status === 'pending'
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-gray-100 text-gray-700'
+                      }`}
                   >
                     {invoice.status === 'paid'
                       ? 'Đã thanh toán'

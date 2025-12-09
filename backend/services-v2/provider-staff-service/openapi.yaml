@@ -3,21 +3,21 @@ info:
   title: Provider/Staff Service API
   description: |
     Provider/Staff microservice for Hospital Management System V2.
-    
+
     ## Features
     - Staff Management (CRUD operations)
     - Department Assignment
     - Credential Management
     - Status Management (Activate, Suspend, Terminate)
     - Schedule Management
-    - Specialization Management
+    - Department-driven workflows
     - Search and Filtering
-    
+
     ## Architecture
     - Clean Architecture with DDD patterns
     - Port: 3022 (External), 3002 (Internal)
     - CQRS Pattern Implementation
-    
+
     ## Authentication
     All endpoints require Bearer token authentication except health endpoints.
   version: 2.0.0
@@ -50,8 +50,6 @@ tags:
     description: Staff status management (activate, suspend, terminate)
   - name: Schedule
     description: Work schedule management
-  - name: Specializations
-    description: Professional specializations management
 
 paths:
   /health:
@@ -61,18 +59,18 @@ paths:
       description: Check the health status of the Provider/Staff Service
       security: []
       responses:
-        '200':
+        "200":
           description: Service is healthy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
-        '503':
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
           description: Service is unhealthy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: "#/components/schemas/HealthResponse"
 
   /api/v1/staff:
     get:
@@ -84,7 +82,7 @@ paths:
           in: query
           description: Filter by staff type
           schema:
-            $ref: '#/components/schemas/StaffType'
+            $ref: "#/components/schemas/StaffType"
         - name: departmentId
           in: query
           description: Filter by department ID
@@ -95,7 +93,7 @@ paths:
           in: query
           description: Filter by staff status
           schema:
-            $ref: '#/components/schemas/StaffStatus'
+            $ref: "#/components/schemas/StaffStatus"
         - name: isActive
           in: query
           description: Filter by active status
@@ -130,20 +128,20 @@ paths:
             enum: [asc, desc]
             default: asc
       responses:
-        '200':
+        "200":
           description: Staff list retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedStaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/PaginatedStaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     post:
       tags: [Staff Management]
@@ -156,28 +154,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterStaffRequest'
+              $ref: "#/components/schemas/RegisterStaffRequest"
       responses:
-        '201':
+        "201":
           description: Staff registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
           description: Staff already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/search:
     get:
@@ -196,23 +194,18 @@ paths:
           in: query
           description: Filter by staff type
           schema:
-            $ref: '#/components/schemas/StaffType'
+            $ref: "#/components/schemas/StaffType"
         - name: departmentId
           in: query
           description: Filter by department ID
           schema:
             type: string
             format: uuid
-        - name: specialization
-          in: query
-          description: Filter by specialization
-          schema:
-            type: string
         - name: status
           in: query
           description: Filter by staff status
           schema:
-            $ref: '#/components/schemas/StaffStatus'
+            $ref: "#/components/schemas/StaffStatus"
         - name: isActive
           in: query
           description: Filter by active status
@@ -239,20 +232,20 @@ paths:
             maximum: 100
             default: 20
       responses:
-        '200':
+        "200":
           description: Search results retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedStaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/PaginatedStaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/user/{userId}:
     get:
@@ -268,18 +261,18 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Staff retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/license/{licenseNumber}:
     get:
@@ -294,20 +287,20 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Staff retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}:
     get:
@@ -323,18 +316,18 @@ paths:
             type: string
             pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
       responses:
-        '200':
+        "200":
           description: Staff retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     put:
       tags: [Staff Management]
@@ -355,24 +348,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateStaffRequest'
+              $ref: "#/components/schemas/UpdateStaffRequest"
       responses:
-        '200':
+        "200":
           description: Staff updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/departments:
     post:
@@ -394,24 +387,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AssignDepartmentRequest'
+              $ref: "#/components/schemas/AssignDepartmentRequest"
       responses:
-        '200':
+        "200":
           description: Staff assigned to department successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/department-head:
     put:
@@ -433,24 +426,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SetDepartmentHeadRequest'
+              $ref: "#/components/schemas/SetDepartmentHeadRequest"
       responses:
-        '200':
+        "200":
           description: Department head set successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/credentials/expiring:
     get:
@@ -484,20 +477,20 @@ paths:
             maximum: 100
             default: 20
       responses:
-        '200':
+        "200":
           description: Expiring credentials retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedStaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/PaginatedStaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/credentials:
     post:
@@ -519,24 +512,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddCredentialRequest'
+              $ref: "#/components/schemas/AddCredentialRequest"
       responses:
-        '201':
+        "201":
           description: Credential added successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/credentials/{credentialNumber}/renew:
     put:
@@ -564,24 +557,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RenewCredentialRequest'
+              $ref: "#/components/schemas/RenewCredentialRequest"
       responses:
-        '200':
+        "200":
           description: Credential renewed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/credentials/{credentialNumber}:
     delete:
@@ -605,22 +598,22 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Credential removed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/activate:
     post:
@@ -638,22 +631,22 @@ paths:
             type: string
             pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
       responses:
-        '200':
+        "200":
           description: Staff activated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusChangeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StatusChangeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/suspend:
     post:
@@ -675,24 +668,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SuspendStaffRequest'
+              $ref: "#/components/schemas/SuspendStaffRequest"
       responses:
-        '200':
+        "200":
           description: Staff suspended successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusChangeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StatusChangeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/reactivate:
     post:
@@ -710,22 +703,22 @@ paths:
             type: string
             pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
       responses:
-        '200':
+        "200":
           description: Staff reactivated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusChangeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StatusChangeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/terminate:
     post:
@@ -747,24 +740,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TerminateStaffRequest'
+              $ref: "#/components/schemas/TerminateStaffRequest"
       responses:
-        '200':
+        "200":
           description: Staff terminated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusChangeResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StatusChangeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/employment-status:
     patch:
@@ -786,24 +779,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateEmploymentStatusRequest'
+              $ref: "#/components/schemas/UpdateEmploymentStatusRequest"
       responses:
-        '200':
+        "200":
           description: Employment status updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/StaffResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /api/v1/staff/{staffId}/schedule:
     get:
@@ -819,18 +812,18 @@ paths:
             type: string
             pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
       responses:
-        '200':
+        "200":
           description: Schedule retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScheduleResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/ScheduleResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     put:
       tags: [Schedule]
@@ -851,128 +844,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateScheduleRequest'
+              $ref: "#/components/schemas/UpdateScheduleRequest"
       responses:
-        '200':
+        "200":
           description: Schedule updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScheduleResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/v1/staff/{staffId}/specializations:
-    get:
-      tags: [Specializations]
-      summary: Get staff specializations
-      description: Retrieve a staff member's professional specializations
-      parameters:
-        - name: staffId
-          in: path
-          required: true
-          description: Staff ID in format STAFF-YYYYMM-XXX
-          schema:
-            type: string
-            pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
-      responses:
-        '200':
-          description: Specializations retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SpecializationsResponse'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    post:
-      tags: [Specializations]
-      summary: Add staff specialization
-      description: Add a professional specialization to a staff member
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: staffId
-          in: path
-          required: true
-          description: Staff ID in format STAFF-YYYYMM-XXX
-          schema:
-            type: string
-            pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddSpecializationRequest'
-      responses:
-        '201':
-          description: Specialization added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/v1/staff/{staffId}/specializations/{specializationCode}:
-    delete:
-      tags: [Specializations]
-      summary: Remove staff specialization
-      description: Remove a professional specialization from a staff member
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: staffId
-          in: path
-          required: true
-          description: Staff ID in format STAFF-YYYYMM-XXX
-          schema:
-            type: string
-            pattern: '^[A-Z]{3}-[A-Z]{3,5}-\d{6}-\d{3}$'
-        - name: specializationCode
-          in: path
-          required: true
-          description: Specialization code to remove
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Specialization removed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StaffResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/ScheduleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
 components:
   securitySchemes:
@@ -1065,7 +954,7 @@ components:
           format: uuid
           description: Associated user ID
         staffType:
-          $ref: '#/components/schemas/StaffType'
+          $ref: "#/components/schemas/StaffType"
         firstName:
           type: string
           minLength: 1
@@ -1087,7 +976,7 @@ components:
           type: string
           description: Professional license number
         employmentType:
-          $ref: '#/components/schemas/EmploymentType'
+          $ref: "#/components/schemas/EmploymentType"
         hireDate:
           type: string
           format: date
@@ -1234,7 +1123,7 @@ components:
       type: object
       properties:
         employmentType:
-          $ref: '#/components/schemas/EmploymentType'
+          $ref: "#/components/schemas/EmploymentType"
         contractEndDate:
           type: string
           format: date
@@ -1247,19 +1136,19 @@ components:
           type: object
           properties:
             monday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
             tuesday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
             wednesday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
             thursday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
             friday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
             saturday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
             sunday:
-              $ref: '#/components/schemas/DaySchedule'
+              $ref: "#/components/schemas/DaySchedule"
 
     DaySchedule:
       type: object
@@ -1269,33 +1158,16 @@ components:
           default: false
         startTime:
           type: string
-          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+          pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
           description: Start time in HH:MM format
         endTime:
           type: string
-          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+          pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
           description: End time in HH:MM format
         breakDuration:
           type: integer
           minimum: 0
           description: Break duration in minutes
-
-    AddSpecializationRequest:
-      type: object
-      required:
-        - specializationCode
-      properties:
-        specializationCode:
-          type: string
-          description: Medical specialization code
-        certificationDate:
-          type: string
-          format: date
-          description: Date certification was obtained
-        boardCertified:
-          type: boolean
-          default: false
-          description: Whether board certified
 
     StaffResponse:
       type: object
@@ -1316,7 +1188,7 @@ components:
               type: string
               format: uuid
             staffType:
-              $ref: '#/components/schemas/StaffType'
+              $ref: "#/components/schemas/StaffType"
             firstName:
               type: string
               example: John
@@ -1329,11 +1201,11 @@ components:
             phone:
               type: string
             status:
-              $ref: '#/components/schemas/StaffStatus'
+              $ref: "#/components/schemas/StaffStatus"
             isActive:
               type: boolean
             employmentType:
-              $ref: '#/components/schemas/EmploymentType'
+              $ref: "#/components/schemas/EmploymentType"
             departments:
               type: array
               items:
@@ -1365,20 +1237,6 @@ components:
                     format: date
                   isActive:
                     type: boolean
-            specializations:
-              type: array
-              items:
-                type: object
-                properties:
-                  specializationCode:
-                    type: string
-                  specializationName:
-                    type: string
-                  certificationDate:
-                    type: string
-                    format: date
-                  boardCertified:
-                    type: boolean
             hireDate:
               type: string
               format: date
@@ -1404,7 +1262,7 @@ components:
             staff:
               type: array
               items:
-                $ref: '#/components/schemas/StaffResponse'
+                $ref: "#/components/schemas/StaffResponse"
             pagination:
               type: object
               properties:
@@ -1436,36 +1294,11 @@ components:
             staffId:
               type: string
             workSchedule:
-              $ref: '#/components/schemas/UpdateScheduleRequest'
+              $ref: "#/components/schemas/UpdateScheduleRequest"
             effectiveDate:
               type: string
               format: date
 
-    SpecializationsResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: Specializations retrieved successfully
-        data:
-          type: object
-          properties:
-            staffId:
-              type: string
-            specializations:
-              type: array
-              items:
-                type: object
-                properties:
-                  specializationCode:
-                    type: string
-                  specializationName:
-                    type: string
-                  certificationDate:
-                    type: string
                     format: date
                   boardCertified:
                     type: boolean
@@ -1487,9 +1320,9 @@ components:
             staffId:
               type: string
             previousStatus:
-              $ref: '#/components/schemas/StaffStatus'
+              $ref: "#/components/schemas/StaffStatus"
             newStatus:
-              $ref: '#/components/schemas/StaffStatus'
+              $ref: "#/components/schemas/StaffStatus"
             effectiveDate:
               type: string
               format: date-time
@@ -1524,32 +1357,32 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Unauthorized:
       description: Unauthorized - Authentication required
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Forbidden:
       description: Forbidden - Insufficient permissions
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     InternalServerError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"

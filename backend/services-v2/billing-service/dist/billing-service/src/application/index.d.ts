@@ -8,6 +8,7 @@ export { CreateInvoiceUseCase } from "./use-cases/CreateInvoiceUseCase";
 export { GetInvoiceUseCase } from "./use-cases/GetInvoiceUseCase";
 export { ProcessPaymentUseCase } from "./use-cases/ProcessPaymentUseCase";
 export { GetPatientInvoicesUseCase } from "./use-cases/GetPatientInvoicesUseCase";
+export { GetInvoicesByAppointmentUseCase } from "./use-cases/GetInvoicesByAppointmentUseCase";
 export { SearchInvoicesUseCase } from "./use-cases/SearchInvoicesUseCase";
 export { GetOverdueInvoicesUseCase } from "./use-cases/GetOverdueInvoicesUseCase";
 export { GetPatientBillingSummaryUseCase } from "./use-cases/GetPatientBillingSummaryUseCase";

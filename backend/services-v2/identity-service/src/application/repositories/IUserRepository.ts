@@ -1,17 +1,17 @@
 /**
  * User Repository Interface - Application Layer
  * Defines contract for user persistence operations
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  * @compliance Clean Architecture, Dependency Inversion Principle
  */
 
-import { User } from '../../domain/aggregates/User';
-import { UserId } from '../../domain/value-objects/UserId';
-import { Email } from '../../domain/value-objects/Email';
-import { UserSession } from '../../domain/entities/UserSession';
-import { HealthcareRole } from '../../domain/entities/HealthcareRole';
+import { User } from "../../domain/aggregates/User";
+import { UserId } from "../../domain/value-objects/UserId";
+import { Email } from "../../domain/value-objects/Email";
+import { UserSession } from "../../domain/entities/UserSession";
+import { HealthcareRole } from "../../domain/entities/HealthcareRole";
 
 export interface CreateAuthUserData {
   email: string;
@@ -62,21 +62,24 @@ export interface IUserRepository {
    * Update user profile data (for patient sync)
    * Updates auth_schema.user_profiles table
    */
-  updateProfile(userId: string, profileData: {
-    full_name?: string;
-    date_of_birth?: Date;
-    gender?: string;
-    citizen_id?: string;
-    phone_number?: string;
-    address?: string;
-    ward?: string;
-    district?: string;
-    city?: string;
-    province?: string;
-    country?: string;
-    updated_at?: Date;
-    updated_by?: string;
-  }): Promise<void>;
+  updateProfile(
+    userId: string,
+    profileData: {
+      full_name?: string;
+      date_of_birth?: Date;
+      gender?: string;
+      citizen_id?: string;
+      phone_number?: string;
+      address?: string;
+      ward?: string;
+      district?: string;
+      city?: string;
+      province?: string;
+      country?: string;
+      updated_at?: Date;
+      updated_by?: string;
+    },
+  ): Promise<void>;
 
   /**
    * Update Supabase Auth email_confirmed_at timestamp
@@ -88,6 +91,12 @@ export interface IUserRepository {
    * Delete user
    */
   delete(userId: UserId): Promise<void>;
+
+  /**
+   * Hard delete user (remove khỏi Supabase Auth + profile)
+   * Chỉ dùng cho quy trình admin special
+   */
+  hardDelete(userId: UserId): Promise<void>;
 
   /**
    * Check if email exists
@@ -245,6 +254,6 @@ export interface IUserRepository {
     isSuccessful: boolean,
     ipAddress?: string,
     userAgent?: string,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<void>;
 }

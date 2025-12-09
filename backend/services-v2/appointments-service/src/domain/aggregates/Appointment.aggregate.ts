@@ -14,7 +14,6 @@ import { AppointmentScheduledEvent } from '../events/AppointmentScheduledEvent';
 import { AppointmentCancelledEvent } from '../events/AppointmentCancelledEvent';
 import { AppointmentRescheduledEvent } from '../events/AppointmentRescheduledEvent';
 import { AppointmentNoShowEvent } from '../events/AppointmentNoShowEvent';
-import { AppointmentCheckedInEvent } from '../events/AppointmentCheckedInEvent';
 import { AppointmentStartedEvent } from '../events/AppointmentStartedEvent';
 import { AppointmentConfirmedEvent } from '../events/AppointmentConfirmedEvent';
 import { AppointmentCompletedEvent } from '../events/AppointmentCompletedEvent';
@@ -42,15 +41,14 @@ export enum AppointmentPriority {
 }
 
 export enum AppointmentStatus {
-  SCHEDULED = 'scheduled',
-  PENDING_PAYMENT = 'pending_payment', // ✅ ADDED for prepaid flow
-  CONFIRMED = 'confirmed',
-  ARRIVED = 'arrived',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  NO_SHOW = 'no_show',
-  RESCHEDULED = 'reschedule_required'
+  SCHEDULED = 'scheduled',           // Offline booking, post-reschedule
+  PENDING_PAYMENT = 'pending_payment', // Online prepaid flow
+  CONFIRMED = 'confirmed',            // Ready for consultation
+  IN_PROGRESS = 'in_progress',        // Actively consulting
+  COMPLETED = 'completed',            // Consultation finished
+  CANCELLED = 'cancelled',            // Cancelled by patient/doctor/admin
+  NO_SHOW = 'no_show',               // Patient didn't show up
+  RESCHEDULED = 'reschedule_required' // Needs rescheduling
 }
 
 /**
@@ -86,12 +84,13 @@ export interface AppointmentProps {
   // Payment Tracking (for prepaid model - Flow 3)
   // Track payment status and deadline for online booking with prepayment
   paymentStatus?: 'pending' | 'paid' | 'refunded';
-  paymentDeadline?: Date; // Timeout for pending payment (default: 30 minutes)
+  paymentDeadline?: Date; // Timeout for pending payment (default: 10 minutes)
 
-  checkedInAt?: Date;
   startedAt?: Date;
+
   completedAt?: Date;
   cancelledAt?: Date;
+  noShowAt?: Date;
   cancellationReason?: string;
   cancelledBy?: string;
   followUpAppointmentId?: string;
@@ -199,9 +198,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     return this.props.paymentDeadline;
   }
 
-  public getCheckedInAt(): Date | undefined {
-    return this.props.checkedInAt;
-  }
+
 
   public getStartedAt(): Date | undefined {
     return this.props.startedAt;
@@ -213,6 +210,10 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
 
   public getCancelledAt(): Date | undefined {
     return this.props.cancelledAt;
+  }
+
+  public getNoShowAt(): Date | undefined {
+    return this.props.noShowAt;
   }
 
   public getCancellationReason(): string | undefined {
@@ -325,7 +326,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
       consultationFee, // Immutable reference for billing-service
       // Payment tracking for prepaid model (Flow 3)
       paymentStatus: 'pending',
-      paymentDeadline: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
+      paymentDeadline: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes from now
       reminderSent: false,
       confirmationRequired: true,
       version: 1,
@@ -473,40 +474,26 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     // Logging sẽ được thực hiện ở application/infrastructure layer
   }
 
-  /**
-   * Check in patient
-   */
-  public checkIn(checkInTime?: Date): void {
-    if (this.props.status !== AppointmentStatus.CONFIRMED &&
-      this.props.status !== AppointmentStatus.SCHEDULED) {
-      throw new Error('Only confirmed or scheduled appointments can be checked in');
-    }
 
-    const actualCheckInTime = checkInTime || new Date();
-    this.props.status = AppointmentStatus.ARRIVED;
-    this.props.checkedInAt = actualCheckInTime;
-    this.props.updatedAt = new Date();
-
-    // Domain event
-    this.addDomainEvent(
-      new AppointmentCheckedInEvent(
-        this.props.appointmentId.value,
-        this.props.patientId,
-        this.props.doctorId,
-        actualCheckInTime,
-        this.props.priority
-      )
-    );
-
-    this.incrementVersion();
-  }
 
   /**
    * Start appointment
+   * Simplified flow: Doctor can start directly from CONFIRMED/SCHEDULED
+   * No check-in step required for 3-role system (Patient, Doctor, Admin)
    */
   public start(startTime?: Date): void {
-    if (this.props.status !== AppointmentStatus.ARRIVED) {
-      throw new Error('Patient must be checked in before starting appointment');
+    // Allow start from CONFIRMED or SCHEDULED (no check-in required)
+    if (this.props.status !== AppointmentStatus.CONFIRMED &&
+      this.props.status !== AppointmentStatus.SCHEDULED) {
+      throw new Error(
+        `Cannot start appointment with status ${this.props.status}. ` +
+        `Expected: CONFIRMED or SCHEDULED`
+      );
+    }
+
+    // Prevent double-start
+    if (this.props.startedAt) {
+      throw new Error('Appointment has already been started');
     }
 
     const actualStartTime = startTime || new Date();
@@ -520,9 +507,9 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         this.props.appointmentId.value,
         this.props.patientId,
         this.props.doctorId,
-        this.props.timeSlot.appointmentDate, // Already a string
+        this.props.timeSlot.appointmentDate,
         this.props.timeSlot.appointmentTime.toString(),
-        'system' // startedBy - using system as default
+        'system'
       )
     );
 
@@ -531,21 +518,14 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
 
   /**
    * Complete appointment
-   * Hybrid Approach: Allow completion from both ARRIVED and IN_PROGRESS status
-   * Auto-starts appointment if currently ARRIVED (for flexibility)
+   * Simplified: Only allow from IN_PROGRESS (must start first)
    */
   public complete(): void {
-    // Relaxed state machine: Allow complete from ARRIVED or IN_PROGRESS
-    if (this.props.status !== AppointmentStatus.IN_PROGRESS &&
-      this.props.status !== AppointmentStatus.ARRIVED) {
-      throw new Error('Only in-progress or arrived appointments can be completed');
-    }
-
-    // Auto-start if currently ARRIVED (hybrid approach)
-    if (this.props.status === AppointmentStatus.ARRIVED) {
-      this.props.status = AppointmentStatus.IN_PROGRESS;
-      this.props.startedAt = new Date();
-      // Note: Not emitting AppointmentStartedEvent here to avoid duplicate events
+    if (this.props.status !== AppointmentStatus.IN_PROGRESS) {
+      throw new Error(
+        `Cannot complete appointment with status ${this.props.status}. ` +
+        `Expected: IN_PROGRESS`
+      );
     }
 
     this.props.status = AppointmentStatus.COMPLETED;
@@ -645,12 +625,17 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
    * Mark as no-show
    */
   public markAsNoShow(markedBy: string): void {
+    // Only allow no-show for appointments that haven't started yet
     if (this.props.status !== AppointmentStatus.CONFIRMED &&
       this.props.status !== AppointmentStatus.SCHEDULED) {
-      throw new Error('Only scheduled/confirmed appointments can be marked as no-show');
+      throw new Error(
+        `Cannot mark as no-show with status ${this.props.status}. ` +
+        `Expected: CONFIRMED or SCHEDULED`
+      );
     }
 
     this.props.status = AppointmentStatus.NO_SHOW;
+    this.props.noShowAt = new Date();
     this.props.updatedAt = new Date();
     this.props.lastModifiedBy = markedBy;
 

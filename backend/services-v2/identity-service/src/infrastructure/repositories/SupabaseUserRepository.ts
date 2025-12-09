@@ -737,6 +737,74 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   /**
+   * Hard delete user and all liên quan
+   */
+  async hardDelete(userId: UserId): Promise<void> {
+    const id = userId.value;
+    this.logger.warn("Starting hard delete workflow", { userId: id });
+
+    const { data: profile, error: profileError } = await this.supabaseClient
+      .from("user_profiles")
+      .select("email")
+      .eq("id", id)
+      .single();
+
+    if (profileError && profileError.code !== "PGRST116") {
+      throw new Error(
+        `Failed to load user before hard delete: ${getErrorMessage(profileError)}`,
+      );
+    }
+
+    const email = profile?.email;
+
+    await this.deleteRelation("user_sessions", "user_id", id, "sessions");
+    await this.deleteRelation("user_permissions", "user_id", id, "permissions");
+    await this.deleteRelation("user_roles", "user_id", id, "roles");
+    await this.deleteRelation(
+      "recovery_methods",
+      "user_id",
+      id,
+      "recovery_methods",
+    );
+    await this.deleteRelation(
+      "login_attempts",
+      "email",
+      email,
+      "login_attempts",
+    );
+
+    if (email) {
+      await this.deleteRelation(
+        "pending_registrations",
+        "email",
+        email,
+        "pending_registrations",
+      );
+    }
+
+    const { error: profileDeleteError } = await this.supabaseClient
+      .from("user_profiles")
+      .delete()
+      .eq("id", id);
+    if (profileDeleteError) {
+      throw new Error(
+        `Failed to delete user profile: ${getErrorMessage(profileDeleteError)}`,
+      );
+    }
+
+    const { error: authError } =
+      await this.supabaseClient.auth.admin.deleteUser(id);
+    if (authError) {
+      throw new Error(
+        `Failed to delete Supabase auth user: ${getErrorMessage(authError)}`,
+      );
+    }
+
+    await this.invalidateUserCache(id, email);
+    this.logger.warn("Hard delete completed", { userId: id });
+  }
+
+  /**
    * Check if user exists
    */
   async exists(userId: UserId): Promise<boolean> {
@@ -1249,6 +1317,32 @@ export class SupabaseUserRepository implements IUserRepository {
         userId,
         error: getErrorMessage(error),
       });
+    }
+  }
+
+  private async deleteRelation(
+    table: string,
+    column: string,
+    value: string | undefined | null,
+    description: string,
+  ): Promise<void> {
+    if (!value) {
+      this.logger.debug(`Skip deleting ${description} because value is empty`, {
+        table,
+        column,
+      });
+      return;
+    }
+
+    const { error } = await this.supabaseClient
+      .from(table)
+      .delete()
+      .eq(column, value);
+
+    if (error) {
+      throw new Error(
+        `Failed to delete ${description}: ${getErrorMessage(error)}`,
+      );
     }
   }
 

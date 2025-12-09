@@ -24,9 +24,6 @@ import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaf
 import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
 import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
-import { GetStaffSpecializationsUseCase } from "../../application/use-cases/GetStaffSpecializationsUseCase";
-import { AddStaffSpecializationUseCase } from "../../application/use-cases/AddStaffSpecializationUseCase";
-import { RemoveStaffSpecializationUseCase } from "../../application/use-cases/RemoveStaffSpecializationUseCase";
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
 import { GetStaffListQuery } from "../../application/handlers/StaffQueryHandlers";
@@ -67,10 +64,7 @@ export class StaffController {
     private updateEmploymentStatusUseCase: UpdateEmploymentStatusUseCase,
     private updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
     // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-    private getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
-    private addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
-    private removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase,
-  ) { }
+  ) {}
 
   /**
    * Register new staff
@@ -466,8 +460,8 @@ export class StaffController {
           searchTerm: effectiveSearchTerm,
           filters: {
             staffType: toStaffType(queryParams.staffType),
-            departmentId: queryParams.departmentCode || queryParams.departmentId,
-            specialization: queryParams.specialization,
+            departmentId:
+              queryParams.departmentCode || queryParams.departmentId,
             status: toStaffStatus(queryParams.status),
             isActive: parseBoolean(queryParams.isActive),
             isAcceptingNewPatients: parseBoolean(
@@ -480,9 +474,9 @@ export class StaffController {
           },
           sorting: sortField
             ? {
-              field: sortField,
-              direction: resolvedSortDirection,
-            }
+                field: sortField,
+                direction: resolvedSortDirection,
+              }
             : undefined,
           requestedBy,
           requestedByRole,
@@ -1265,163 +1259,6 @@ export class StaffController {
   // - GET /api/appointments/providers/:providerId/schedule
 
   /**
-   * Get staff specializations
-   * GET /api/v1/staff/:staffId/specializations
-   */
-  async getStaffSpecializations(req: Request, res: Response): Promise<void> {
-    try {
-      const { staffId } = req.params;
-      const requestedBy = getUserId(req);
-      const requestedByRole = getUserRole(req);
-      const includeInactive = req.query.includeInactive === "true";
-
-      this.logger.info("Getting staff specializations", {
-        staffId,
-        requestedBy,
-      });
-
-      const result = await this.getStaffSpecializationsUseCase.execute({
-        staffId,
-        requestedBy,
-        requestedByRole,
-        includeInactive,
-        requestMetadata: {
-          ipAddress: req.ip,
-          userAgent: req.get("user-agent"),
-          sessionId: req.get("x-session-id"),
-        },
-      });
-
-      if (!result.success) {
-        const errorDetails = result.errors
-          ? result.errors.join(", ")
-          : undefined;
-        ResponseHelper.error(
-          res,
-          result.message,
-          400,
-          "VALIDATION_ERROR",
-          errorDetails,
-        );
-        return;
-      }
-
-      ResponseHelper.success(res, result.data, result.message);
-    } catch (error) {
-      this.logger.error("Error getting staff specializations", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Add staff specialization
-   * POST /api/v1/staff/:staffId/specializations
-   */
-  async addStaffSpecialization(req: Request, res: Response): Promise<void> {
-    try {
-      const { staffId } = req.params;
-      const { code, name, description, isActive } = req.body;
-      const addedBy = getUserId(req);
-      const addedByRole = getUserRole(req);
-
-      this.logger.info("Adding staff specialization", {
-        staffId,
-        code,
-        addedBy,
-      });
-
-      const result = await this.addStaffSpecializationUseCase.execute({
-        staffId,
-        code,
-        name,
-        description,
-        isActive,
-        addedBy,
-        addedByRole,
-        requestMetadata: {
-          ipAddress: req.ip,
-          userAgent: req.get("user-agent"),
-          sessionId: req.get("x-session-id"),
-        },
-      });
-
-      if (!result.success) {
-        const errorDetails = result.errors
-          ? result.errors.join(", ")
-          : undefined;
-        ResponseHelper.error(
-          res,
-          result.message,
-          400,
-          "VALIDATION_ERROR",
-          errorDetails,
-        );
-        return;
-      }
-
-      ResponseHelper.success(res, result.data, result.message, 201);
-    } catch (error) {
-      this.logger.error("Error adding staff specialization", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Remove staff specialization
-   * DELETE /api/v1/staff/:staffId/specializations/:specializationCode
-   */
-  async removeStaffSpecialization(req: Request, res: Response): Promise<void> {
-    try {
-      const { staffId, specializationCode } = req.params;
-      const removedBy = getUserId(req);
-      const removedByRole = getUserRole(req);
-
-      this.logger.info("Removing staff specialization", {
-        staffId,
-        specializationCode,
-        removedBy,
-      });
-
-      const result = await this.removeStaffSpecializationUseCase.execute({
-        staffId,
-        specializationCode,
-        removedBy,
-        removedByRole,
-        requestMetadata: {
-          ipAddress: req.ip,
-          userAgent: req.get("user-agent"),
-          sessionId: req.get("x-session-id"),
-        },
-      });
-
-      if (!result.success) {
-        const errorDetails = result.errors
-          ? result.errors.join(", ")
-          : undefined;
-        ResponseHelper.error(
-          res,
-          result.message,
-          400,
-          "VALIDATION_ERROR",
-          errorDetails,
-        );
-        return;
-      }
-
-      ResponseHelper.success(res, null, result.message);
-    } catch (error) {
-      this.logger.error("Error removing staff specialization", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Set department head
    * PUT /api/v1/staff/:staffId/department-head
    */
@@ -1523,7 +1360,6 @@ export class StaffController {
       personalInfo: staff.personalInfo,
       professionalInfo: staff.professionalInfo,
       workSchedule: staff.workSchedule?.toPersistence?.() || staff.workSchedule,
-      specializations: staff.specializations,
       credentials: staff.credentials,
       certifications: staff.certifications,
       departmentAssignments: staff.departmentAssignments,

@@ -19,6 +19,13 @@ class BillingService {
         this.createInvoiceUseCase = createInvoiceUseCase;
         this.processPaymentUseCase = processPaymentUseCase;
         this.loggerInstance = loggerInstance;
+        // Định nghĩa tỷ lệ coverage mặc định theo loại bảo hiểm
+        this.COVERAGE_BY_TYPE = {
+            BHYT: 80, // Bảo hiểm y tế nhà nước → 80%
+            BHTN: 70, // Bảo hiểm tai nạn → 70%
+            private: 60, // Bảo hiểm tư nhân → 60%
+            self_pay: 0, // Tự chi trả → 0%
+        };
     }
     /**
      * Generate invoice for completed appointment
@@ -47,6 +54,15 @@ class BillingService {
                 },
             ];
             // Apply insurance coverage if available
+            this.loggerInstance.info("Insurance info snapshot for invoice", {
+                appointmentId: request.appointmentId,
+                patientId: request.patientId,
+                hasInsurance: !!request.insuranceInfo,
+                insuranceCoverageType: request.insuranceInfo?.coverageType,
+                insuranceKeys: request.insuranceInfo
+                    ? Object.keys(request.insuranceInfo)
+                    : [],
+            });
             const insuranceCoverage = request.insuranceInfo
                 ? this.calculateInsuranceCoverage(baseFee, request.insuranceInfo, "consultation")
                 : 0;
@@ -58,6 +74,28 @@ class BillingService {
                 ? `${appointmentDateLocal}T${appointmentTimeLocal}`
                 : undefined;
             // Create invoice using CreateInvoiceUseCase
+            // Build insurance object if patient has valid insurance
+            // Support both 'provider' and 'providerName' field names from DB
+            const insuranceProvider = request.insuranceInfo?.provider || request.insuranceInfo?.providerName;
+            const isInsuranceActive = request.insuranceInfo?.isActive !== false; // Default true if not specified
+            this.loggerInstance.debug("Insurance info received", {
+                appointmentId: request.appointmentId,
+                hasInsuranceInfo: !!request.insuranceInfo,
+                insuranceProvider,
+                isInsuranceActive,
+                coverageType: request.insuranceInfo?.coverageType,
+                hasCoverageObject: !!request.insuranceInfo?.coverage,
+                calculatedInsuranceCoverage: insuranceCoverage,
+            });
+            const insuranceData = insuranceProvider && isInsuranceActive
+                ? {
+                    provider: insuranceProvider,
+                    policyNumber: request.insuranceInfo?.policyNumber || "",
+                    coveragePercentage: request.insuranceInfo?.coveragePercentage ||
+                        request.insuranceInfo?.coverage?.consultationCoverage ||
+                        80,
+                }
+                : undefined;
             const invoiceResponse = await this.createInvoiceUseCase.execute({
                 patientId: request.patientId,
                 appointmentId: request.appointmentId,
@@ -79,13 +117,17 @@ class BillingService {
                     patientName: request.patientName,
                     doctorName: request.doctorName,
                     doctorDepartment: request.doctorDepartment,
+                    insuranceApplied: insuranceCoverage > 0,
+                    insuranceCoverageAmount: insuranceCoverage,
                 },
                 items: lineItems.map((item) => ({
                     description: item.description,
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
                 })),
-                // REMOVED (Phase 1 Prepaid Model): insurance
+                // Insurance support - re-enabled
+                insurance: insuranceData,
+                insuranceCoverageAmount: insuranceCoverage,
             });
             this.loggerInstance.info("Appointment invoice generated successfully", {
                 appointmentId: request.appointmentId,
@@ -509,32 +551,79 @@ class BillingService {
         };
         return mapping[serviceType] || "Dịch vụ khám chữa bệnh";
     }
+    getCoveragePercentByType(coverageType) {
+        return this.COVERAGE_BY_TYPE[coverageType] || 0;
+    }
     calculateInsuranceCoverage(amount, insuranceInfo, category) {
-        if (!insuranceInfo || !insuranceInfo.coverage) {
+        if (!insuranceInfo) {
+            this.loggerInstance.debug("calculateInsuranceCoverage: No insurance info", { amount, category });
             return 0;
         }
-        const coverage = insuranceInfo.coverage;
-        let coveragePercentage = 0;
-        switch (category) {
-            case "consultation":
-                coveragePercentage = coverage.consultationCoverage || 0;
-                break;
-            case "medication":
-                coveragePercentage = coverage.medicationCoverage || 0;
-                break;
-            case "laboratory":
-                coveragePercentage = coverage.laboratoryCoverage || 0;
-                break;
-            case "procedure":
-                coveragePercentage = coverage.procedureCoverage || 0;
-                break;
-            case "emergency":
-                coveragePercentage = coverage.emergencyCoverage || 0;
-                break;
-            default:
-                coveragePercentage = coverage.generalCoverage || 0;
+        // Nếu là self_pay, không có coverage
+        if (insuranceInfo.coverageType === "self_pay") {
+            this.loggerInstance.debug("calculateInsuranceCoverage: Self-pay, no coverage", { amount, category });
+            return 0;
         }
-        return Math.round(amount * (coveragePercentage / 100));
+        // Ưu tiên tỷ lệ mặc định theo coverageType (đồng bộ với frontend)
+        if (insuranceInfo.coverageType) {
+            const coveragePercentage = this.getCoveragePercentByType(insuranceInfo.coverageType);
+            if (coveragePercentage > 0) {
+                const coverageAmount = Math.round(amount * (coveragePercentage / 100));
+                this.loggerInstance.debug("calculateInsuranceCoverage: Using coverageType default", {
+                    amount,
+                    category,
+                    coverageType: insuranceInfo.coverageType,
+                    coveragePercentage,
+                    coverageAmount,
+                });
+                return coverageAmount;
+            }
+        }
+        // Fallback: legacy coverage object (nếu không có coverageType hợp lệ)
+        if (insuranceInfo.coverage) {
+            const coverage = insuranceInfo.coverage;
+            let coveragePercentage = 0;
+            switch (category) {
+                case "consultation":
+                    coveragePercentage =
+                        coverage.consultationCoverage || coverage.generalCoverage || 0;
+                    break;
+                case "medication":
+                    coveragePercentage =
+                        coverage.medicationCoverage || coverage.generalCoverage || 0;
+                    break;
+                case "laboratory":
+                    coveragePercentage =
+                        coverage.laboratoryCoverage || coverage.generalCoverage || 0;
+                    break;
+                case "procedure":
+                    coveragePercentage =
+                        coverage.procedureCoverage || coverage.generalCoverage || 0;
+                    break;
+                case "emergency":
+                    coveragePercentage =
+                        coverage.emergencyCoverage || coverage.generalCoverage || 0;
+                    break;
+                default:
+                    coveragePercentage = coverage.generalCoverage || 0;
+            }
+            if (coveragePercentage > 0) {
+                const coverageAmount = Math.round(amount * (coveragePercentage / 100));
+                this.loggerInstance.debug("calculateInsuranceCoverage: Using legacy coverage object", {
+                    amount,
+                    category,
+                    coveragePercentage,
+                    coverageAmount,
+                });
+                return coverageAmount;
+            }
+        }
+        this.loggerInstance.debug("calculateInsuranceCoverage: No valid coverage found", {
+            amount,
+            category,
+            insuranceInfoKeys: Object.keys(insuranceInfo),
+        });
+        return 0;
     }
 }
 exports.BillingService = BillingService;

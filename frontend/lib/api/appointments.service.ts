@@ -410,15 +410,6 @@ export const appointmentsService = {
   },
 
   /**
-   * Check-in appointment
-   * POST /api/v1/appointments/:id/check-in
-   */
-  async checkInAppointment(id: string): Promise<SuccessResponse> {
-    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/check-in`);
-    return response.data;
-  },
-
-  /**
    * Start appointment
    * POST /api/v1/appointments/:id/start
    */
@@ -433,6 +424,15 @@ export const appointmentsService = {
    */
   async completeAppointment(id: string): Promise<SuccessResponse> {
     const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/complete`);
+    return response.data;
+  },
+
+  /**
+   * Mark appointment as no-show (patient didn't show up)
+   * POST /api/v1/appointments/:id/no-show
+   */
+  async markNoShow(id: string): Promise<SuccessResponse> {
+    const response = await apiClient.post<SuccessResponse>(`/v1/appointments/${id}/no-show`);
     return response.data;
   },
 };

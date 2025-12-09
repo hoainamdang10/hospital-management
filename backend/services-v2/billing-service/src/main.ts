@@ -33,6 +33,7 @@ import { GetInvoiceUseCase } from "./application/use-cases/GetInvoiceUseCase";
 // REMOVED (Phase 1 Out-of-Scope): FinalizeInvoiceUseCase, CancelInvoiceUseCase
 import { ProcessPaymentUseCase } from "./application/use-cases/ProcessPaymentUseCase";
 import { GetPatientInvoicesUseCase } from "./application/use-cases/GetPatientInvoicesUseCase";
+import { GetInvoicesByAppointmentUseCase } from "./application/use-cases/GetInvoicesByAppointmentUseCase";
 // REMOVED (Phase 1 Out-of-Scope): ProcessInsuranceClaimUseCase
 import { RefundPaymentUseCase } from "./application/use-cases/RefundPaymentUseCase";
 import { CompleteRefundUseCase } from "./application/use-cases/CompleteRefundUseCase";
@@ -53,6 +54,7 @@ import { WalletService } from "./application/services/WalletService";
 // Event Consumers & Workers
 import { AppointmentEventConsumer } from "./infrastructure/events/AppointmentEventConsumer";
 import { ClinicalEventConsumer } from "./infrastructure/events/ClinicalEventConsumer";
+import { PatientEventConsumer } from "./infrastructure/events/PatientEventConsumer";
 import { RefundGatewayWorker } from "./infrastructure/workers/RefundGatewayWorker";
 import { logger as loggerInstance } from "./infrastructure/logging/logger";
 
@@ -117,6 +119,7 @@ class BillingServiceApp {
   // Event Consumers & Workers
   private appointmentEventConsumer!: AppointmentEventConsumer;
   private clinicalEventConsumer!: ClinicalEventConsumer;
+  private patientEventConsumer!: PatientEventConsumer;
   private refundGatewayWorker!: RefundGatewayWorker;
   private expirePendingInvoicesUseCase!: ExpirePendingInvoicesUseCase;
   private invoiceExpiryTask?: ScheduledTask;
@@ -126,6 +129,7 @@ class BillingServiceApp {
   private getInvoiceUseCase!: GetInvoiceUseCase;
   private processPaymentUseCase!: ProcessPaymentUseCase;
   private getPatientInvoicesUseCase!: GetPatientInvoicesUseCase;
+  private getInvoicesByAppointmentUseCase!: GetInvoicesByAppointmentUseCase;
   // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase
   private refundPaymentUseCase!: RefundPaymentUseCase;
   private completeRefundUseCase!: CompleteRefundUseCase;
@@ -241,6 +245,11 @@ class BillingServiceApp {
       loggerInstance,
     );
 
+    this.getInvoicesByAppointmentUseCase = new GetInvoicesByAppointmentUseCase(
+      this.invoiceRepository,
+      loggerInstance,
+    );
+
     // REMOVED (Phase 1 Out-of-Scope): processInsuranceClaimUseCase initialization
 
     this.refundPaymentUseCase = new RefundPaymentUseCase(
@@ -342,6 +351,10 @@ class BillingServiceApp {
           "appointments.cancelled_late",
           "appointments.no_show",
           "appointments.rescheduled",
+          // Additional wildcard bindings to catch prefixed keys from outbox/publisher
+          "appointments.#",
+          "appointments-service.#",
+          "scheduling-service.#",
         ],
         prefetchCount: 10,
         retryAttempts: 3,
@@ -356,6 +369,31 @@ class BillingServiceApp {
       this.eventBus, // Inject EventBus for publishing PaymentLinkCreatedEvent
       this.refundPaymentUseCase, // Inject RefundPaymentUseCase for processing refunds
       this.payInvoiceWithWalletUseCase,
+    );
+
+    this.patientEventConsumer = new PatientEventConsumer(
+      {
+        rabbitmqUrl: config.rabbitmqUrl,
+        queueName: "billing.patient.events",
+        exchangeName: config.rabbitmqExchange,
+        routingKeys: [
+          "patient.patient.registered",
+          "patient.patient.updated",
+          "patient.patient.deactivated",
+          "patient.patient.deleted",
+          "patient.patient.#",
+          "patient.registered",
+          "patient.updated",
+          "patient.deactivated",
+          "patient.deleted",
+          "patient.#",
+          "patient-service.patient.#",
+          "patient-service.#",
+        ],
+        prefetchCount: 5,
+      },
+      loggerInstance,
+      this.patientRepository,
     );
 
     // Initialize Clinical Event Consumer (Feature Flag)
@@ -412,6 +450,7 @@ class BillingServiceApp {
       this.getInvoiceUseCase,
       this.processPaymentUseCase,
       this.getPatientInvoicesUseCase,
+      this.getInvoicesByAppointmentUseCase,
       this.searchInvoicesUseCase,
       this.getOverdueInvoicesUseCase,
       this.getPatientBillingSummaryUseCase,
@@ -419,6 +458,7 @@ class BillingServiceApp {
       this.createPaymentLinkUseCase,
       this.handlePayOSWebhookUseCase,
       this.payInvoiceWithWalletUseCase,
+      this.patientRepository,
       // REMOVED (Phase 1 Out-of-Scope): finalizeInvoiceUseCase, cancelInvoiceUseCase, processInsuranceClaimUseCase, refundPaymentUseCase, sendInvoiceEmailUseCase, createPaymentReminderUseCase
     );
     this.walletController = new WalletController(
@@ -460,17 +500,7 @@ class BillingServiceApp {
     this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-    // Rate limiting
-    if (process.env.NODE_ENV !== "test") {
-      const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 100,
-        message: "Too many requests from this IP",
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
-      this.app.use("/api/", limiter);
-    }
+    // Rate limiting disabled (handled at gateway level)
 
     // Request logging
     this.app.use((req, _res, next) => {
@@ -593,6 +623,7 @@ class BillingServiceApp {
 
       // Connect Event Consumers
       await this.appointmentEventConsumer.connect();
+      await this.patientEventConsumer.connect();
 
       // Only connect clinical consumer if feature flag is enabled
       if (config.enableClinicalEventConsumer && this.clinicalEventConsumer) {
@@ -630,6 +661,11 @@ class BillingServiceApp {
       if (this.appointmentEventConsumer) {
         await this.appointmentEventConsumer.disconnect();
         loggerInstance.info("Appointment event consumer disconnected");
+      }
+
+      if (this.patientEventConsumer) {
+        await this.patientEventConsumer.disconnect();
+        loggerInstance.info("Patient event consumer disconnected");
       }
 
       if (this.clinicalEventConsumer && config.enableClinicalEventConsumer) {

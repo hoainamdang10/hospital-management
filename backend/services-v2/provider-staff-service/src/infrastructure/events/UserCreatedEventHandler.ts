@@ -18,7 +18,6 @@ import { ProviderStaff } from "../../domain/aggregates/ProviderStaff";
 import { StaffId } from "../../domain/value-objects/StaffId";
 import { PersonalInfo } from "../../domain/value-objects/PersonalInfo";
 import { ProfessionalInfo } from "../../domain/value-objects/ProfessionalInfo";
-import { Specialization } from "../../domain/entities/Specialization";
 import { WorkSchedule } from "../../domain/value-objects/WorkSchedule";
 import { IStaffReadModelRepository } from "../repositories/StaffReadModelRepository";
 import { IDepartmentRepository } from "../../domain/repositories/IDepartmentRepository";
@@ -35,7 +34,7 @@ export class UserCreatedEventHandler {
     private auditService: IAuditService,
     private staffReadModelRepository: IStaffReadModelRepository,
     private departmentRepository: IDepartmentRepository,
-  ) { }
+  ) {}
 
   /**
    * Handle UserCreated event
@@ -93,7 +92,6 @@ export class UserCreatedEventHandler {
           staffId: existingStaff.staffIdValue,
           userId: event.userId,
           fullName: event.fullName || existingStaff.personalInfo.fullName,
-          specialization: event.specializationName || undefined,
           department: event.department || undefined,
         });
         return;
@@ -109,23 +107,19 @@ export class UserCreatedEventHandler {
       const fullName = event.fullName || event.email.split("@")[0];
 
       // Prefer real professional data from event (invitation data)
-      const specializationCode =
-        typeof (event as any).specializationCode === "string"
-          ? (event as any).specializationCode.trim().toUpperCase()
-          : undefined;
       const department =
         typeof (event as any).department === "string" &&
-          (event as any).department.trim().length > 0
+        (event as any).department.trim().length > 0
           ? (event as any).department.trim().toUpperCase()
-          : specializationCode || "GENERAL";
+          : this.getDefaultDepartmentCode(staffType);
       const position =
         typeof (event as any).position === "string" &&
-          (event as any).position.trim().length > 0
+        (event as any).position.trim().length > 0
           ? (event as any).position
           : this.getDefaultPosition(staffType);
       const title =
         typeof (event as any).title === "string" &&
-          (event as any).title.trim().length > 0
+        (event as any).title.trim().length > 0
           ? (event as any).title
           : this.getDefaultTitle(staffType);
       const rawEducation = (event as any).education;
@@ -167,7 +161,7 @@ export class UserCreatedEventHandler {
       }
       const yearsOfExperience =
         typeof event.yearsOfExperience === "number" &&
-          event.yearsOfExperience >= 0
+        event.yearsOfExperience >= 0
           ? event.yearsOfExperience
           : 0;
       // Consultation fee: prefer event payload, fallback to default (500k VND)
@@ -221,7 +215,7 @@ export class UserCreatedEventHandler {
         education,
         languages:
           Array.isArray((event as any).languages) &&
-            (event as any).languages.length > 0
+          (event as any).languages.length > 0
             ? (event as any).languages
             : ["Vietnamese", "English"],
       });
@@ -230,52 +224,35 @@ export class UserCreatedEventHandler {
       const eventWorkSchedule = (event as any).workSchedule as any;
       const workSchedule = eventWorkSchedule
         ? WorkSchedule.create({
-          workingDays: eventWorkSchedule.workingDays || [
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-          ],
-          workingHours: {
-            start: eventWorkSchedule?.workingHours?.start || "08:00",
-            end: eventWorkSchedule?.workingHours?.end || "17:00",
-          },
-          timeZone: eventWorkSchedule.timeZone || "Asia/Ho_Chi_Minh",
-          isFlexible: eventWorkSchedule.isFlexible ?? false,
-        })
+            workingDays: eventWorkSchedule.workingDays || [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+            ],
+            workingHours: {
+              start: eventWorkSchedule?.workingHours?.start || "08:00",
+              end: eventWorkSchedule?.workingHours?.end || "17:00",
+            },
+            timeZone: eventWorkSchedule.timeZone || "Asia/Ho_Chi_Minh",
+            isFlexible: eventWorkSchedule.isFlexible ?? false,
+          })
         : WorkSchedule.create({
-          workingDays: [
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-          ],
-          workingHours: {
-            start: "08:00",
-            end: "17:00",
-          },
-          timeZone: "Asia/Ho_Chi_Minh",
-          isFlexible: false,
-        });
-
-      // Create default specializations (required for doctors)
-      const specializations =
-        staffType === "doctor"
-          ? [
-            Specialization.create({
-              code: specializationCode || department || "GENMED",
-              name:
-                typeof (event as any).specializationName === "string" &&
-                  (event as any).specializationName.trim().length > 0
-                  ? (event as any).specializationName
-                  : specializationCode || "General Medicine",
-              description: "Tổng quát - Cần cập nhật",
-              isActive: true,
-            }),
-          ]
-          : [];
+            workingDays: [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+            ],
+            workingHours: {
+              start: "08:00",
+              end: "17:00",
+            },
+            timeZone: "Asia/Ho_Chi_Minh",
+            isFlexible: false,
+          });
 
       // Create ProviderStaff aggregate
       const staff = ProviderStaff.create(
@@ -288,7 +265,9 @@ export class UserCreatedEventHandler {
         (event as any).employmentType || "full_time",
         new Date(), // hireDate
         yearsOfExperience,
-        specializations, // Add specializations (required for doctors)
+        undefined,
+        undefined,
+        department,
       );
 
       // Set default consultation fee for doctors (persisted to staff_profiles)
@@ -305,7 +284,8 @@ export class UserCreatedEventHandler {
       // This populates department_assignments so staff appears in search results
       try {
         const departmentCode = department || "INTE"; // Fallback to INTE if no department
-        const foundDepartment = await this.departmentRepository.findByCode(departmentCode);
+        const foundDepartment =
+          await this.departmentRepository.findByCode(departmentCode);
 
         if (foundDepartment) {
           const departmentAssignment = DepartmentAssignment.create({
@@ -329,10 +309,13 @@ export class UserCreatedEventHandler {
             departmentCode: foundDepartment.code,
           });
         } else {
-          this.logger.warn("Department not found for code, skipping assignment", {
-            userId: event.userId,
-            departmentCode,
-          });
+          this.logger.warn(
+            "Department not found for code, skipping assignment",
+            {
+              userId: event.userId,
+              departmentCode,
+            },
+          );
         }
       } catch (err) {
         this.logger.error("Failed to assign staff to department", {
@@ -349,7 +332,6 @@ export class UserCreatedEventHandler {
           staffId: staff.staffIdValue,
           userId: event.userId,
           fullName,
-          specialization: specializations[0]?.name || undefined,
           department: department || undefined,
         });
       } catch (err) {
@@ -476,5 +458,9 @@ export class UserCreatedEventHandler {
     };
 
     return positionMap[staffType] || "Nhân viên y tế";
+  }
+
+  private getDefaultDepartmentCode(staffType: string): string {
+    return staffType === "doctor" ? "INTE" : "ADMI";
   }
 }

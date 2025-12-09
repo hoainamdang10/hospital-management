@@ -21,7 +21,6 @@ import { StaffScheduleUpdatedEvent } from "../../domain/events/StaffScheduleUpda
 import { StaffStatusChangedEvent } from "../../domain/events/StaffStatusChangedEvent";
 // import { StaffEmploymentStatusUpdatedEvent } from '../../domain/events/StaffEmploymentStatusUpdatedEvent'; // Removed in scope reduction
 import { StaffUpdatedEvent } from "../../domain/events/StaffUpdatedEvent";
-// import { StaffSpecializationAddedEvent } from '../../domain/events/StaffSpecializationAddedEvent'; // Removed in scope reduction
 import { StaffDepartmentAssignedEvent } from "../../domain/events/StaffDepartmentAssignedEvent";
 
 // Integration Events
@@ -183,11 +182,6 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
         case "StaffUpdated":
           await this.handleStaffUpdated(event as StaffUpdatedEvent);
           break;
-
-        // Removed in scope reduction
-        // case 'StaffSpecializationAdded':
-        //   await this.handleStaffSpecializationAdded(event as StaffSpecializationAddedEvent);
-        //   break;
 
         case "StaffDepartmentAssigned":
           await this.handleStaffDepartmentAssigned(
@@ -600,47 +594,6 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
     }
   }
 
-  // Removed in scope reduction
-  // /**
-  //  * Handle StaffSpecializationAdded event
-  //  */
-  // private async handleStaffSpecializationAdded(event: StaffSpecializationAddedEvent): Promise<void> {
-  //   this.logger.info('Handling StaffSpecializationAdded event', {
-  //     staffId: event.staffId.value,
-  //     specialization: event.specialization.name
-  //   });
-
-  //   const integrationEvent = {
-  //     eventId: this.generateEventId(),
-  //     eventType: 'StaffSpecializationAdded',
-  //     aggregateId: event.staffId.value,
-  //     aggregateType: 'ProviderStaff',
-  //     version: 1,
-  //     timestamp: new Date(),
-  //     data: {
-  //       staffId: event.staffId.value,
-  //       specialization: {
-  //         code: event.specialization.code,
-  //         name: event.specialization.name,
-  //         description: event.specialization.description
-  //       }
-  //     },
-  //     metadata: {
-  //       serviceName: 'provider-staff-service',
-  //       version: '2.0.0',
-  //       correlationId: event.correlationId,
-  //       causationId: event.eventId
-  //     }
-  //   };
-
-  //   await this.eventBus.publish(integrationEvent as any);
-
-  //   this.logger.info('StaffSpecializationAdded integration event published', {
-  //     staffId: event.staffId.value,
-  //     integrationEventId: integrationEvent.eventId
-  //   });
-  // }
-
   /**
    * Handle StaffDepartmentAssigned event
    */
@@ -697,7 +650,7 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
   getStatistics(): any {
     return {
       handlerName: "StaffDomainEventHandler",
-      supportedEventsCount: 8,
+      supportedEventsCount: 7,
       lastHealthCheck: new Date().toISOString(),
       isHealthy: true,
       processingCapabilities: {
@@ -707,7 +660,6 @@ export class StaffDomainEventHandler implements IDomainEventHandler {
         canHandleStaffStatusChanged: true,
         canHandleStaffEmploymentStatusUpdated: true,
         canHandleStaffUpdated: true,
-        canHandleStaffSpecializationAdded: true,
         canHandleStaffDepartmentAssigned: true,
       },
     };

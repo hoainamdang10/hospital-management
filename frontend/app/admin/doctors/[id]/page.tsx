@@ -368,7 +368,7 @@ export default function DoctorProfilePage() {
                       {doctor.personalInfo.fullName}
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      {doctor.specializations?.[0]?.name || doctor.professionalInfo.department}
+                      {doctor.professionalInfo.department}
                     </p>
                     <div className="mt-3">{getStatusBadge(doctor.status)}</div>
                     {/* Rating */}
@@ -552,8 +552,7 @@ export default function DoctorProfilePage() {
                       <h3 className="mb-4 text-lg font-semibold text-slate-900">Giới thiệu</h3>
                       <p className="leading-relaxed text-slate-600">
                         {doctor.professionalInfo.bio ||
-                          `${doctor.personalInfo.fullName} là ${doctor.professionalInfo.title} với ${doctor.yearsOfExperience || 0} năm kinh nghiệm tại khoa ${doctor.professionalInfo.department}.
-                          ${doctor.specializations && doctor.specializations.length > 0 ? ` Chuyên về ${doctor.specializations.map((s) => s.name).join(', ')}.` : ''}`}
+                          `${doctor.personalInfo.fullName} là ${doctor.professionalInfo.title} với ${doctor.yearsOfExperience || 0} năm kinh nghiệm tại khoa ${doctor.professionalInfo.department}.`}
                       </p>
                     </div>
 

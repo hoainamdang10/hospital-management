@@ -32,6 +32,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 /**
  * Normalize address from various formats to a consistent object
@@ -64,7 +65,7 @@ function normalizeAddress(addressSource: any): any {
  */
 export default function PatientProfilePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { patientId } = usePatient();
   const [activeTab, setActiveTab] = useState<
     'basic' | 'contact' | 'emergency' | 'insurance' | 'settings'
@@ -187,9 +188,22 @@ export default function PatientProfilePage() {
       }
       await patientService.updatePatientProfile(patientId, payload);
       await loadProfile();
+
+      // Update the user in AuthContext so header displays updated name
+      if (user && payload.fullName) {
+        updateUser({
+          ...user,
+          fullName: payload.fullName,
+        });
+      }
+
       toast.success('Cập nhật thông tin thành công');
     } catch (error) {
-      toast.error('Không thể cập nhật thông tin');
+      showErrorToast(error, {
+        title: 'Không thể cập nhật thông tin',
+        fallbackMessage: 'Không thể cập nhật thông tin cá nhân. Vui lòng thử lại sau.',
+        context: 'Patient/Profile:update-basic',
+      });
       throw error;
     }
   }
@@ -206,7 +220,7 @@ export default function PatientProfilePage() {
           if (existing.contactId) {
             try {
               await patientService.deleteEmergencyContact(patientId, existing.contactId);
-            } catch { }
+            } catch {}
           }
         }
       }
@@ -233,7 +247,11 @@ export default function PatientProfilePage() {
       await loadProfile();
       toast.success('Cập nhật liên hệ khẩn cấp thành công');
     } catch (error) {
-      toast.error('Không thể cập nhật liên hệ khẩn cấp');
+      showErrorToast(error, {
+        title: 'Không thể cập nhật liên hệ khẩn cấp',
+        fallbackMessage: 'Không thể cập nhật liên hệ khẩn cấp. Vui lòng thử lại.',
+        context: 'Patient/Profile:update-emergency',
+      });
       throw error;
     }
   }
@@ -263,7 +281,11 @@ export default function PatientProfilePage() {
       }
       await loadProfile();
     } catch (error) {
-      toast.error('Không thể lưu thông tin bảo hiểm');
+      showErrorToast(error, {
+        title: 'Không thể lưu thông tin bảo hiểm',
+        fallbackMessage: 'Không thể lưu thông tin bảo hiểm. Vui lòng thử lại.',
+        context: 'Patient/Profile:update-insurance',
+      });
       throw error;
     }
   }
@@ -287,7 +309,7 @@ export default function PatientProfilePage() {
         >
           {/* Background decorations */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
             <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
             <div
               className="absolute inset-0 opacity-10"
@@ -316,7 +338,7 @@ export default function PatientProfilePage() {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-emerald-500 p-2 text-white shadow-lg transition-colors hover:bg-emerald-600"
+                  className="absolute right-1 bottom-1 rounded-full border-2 border-white bg-emerald-500 p-2 text-white shadow-lg transition-colors hover:bg-emerald-600"
                 >
                   <Camera className="h-4 w-4" />
                 </motion.button>
@@ -380,7 +402,7 @@ export default function PatientProfilePage() {
           transition={{ delay: 0.1 }}
           className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
         >
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+          <div className="scrollbar-hide flex gap-1 overflow-x-auto">
             {tabs.map((tab, index) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;

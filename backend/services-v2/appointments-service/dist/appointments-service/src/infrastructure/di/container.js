@@ -64,7 +64,8 @@ const CompleteAppointment_use_case_1 = require("../../application/use-cases/Comp
 const GetAppointment_use_case_1 = require("../../application/use-cases/GetAppointment.use-case");
 const ListAppointments_use_case_1 = require("../../application/use-cases/ListAppointments.use-case");
 const RescheduleAppointment_use_case_1 = require("../../application/use-cases/RescheduleAppointment.use-case");
-const CheckInAppointment_use_case_1 = require("../../application/use-cases/CheckInAppointment.use-case");
+// Simplified 3-role flow doesn't use check-in
+// import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
 const MarkAsNoShow_use_case_1 = require("../../application/use-cases/MarkAsNoShow.use-case");
 const StartAppointment_use_case_1 = require("../../application/use-cases/StartAppointment.use-case");
 const CallNextPatient_use_case_1 = require("../../application/use-cases/CallNextPatient.use-case");
@@ -281,7 +282,12 @@ class DIContainer {
         this.getAppointmentUseCase = new GetAppointment_use_case_1.GetAppointmentUseCase(this.appointmentRepository, this.appointmentReadModelRepository);
         this.listAppointmentsUseCase = new ListAppointments_use_case_1.ListAppointmentsUseCase(this.appointmentReadModelRepository, this.providerService);
         this.rescheduleAppointmentUseCase = new RescheduleAppointment_use_case_1.RescheduleAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.reminderService);
-        this.checkInAppointmentUseCase = new CheckInAppointment_use_case_1.CheckInAppointmentUseCase(this.appointmentRepository, this.authorizationService, this.queueRepository);
+        // Simplified 3-role flow doesn't use check-in
+        // this.checkInAppointmentUseCase = new CheckInAppointmentUseCase(
+        //   this.appointmentRepository,
+        //   this.authorizationService,
+        //   this.queueRepository, // Add queue integration
+        // );
         this.markAsNoShowUseCase = new MarkAsNoShow_use_case_1.MarkAsNoShowUseCase(this.appointmentRepository, this.authorizationService);
         this.startAppointmentUseCase = new StartAppointment_use_case_1.StartAppointmentUseCase(this.appointmentRepository, this.authorizationService);
         // Phase 2: Queue Management Use Cases
@@ -434,7 +440,9 @@ class DIContainer {
      * Initialize controllers
      */
     initializeControllers() {
-        this.appointmentController = new AppointmentController_1.AppointmentController(this.scheduleAppointmentUseCase, this.cancelAppointmentUseCase, this.confirmAppointmentUseCase, this.completeAppointmentUseCase, this.getAppointmentUseCase, this.listAppointmentsUseCase, this.rescheduleAppointmentUseCase, this.checkInAppointmentUseCase, this.markAsNoShowUseCase, this.startAppointmentUseCase, 
+        this.appointmentController = new AppointmentController_1.AppointmentController(this.scheduleAppointmentUseCase, this.cancelAppointmentUseCase, this.confirmAppointmentUseCase, this.completeAppointmentUseCase, this.getAppointmentUseCase, this.listAppointmentsUseCase, this.rescheduleAppointmentUseCase, 
+        // this.checkInAppointmentUseCase, // Simplified 3-role flow
+        this.markAsNoShowUseCase, this.startAppointmentUseCase, 
         // this.bulkRescheduleAppointmentsUseCase, // ARCHIVED FOR POST-MVP
         this.appointmentHistoryUseCase, this.appointmentStatisticsUseCase, this.createEmergencyAppointmentUseCase, this.transferAppointmentUseCase, this.createRecurringSeriesUseCase);
         this.appointmentQueryController = new AppointmentQueryController_1.AppointmentQueryController(this.getAppointmentDetailsQuery, this.listAppointmentsQuery);
@@ -523,10 +531,11 @@ class DIContainer {
     }
     /**
      * Get check-in appointment use case
+     * Simplified 3-role flow doesn't use check-in
      */
-    getCheckInAppointmentUseCase() {
-        return this.checkInAppointmentUseCase;
-    }
+    // public getCheckInAppointmentUseCase(): CheckInAppointmentUseCase {
+    //   return this.checkInAppointmentUseCase;
+    // }
     /**
      * Get mark as no-show use case
      */

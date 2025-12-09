@@ -55,12 +55,6 @@ export interface Staff {
       end: string;
     }>;
   };
-  specializations: Array<{
-    code: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-  }>;
   credentials: Array<{
     credentialNumber?: string;
     credentialType: string;
@@ -367,7 +361,6 @@ export async function createStaffProfile(payload: {
   contractEndDate?: string;
   yearsOfExperience: number;
   consultationFee?: number | null;
-  specializations?: Array<{ code: string; name: string; description?: string; isActive: boolean }>;
   vietnameseHealthcareLicense?: string;
   mohRegistrationNumber?: string;
 }): Promise<{ success: boolean; data: any; message?: string }> {

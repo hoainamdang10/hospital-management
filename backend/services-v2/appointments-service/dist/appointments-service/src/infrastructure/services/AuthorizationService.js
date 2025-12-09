@@ -21,18 +21,21 @@ class AuthorizationService {
      * - PATIENT: Can only schedule for themselves
      */
     async canScheduleAppointment(userId, patientId) {
-        console.log('[AuthorizationService] Checking canScheduleAppointment:', { userId, patientId });
+        console.log("[AuthorizationService] Checking canScheduleAppointment:", {
+            userId,
+            patientId,
+        });
         const role = await this.getUserRole(userId);
-        console.log('[AuthorizationService] User role:', role);
+        console.log("[AuthorizationService] User role:", role);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'schedule_appointment', patientId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "schedule_appointment", patientId);
         }
         // Admins and staff can schedule for anyone
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN ||
             role === IAuthorizationService_1.UserRole.ADMIN ||
             role === IAuthorizationService_1.UserRole.DOCTOR ||
             role === IAuthorizationService_1.UserRole.NURSE) {
-            console.log('[AuthorizationService] Staff user - authorized');
+            console.log("[AuthorizationService] Staff user - authorized");
             return true;
         }
         // Patients can only schedule for themselves
@@ -40,10 +43,15 @@ class AuthorizationService {
         if (role === IAuthorizationService_1.UserRole.PATIENT) {
             const userPatientId = await this.resolveUserIdToPatientId(userId);
             const isAuthorized = userPatientId === patientId;
-            console.log('[AuthorizationService] Patient check:', { userId, userPatientId, patientId, isAuthorized });
+            console.log("[AuthorizationService] Patient check:", {
+                userId,
+                userPatientId,
+                patientId,
+                isAuthorized,
+            });
             return isAuthorized;
         }
-        console.log('[AuthorizationService] No matching role - denied');
+        console.log("[AuthorizationService] No matching role - denied");
         return false;
     }
     /**
@@ -57,7 +65,7 @@ class AuthorizationService {
     async canCancelAppointment(userId, appointmentId, appointment) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'cancel_appointment', appointmentId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "cancel_appointment", appointmentId);
         }
         // Admins can cancel any appointment
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN) {
@@ -96,7 +104,7 @@ class AuthorizationService {
     async canConfirmAppointment(userId, appointmentId, appointment) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'confirm_appointment', appointmentId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "confirm_appointment", appointmentId);
         }
         // Admins and nurses can confirm any appointment
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN ||
@@ -125,10 +133,12 @@ class AuthorizationService {
     async canCompleteAppointment(userId, appointmentId, appointment) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'complete_appointment', appointmentId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "complete_appointment", appointmentId);
         }
         // Nurses can complete any appointment
-        if (role === IAuthorizationService_1.UserRole.NURSE || role === IAuthorizationService_1.UserRole.ADMIN || role === IAuthorizationService_1.UserRole.SUPER_ADMIN) {
+        if (role === IAuthorizationService_1.UserRole.NURSE ||
+            role === IAuthorizationService_1.UserRole.ADMIN ||
+            role === IAuthorizationService_1.UserRole.SUPER_ADMIN) {
             return true;
         }
         // Doctors can only complete their own appointments
@@ -149,7 +159,7 @@ class AuthorizationService {
     async canStartAppointment(userId, appointmentId, appointment) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'start_appointment', appointmentId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "start_appointment", appointmentId);
         }
         // Admins can start any appointment (override)
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN) {
@@ -173,10 +183,12 @@ class AuthorizationService {
     async canCheckInAppointment(userId, appointmentId, appointment) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'checkin_appointment', appointmentId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "checkin_appointment", appointmentId);
         }
         // Admins and nurses can check in any appointment
-        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN || role === IAuthorizationService_1.UserRole.NURSE) {
+        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN ||
+            role === IAuthorizationService_1.UserRole.ADMIN ||
+            role === IAuthorizationService_1.UserRole.NURSE) {
             return true;
         }
         // Patients can check in their own appointments
@@ -197,10 +209,13 @@ class AuthorizationService {
     async canCallNextPatient(userId, doctorId) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'call_next_patient', doctorId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "call_next_patient", doctorId);
         }
         // Admins, nurses, and receptionists can call from any queue
-        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN || role === IAuthorizationService_1.UserRole.NURSE || role === IAuthorizationService_1.UserRole.RECEPTIONIST) {
+        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN ||
+            role === IAuthorizationService_1.UserRole.ADMIN ||
+            role === IAuthorizationService_1.UserRole.NURSE ||
+            role === IAuthorizationService_1.UserRole.RECEPTIONIST) {
             return true;
         }
         // Doctors can only call from their own queue
@@ -221,10 +236,13 @@ class AuthorizationService {
     async canLeaveQueue(userId, patientId) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'leave_queue', patientId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "leave_queue", patientId);
         }
         // Admins, nurses, and receptionists can remove any patient from queue
-        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN || role === IAuthorizationService_1.UserRole.NURSE || role === IAuthorizationService_1.UserRole.RECEPTIONIST) {
+        if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN ||
+            role === IAuthorizationService_1.UserRole.ADMIN ||
+            role === IAuthorizationService_1.UserRole.NURSE ||
+            role === IAuthorizationService_1.UserRole.RECEPTIONIST) {
             return true;
         }
         // Patients can only leave their own queue
@@ -245,7 +263,7 @@ class AuthorizationService {
     async canTransferAppointment(userId, appointmentId, appointment) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'transfer_appointment', appointmentId);
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "transfer_appointment", appointmentId);
         }
         // Admins can transfer any appointment
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN) {
@@ -305,7 +323,7 @@ class AuthorizationService {
     async canCreateEmergencyAppointment(userId) {
         const role = await this.getUserRole(userId);
         if (!role) {
-            throw new IAuthorizationService_1.AuthorizationError('User not found or has no role', userId, 'create_emergency_appointment', 'emergency');
+            throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "create_emergency_appointment", "emergency");
         }
         // Admins, doctors, and nurses can create emergency appointments
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN ||
@@ -462,6 +480,12 @@ class AuthorizationService {
         return false;
     }
     /**
+     * Public helper to resolve canonical patientId for a given identity user.
+     */
+    async resolvePatientIdForUser(userId) {
+        return this.resolveUserIdToPatientId(userId);
+    }
+    /**
      * Check if user has specific role
      */
     async hasRole(userId, role) {
@@ -484,22 +508,22 @@ class AuthorizationService {
     async getUserRole(userId) {
         try {
             const { data, error } = await this.supabase
-                .schema('auth_schema')
-                .from('user_profiles')
-                .select('role_type')
-                .eq('id', userId)
+                .schema("auth_schema")
+                .from("user_profiles")
+                .select("role_type")
+                .eq("id", userId)
                 .single();
             if (error || !data) {
                 console.warn(`Failed to get role for user ${userId}:`, error);
                 return null;
             }
-            console.log('[getUserRole] Raw DB value:', data.role_type);
+            console.log("[getUserRole] Raw DB value:", data.role_type);
             const upperRole = data.role_type.toUpperCase();
-            console.log('[getUserRole] Converted to:', upperRole);
+            console.log("[getUserRole] Converted to:", upperRole);
             return upperRole;
         }
         catch (error) {
-            console.error('Error getting user role:', error);
+            console.error("Error getting user role:", error);
             return null;
         }
     }
@@ -509,10 +533,10 @@ class AuthorizationService {
     async resolveUserIdToPatientId(userId) {
         try {
             const { data, error } = await this.supabase
-                .schema('patient_schema')
-                .from('patients')
-                .select('patient_id')
-                .eq('user_id', userId)
+                .schema("patient_schema")
+                .from("patients")
+                .select("patient_id")
+                .eq("user_id", userId)
                 .single();
             if (error || !data) {
                 console.warn(`Failed to resolve patient ID for user ${userId}:`, error);
@@ -521,7 +545,7 @@ class AuthorizationService {
             return data.patient_id;
         }
         catch (error) {
-            console.error('Error resolving patient ID:', error);
+            console.error("Error resolving patient ID:", error);
             return null;
         }
     }
@@ -531,11 +555,11 @@ class AuthorizationService {
     async resolveUserIdToDoctorId(userId) {
         try {
             const { data, error } = await this.supabase
-                .schema('provider_schema')
-                .from('staff_profiles')
-                .select('staff_id')
-                .eq('user_id', userId)
-                .eq('staff_type', 'doctor')
+                .schema("provider_schema")
+                .from("staff_profiles")
+                .select("staff_id")
+                .eq("user_id", userId)
+                .eq("staff_type", "doctor")
                 .single();
             if (error || !data) {
                 console.warn(`Failed to resolve doctor ID for user ${userId}:`, error);
@@ -544,7 +568,7 @@ class AuthorizationService {
             return data.staff_id;
         }
         catch (error) {
-            console.error('Error resolving doctor ID:', error);
+            console.error("Error resolving doctor ID:", error);
             return null;
         }
     }

@@ -18,6 +18,7 @@ const AppointmentDetails_vo_1 = require("../../domain/value-objects/AppointmentD
 const TenantId_vo_1 = require("../../domain/value-objects/TenantId.vo");
 const IAuthorizationService_1 = require("../services/IAuthorizationService");
 const timezone_1 = require("../../../../shared/utils/timezone");
+const PATIENT_ID_REGEX = /^PAT-\d{6}-\d{3}$/;
 /**
  * Schedule Appointment Use Case
  * Creates a new appointment with proper validation and business rules
@@ -36,8 +37,9 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
      */
     async executeInternal(request) {
         try {
+            const patientId = await this.resolvePatientIdentifier(request.patientId);
             // 1. Authorization check
-            const canSchedule = await this.authorizationService.canScheduleAppointment(request.createdBy, request.patientId);
+            const canSchedule = await this.authorizationService.canScheduleAppointment(request.createdBy, patientId);
             if (!canSchedule) {
                 throw new IAuthorizationService_1.AuthorizationError("You are not authorized to schedule appointments for this patient", request.createdBy, "schedule_appointment", request.patientId);
             }
@@ -53,7 +55,7 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
             const timeSlot = TimeSlot_vo_1.TimeSlot.createWithTimestamps(request.appointmentDate, request.appointmentTime, startTimeUtc, endTimeUtc);
             const details = AppointmentDetails_vo_1.AppointmentDetails.create(request.reason, request.chiefComplaint, request.symptoms, request.notes, request.specialInstructions);
             // 3. Create appointment aggregate
-            const appointment = Appointment_aggregate_1.Appointment.create(appointmentId, tenantId, request.patientId, request.doctorId, timeSlot, request.durationMinutes, request.type, request.priority, details, request.consultationFee, request.createdBy, request.roomId, request.departmentId, request.requiredEquipment);
+            const appointment = Appointment_aggregate_1.Appointment.create(appointmentId, tenantId, patientId, request.doctorId, timeSlot, request.durationMinutes, request.type, request.priority, details, request.consultationFee, request.createdBy, request.roomId, request.departmentId, request.requiredEquipment);
             // 4. Check for conflicts BEFORE saving
             const startTime = startTimeUtc;
             const endTime = endTimeUtc;
@@ -109,7 +111,7 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
             //    No direct HTTP call needed - pure event-driven architecture
             // 7. Schedule reminders for the appointment
             try {
-                await this.reminderService.scheduleReminders(appointmentId.value, request.patientId, startTime, request.priority);
+                await this.reminderService.scheduleReminders(appointmentId.value, patientId, startTime, request.priority);
                 console.log(`[ScheduleAppointment] Reminders scheduled for appointment ${appointmentId.value}`);
             }
             catch (reminderError) {
@@ -128,7 +130,7 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                 // Try to get invoice by searching (since we don't have findByAppointmentId endpoint)
                 // This is a workaround - ideally Billing Service should have GET /invoices/by-appointment/:appointmentId
                 const searchResponse = await this.billingServiceClient.searchInvoices({
-                    patientId: request.patientId,
+                    patientId,
                     // Note: Cannot filter by appointmentId - will get all patient invoices
                     // Frontend will need to match by appointmentId or use polling
                 });
@@ -173,7 +175,7 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
                 appointment: {
                     id: appointment.id,
                     appointmentId: appointmentId.value,
-                    patientId: request.patientId,
+                    patientId,
                     doctorId: request.doctorId,
                     appointmentDate: request.appointmentDate,
                     appointmentTime: request.appointmentTime,
@@ -263,7 +265,20 @@ class ScheduleAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseC
      * Get patient ID
      */
     getPatientId(request) {
-        return request.patientId;
+        return PATIENT_ID_REGEX.test(request.patientId) ? request.patientId : null;
+    }
+    async resolvePatientIdentifier(identifier) {
+        if (!identifier) {
+            throw new Error("Patient ID is required");
+        }
+        if (PATIENT_ID_REGEX.test(identifier)) {
+            return identifier;
+        }
+        const resolvedId = await this.authorizationService.resolvePatientIdForUser(identifier);
+        if (!resolvedId) {
+            throw new Error("Không tìm thấy hồ sơ bệnh nhân tương ứng với tài khoản. Vui lòng hoàn tất đăng ký hồ sơ bệnh nhân trước khi đặt lịch.");
+        }
+        return resolvedId;
     }
 }
 exports.ScheduleAppointmentUseCase = ScheduleAppointmentUseCase;

@@ -137,29 +137,25 @@ export class StartAppointmentUseCase extends BaseHealthcareUseCase<
 
   /**
    * Validate if appointment can be started
+   * Updated for simplified 3-role system (no check-in required)
    */
   private validateStart(
     appointment: any,
     request: StartAppointmentRequest
   ): string | null {
-    // Check status - only ARRIVED can be started
-    if (appointment.status !== 'arrived') {
-      return `Không thể bắt đầu khám với trạng thái ${appointment.status}. Bệnh nhân phải check-in trước`;
+    // Check status - allow CONFIRMED or SCHEDULED (no check-in required)
+    if (appointment.status !== 'confirmed' && appointment.status !== 'scheduled') {
+      return `Không thể bắt đầu khám với trạng thái ${appointment.status}. Lịch hẹn phải ở trạng thái CONFIRMED hoặc SCHEDULED`;
     }
 
-    // Check if already started
-    if (appointment.getStartedAt && appointment.getStartedAt()) {
-      return 'Lịch hẹn đã được bắt đầu';
+    // Check if already started (prevent double-start)
+    if (appointment.startedAt) {
+      return 'Lịch hẹn đã được bắt đầu trước đó';
     }
 
-    // Check if doctor matches
-    if (appointment.doctorId !== request.startedBy) {
+    // Check if doctor is authorized
+    if (request.startedBy !== appointment.doctorId) {
       return 'Chỉ bác sĩ được phân công mới có thể bắt đầu khám';
-    }
-
-    // Check if patient checked in
-    if (appointment.getCheckedInAt && !appointment.getCheckedInAt()) {
-      return 'Bệnh nhân chưa check-in';
     }
 
     return null;

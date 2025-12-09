@@ -57,6 +57,10 @@ interface ExtendedInvoice extends Invoice {
   departmentName?: string;
   appointmentDate?: string;
   appointmentTime?: string;
+  // Insurance fields inherited from Invoice:
+  // insuranceCoverage?: number;
+  // outstandingAmount?: number;
+  // insurance?: { provider, policyNumber, coveragePercentage }
 }
 
 // ============================================================================
@@ -472,6 +476,9 @@ function AdminInvoicesContent() {
                       Số tiền
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Bảo hiểm
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Trạng thái
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -483,7 +490,7 @@ function AdminInvoicesContent() {
                   <AnimatePresence mode="wait">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-16 text-center">
+                        <td colSpan={7} className="px-6 py-16 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <div className="relative mb-4">
                               <div className="h-12 w-12 rounded-full border-4 border-indigo-100" />
@@ -495,7 +502,7 @@ function AdminInvoicesContent() {
                       </tr>
                     ) : filteredInvoices.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-16 text-center">
+                        <td colSpan={7} className="px-6 py-16 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
                               <FileText className="h-8 w-8 text-slate-400" />
@@ -672,9 +679,27 @@ function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, 
 
       {/* Amount */}
       <td className="whitespace-nowrap px-6 py-4">
-        <p className="text-lg font-bold text-slate-900">
-          {formatCurrency(invoice.amount)}
-        </p>
+        <div>
+          <p className="text-lg font-bold text-slate-900">
+            {formatCurrency(invoice.outstandingAmount || invoice.amount)}
+          </p>
+          {invoice.insuranceCoverage && invoice.insuranceCoverage > 0 && (
+            <p className="text-xs text-slate-500 line-through">
+              {formatCurrency(invoice.amount)}
+            </p>
+          )}
+        </div>
+      </td>
+
+      {/* Insurance Coverage */}
+      <td className="whitespace-nowrap px-6 py-4">
+        {invoice.insuranceCoverage && invoice.insuranceCoverage > 0 ? (
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            🛡️ -{formatCurrency(invoice.insuranceCoverage)}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
       </td>
 
       {/* Status */}

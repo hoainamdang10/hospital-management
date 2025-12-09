@@ -5,34 +5,31 @@
  * @version 2.0.0
  */
 
-import { Express } from 'express';
-import { createStaffRoutes } from './staffRoutes';
-import { createDepartmentRoutes } from './department.routes';
-import { StaffController } from '../controllers/StaffController';
-import { logger } from '../../infrastructure/logging/logger';
-import { RegisterStaffUseCase } from '../../application/use-cases/RegisterStaffUseCase';
-import { GetStaffProfileUseCase } from '../../application/use-cases/GetStaffProfileUseCase';
-import { AuditService } from '../../infrastructure/audit/AuditService';
-import { AssignStaffToDepartmentUseCase } from '../../application/use-cases/AssignStaffToDepartmentUseCase';
-import { SetDepartmentHeadUseCase } from '../../application/use-cases/SetDepartmentHeadUseCase';
-import { AddStaffCredentialUseCase } from '../../application/use-cases/AddStaffCredentialUseCase';
-import { RemoveStaffCredentialUseCase } from '../../application/use-cases/RemoveStaffCredentialUseCase';
-import { RenewStaffCredentialUseCase } from '../../application/use-cases/RenewStaffCredentialUseCase';
-import { GetExpiringCredentialsUseCase } from '../../application/use-cases/GetExpiringCredentialsUseCase';
-import { ActivateStaffUseCase } from '../../application/use-cases/ActivateStaffUseCase';
-import { SuspendStaffUseCase } from '../../application/use-cases/SuspendStaffUseCase';
-import { ReactivateStaffUseCase } from '../../application/use-cases/ReactivateStaffUseCase';
-import { TerminateStaffUseCase } from '../../application/use-cases/TerminateStaffUseCase';
-import { UpdateEmploymentStatusUseCase } from '../../application/use-cases/UpdateEmploymentStatusUseCase';
-import { UpdateStaffScheduleUseCase } from '../../application/use-cases/UpdateStaffScheduleUseCase';
-// REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
-import { GetStaffSpecializationsUseCase } from '../../application/use-cases/GetStaffSpecializationsUseCase';
-import { AddStaffSpecializationUseCase } from '../../application/use-cases/AddStaffSpecializationUseCase';
-import { RemoveStaffSpecializationUseCase } from '../../application/use-cases/RemoveStaffSpecializationUseCase';
-import { StaffCommandHandlers } from '../../application/handlers/StaffCommandHandlers';
-import { StaffQueryHandlers } from '../../application/handlers/StaffQueryHandlers';
-import { SupabaseDepartmentRepository } from '../../infrastructure/repositories/SupabaseDepartmentRepository';
-import { SupabaseProviderStaffRepository } from '../../infrastructure/repositories/SupabaseProviderStaffRepository';
+import { Express } from "express";
+import { createStaffRoutes } from "./staffRoutes";
+import { createDepartmentRoutes } from "./department.routes";
+import { StaffController } from "../controllers/StaffController";
+import { logger } from "../../infrastructure/logging/logger";
+import { RegisterStaffUseCase } from "../../application/use-cases/RegisterStaffUseCase";
+import { GetStaffProfileUseCase } from "../../application/use-cases/GetStaffProfileUseCase";
+import { AuditService } from "../../infrastructure/audit/AuditService";
+import { AssignStaffToDepartmentUseCase } from "../../application/use-cases/AssignStaffToDepartmentUseCase";
+import { SetDepartmentHeadUseCase } from "../../application/use-cases/SetDepartmentHeadUseCase";
+import { AddStaffCredentialUseCase } from "../../application/use-cases/AddStaffCredentialUseCase";
+import { RemoveStaffCredentialUseCase } from "../../application/use-cases/RemoveStaffCredentialUseCase";
+import { RenewStaffCredentialUseCase } from "../../application/use-cases/RenewStaffCredentialUseCase";
+import { GetExpiringCredentialsUseCase } from "../../application/use-cases/GetExpiringCredentialsUseCase";
+import { ActivateStaffUseCase } from "../../application/use-cases/ActivateStaffUseCase";
+import { SuspendStaffUseCase } from "../../application/use-cases/SuspendStaffUseCase";
+import { ReactivateStaffUseCase } from "../../application/use-cases/ReactivateStaffUseCase";
+import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaffUseCase";
+import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
+import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
+// REMOVED: Availability & legacy profile use cases - Belongs to Scheduling/Appointment Service
+import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
+import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
+import { SupabaseDepartmentRepository } from "../../infrastructure/repositories/SupabaseDepartmentRepository";
+import { SupabaseProviderStaffRepository } from "../../infrastructure/repositories/SupabaseProviderStaffRepository";
 
 export function setupRoutes(
   app: Express,
@@ -52,10 +49,7 @@ export function setupRoutes(
   terminateStaffUseCase: TerminateStaffUseCase,
   updateEmploymentStatusUseCase: UpdateEmploymentStatusUseCase,
   updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
-  // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-  getStaffSpecializationsUseCase: GetStaffSpecializationsUseCase,
-  addStaffSpecializationUseCase: AddStaffSpecializationUseCase,
-  removeStaffSpecializationUseCase: RemoveStaffSpecializationUseCase
+  // REMOVED: Availability & legacy profile use cases - Belongs to Scheduling/Appointment Service
 ): void {
   // Initialize controller
   const staffController = new StaffController(
@@ -76,40 +70,40 @@ export function setupRoutes(
     terminateStaffUseCase,
     updateEmploymentStatusUseCase,
     updateStaffScheduleUseCase,
-    // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-    getStaffSpecializationsUseCase,
-    addStaffSpecializationUseCase,
-    removeStaffSpecializationUseCase
+    // REMOVED: Availability & legacy profile use cases - Belongs to Scheduling/Appointment Service
   );
 
   // Staff routes
   const staffRoutes = createStaffRoutes(staffController);
-  app.use('/api/v1/staff', staffRoutes);
+  app.use("/api/v1/staff", staffRoutes);
 
   // Department routes (now integrated into Provider Service)
   const departmentRepository = new SupabaseDepartmentRepository(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    process.env.SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   );
 
   const auditService = new AuditService({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    supabaseUrl: process.env.SUPABASE_URL || "",
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     logger: logger,
-    serviceName: 'provider-staff-service'
+    serviceName: "provider-staff-service",
   });
 
   const staffRepository = new SupabaseProviderStaffRepository(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    process.env.SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "",
     logger,
-    auditService
+    auditService,
   );
 
-  const departmentRoutes = createDepartmentRoutes(departmentRepository, staffRepository);
-  app.use('/api/v1/departments', departmentRoutes);
+  const departmentRoutes = createDepartmentRoutes(
+    departmentRepository,
+    staffRepository,
+  );
+  app.use("/api/v1/departments", departmentRoutes);
 
-  logger.info('Department routes registered at /api/v1/departments');
+  logger.info("Department routes registered at /api/v1/departments");
 
   // Note: /health endpoint is registered in src/main.ts (detailed version)
   // Removed duplicate registration to avoid conflicts
@@ -118,10 +112,10 @@ export function setupRoutes(
   app.use((_req, res) => {
     res.status(404).json({
       success: false,
-      message: 'Endpoint not found',
-      error: 'NOT_FOUND'
+      message: "Endpoint not found",
+      error: "NOT_FOUND",
     });
   });
 
-  logger.info('Routes configured successfully');
+  logger.info("Routes configured successfully");
 }

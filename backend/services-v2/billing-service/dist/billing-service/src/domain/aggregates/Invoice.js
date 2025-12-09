@@ -26,9 +26,16 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         const subtotal = items.reduce((sum, item) => sum.add(item.totalPrice), Money_1.Money.zero());
         // Calculate tax (10% VAT)
         const tax = subtotal.multiply(taxRate);
-        // Calculate total and outstanding (no insurance coverage in Phase 1 Prepaid Model)
+        // Calculate insurance coverage
+        const insuranceCoverageAmount = options.insuranceCoverageAmount ?? 0;
+        const insuranceCoverage = Money_1.Money.create(insuranceCoverageAmount);
+        // Calculate total and outstanding (with insurance deduction)
         const totalAmount = subtotal.add(tax);
-        const outstandingAmount = totalAmount;
+        const outstandingAmount = totalAmount.subtract(insuranceCoverage);
+        // Ensure outstanding is never negative
+        const finalOutstanding = outstandingAmount.amount < 0
+            ? Money_1.Money.zero()
+            : outstandingAmount;
         // Generate invoice number automatically
         const invoiceNumber = Invoice.generateInvoiceNumber();
         const invoiceDueDate = new Date(now.getTime() + 10 * 60 * 1000);
@@ -39,9 +46,11 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             items,
             subtotal,
             tax,
+            insuranceCoverage,
+            insurance: options.insurance,
             totalAmount,
-            outstandingAmount,
-            status: InvoiceStatus_1.InvoiceStatus.pending(), // Phase 1: Start with PENDING (waiting for payment)
+            outstandingAmount: finalOutstanding,
+            status: InvoiceStatus_1.InvoiceStatus.pending(), // Start with PENDING (waiting for payment)
             payments: [],
             paidAt: undefined, // Not paid yet
             createdAt: now,
@@ -211,8 +220,9 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
         payment.complete();
         this.props.payments.push(payment);
         const totalPaid = this.props.payments.reduce((sum, p) => sum.add(p.amount), Money_1.Money.zero());
-        // Phase 1 Prepaid Model: No insurance coverage deduction
-        this.props.outstandingAmount = this.props.totalAmount.subtract(totalPaid);
+        // Calculate outstanding: totalAmount - insuranceCoverage - totalPaid
+        const afterInsurance = this.props.totalAmount.subtract(this.props.insuranceCoverage);
+        this.props.outstandingAmount = afterInsurance.subtract(totalPaid);
         if (this.props.outstandingAmount.amount <= 0) {
             this.props.status = InvoiceStatus_1.InvoiceStatus.paid();
             this.props.paidAt = new Date(); // Set paid timestamp
@@ -276,6 +286,12 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             items: this.props.items.map((item) => item.toPersistence()),
             subtotal: this.props.subtotal.amount,
             tax: this.props.tax.amount,
+            insuranceCoverage: this.props.insuranceCoverage.amount,
+            insurance: this.props.insurance ? {
+                provider: this.props.insurance.provider,
+                policyNumber: this.props.insurance.policyNumber,
+                coveragePercentage: this.props.insurance.coveragePercentage,
+            } : null,
             totalAmount: this.props.totalAmount.amount,
             outstandingAmount: this.props.outstandingAmount.amount,
             currency: this.props.totalAmount.currency,
@@ -285,7 +301,6 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
             createdAt: this.props.createdAt,
             updatedAt: this.props.updatedAt,
             dueDate: this.props.dueDate,
-            // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
         };
     }
     // Getters
@@ -316,6 +331,12 @@ class Invoice extends aggregate_root_1.HealthcareAggregateRoot {
     }
     get tax() {
         return this.props.tax;
+    }
+    get insuranceCoverage() {
+        return this.props.insuranceCoverage;
+    }
+    get insurance() {
+        return this.props.insurance;
     }
     get totalAmount() {
         return this.props.totalAmount;

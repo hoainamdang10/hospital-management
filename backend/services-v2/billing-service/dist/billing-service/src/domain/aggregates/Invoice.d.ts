@@ -2,6 +2,7 @@ import { HealthcareAggregateRoot } from "../../../../shared/domain/base/aggregat
 import { InvoiceId } from "../value-objects/InvoiceId";
 import { Money } from "../value-objects/Money";
 import { InvoiceStatus } from "../value-objects/InvoiceStatus";
+import { Insurance } from "../value-objects/Insurance";
 import { InvoiceItem } from "../entities/InvoiceItem";
 import { Payment } from "../entities/Payment";
 export interface InvoiceProps {
@@ -14,6 +15,8 @@ export interface InvoiceProps {
     items: InvoiceItem[];
     subtotal: Money;
     tax: Money;
+    insuranceCoverage: Money;
+    insurance?: Insurance;
     totalAmount: Money;
     outstandingAmount: Money;
     status: InvoiceStatus;
@@ -25,6 +28,8 @@ export interface InvoiceProps {
 }
 interface InvoiceCreateOptions {
     taxRate?: number;
+    insurance?: Insurance;
+    insuranceCoverageAmount?: number;
 }
 export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     private constructor();
@@ -68,6 +73,8 @@ export declare class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     get items(): InvoiceItem[];
     get subtotal(): Money;
     get tax(): Money;
+    get insuranceCoverage(): Money;
+    get insurance(): Insurance | undefined;
     get totalAmount(): Money;
     get outstandingAmount(): Money;
     get status(): InvoiceStatus;

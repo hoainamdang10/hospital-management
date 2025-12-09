@@ -2,6 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseInvoiceRepository = void 0;
 const InvoiceMapper_1 = require("../mappers/InvoiceMapper");
+const ALLOWED_INVOICE_DATE_FIELDS = [
+    "created_at",
+    "paid_at",
+    "updated_at",
+];
 class SupabaseInvoiceRepository {
     constructor(supabase) {
         this.supabase = supabase;
@@ -271,7 +276,7 @@ class SupabaseInvoiceRepository {
             .from(this.invoicesTable)
             .select("*")
             .in("status", ["pending", "partially_paid"])
-            .gt("patient_payment_amount", 0)
+            .gt("outstanding_amount", 0)
             .not("finalized_at", "is", null);
         // If daysOverdue specified, filter by creation date
         if (daysOverdue) {
@@ -332,6 +337,7 @@ class SupabaseInvoiceRepository {
         });
     }
     async search(criteria) {
+        const dateField = this.resolveDateField(criteria.dateField);
         let query = this.supabase.from(this.invoicesTable).select("*");
         // Filter by status
         if (criteria.status) {
@@ -352,13 +358,13 @@ class SupabaseInvoiceRepository {
             const fromDateStr = criteria.fromDate instanceof Date
                 ? criteria.fromDate.toISOString()
                 : criteria.fromDate;
-            query = query.gte("created_at", fromDateStr);
+            query = query.gte(dateField, fromDateStr);
         }
         if (criteria.toDate) {
             const toDateStr = criteria.toDate instanceof Date
                 ? criteria.toDate.toISOString()
                 : criteria.toDate;
-            query = query.lte("created_at", toDateStr);
+            query = query.lte(dateField, toDateStr);
         }
         // Filter by amount range
         if (criteria.minAmount !== undefined) {
@@ -490,6 +496,14 @@ class SupabaseInvoiceRepository {
     }
     isPatientCode(value) {
         return /^PAT-\d{6}-\d{3}$/i.test(value);
+    }
+    resolveDateField(field) {
+        if (!field) {
+            return "created_at";
+        }
+        return ALLOWED_INVOICE_DATE_FIELDS.includes(field)
+            ? field
+            : "created_at";
     }
 }
 exports.SupabaseInvoiceRepository = SupabaseInvoiceRepository;

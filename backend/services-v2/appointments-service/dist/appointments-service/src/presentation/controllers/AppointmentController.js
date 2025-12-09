@@ -44,7 +44,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppointmentController = void 0;
 const Appointment_aggregate_1 = require("../../domain/aggregates/Appointment.aggregate");
 class AppointmentController {
-    constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase, rescheduleAppointmentUseCase, checkInAppointmentUseCase, markAsNoShowUseCase, startAppointmentUseCase, 
+    constructor(scheduleAppointmentUseCase, cancelAppointmentUseCase, confirmAppointmentUseCase, completeAppointmentUseCase, getAppointmentUseCase, listAppointmentsUseCase, rescheduleAppointmentUseCase, 
+    // Simplified 3-role flow doesn't use check-in
+    // private readonly checkInAppointmentUseCase: CheckInAppointmentUseCase,
+    markAsNoShowUseCase, startAppointmentUseCase, 
     // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
     // private readonly bulkRescheduleAppointmentsUseCase: BulkRescheduleAppointmentsUseCase,
     getAppointmentHistoryUseCase, getAppointmentStatisticsUseCase, createEmergencyAppointmentUseCase, transferAppointmentUseCase, createRecurringSeriesUseCase) {
@@ -55,7 +58,6 @@ class AppointmentController {
         this.getAppointmentUseCase = getAppointmentUseCase;
         this.listAppointmentsUseCase = listAppointmentsUseCase;
         this.rescheduleAppointmentUseCase = rescheduleAppointmentUseCase;
-        this.checkInAppointmentUseCase = checkInAppointmentUseCase;
         this.markAsNoShowUseCase = markAsNoShowUseCase;
         this.startAppointmentUseCase = startAppointmentUseCase;
         this.getAppointmentHistoryUseCase = getAppointmentHistoryUseCase;
@@ -488,41 +490,49 @@ class AppointmentController {
     /**
      * POST /api/appointments/:id/check-in
      * Check in patient for appointment
+     * DISABLED: Simplified 3-role flow doesn't use check-in
+     * Doctors can start appointments directly
      */
-    async checkInAppointment(req, res) {
-        try {
-            const user = req.user;
-            const userId = user?.id;
-            const userRole = user?.role;
-            if (!userId) {
-                res.status(401).json({ success: false, message: "Unauthorized" });
-                return;
-            }
-            // Optional guard: doctor can only check-in own appointments if doctorId is provided in body
-            if (userRole === "doctor" &&
-                req.body?.doctorId &&
-                req.body.doctorId !== userId) {
-                res.status(403).json({
-                    success: false,
-                    message: "Forbidden: doctor can only check-in own appointments",
-                });
-                return;
-            }
-            const result = await this.checkInAppointmentUseCase.execute({
-                appointmentId: req.params.id,
-                checkedInBy: userId,
-                ...req.body,
-            }, { userId, timestamp: new Date() });
-            res.status(result.success ? 200 : 400).json(result);
-        }
-        catch (error) {
-            res.status(500).json({
-                success: false,
-                message: "Internal server error",
-                errors: [error instanceof Error ? error.message : "Unknown error"],
-            });
-        }
-    }
+    // async checkInAppointment(req: Request, res: Response): Promise<void> {
+    //   try {
+    //     const user = (req as any).user;
+    //     const userId = user?.id;
+    //     const userRole = user?.role;
+    //     if (!userId) {
+    //       res.status(401).json({ success: false, message: \"Unauthorized\" });
+    //       return;
+    //     }
+    //     // Optional guard: doctor can only check-in own appointments if doctorId is provided in body
+    //     if (
+    //       userRole === \"doctor\" &&
+    //       req.body?.doctorId &&
+    //       req.body.doctorId !== userId
+    //     ) {
+    //       res.status(403).json({
+    //         success: false,
+    //         message: \"Forbidden: doctor can only check-in own appointments\",
+    //       });
+    //       return;
+    //     }
+    //
+    //     const result = await this.checkInAppointmentUseCase.execute(
+    //       {
+    //         appointmentId: req.params.id,
+    //         checkedInBy: userId,
+    //         ...req.body,
+    //       },
+    //       { userId, timestamp: new Date() },
+    //     );
+    //
+    //     res.status(result.success ? 200 : 400).json(result);
+    //   } catch (error) {
+    //     res.status(500).json({
+    //       success: false,
+    //       message: \"Internal server error\",
+    //       errors: [error instanceof Error ? error.message : \"Unknown error\"],
+    //     });
+    //   }
+    // }
     /**
      * POST /api/appointments/:id/no-show
      * Mark appointment as no-show

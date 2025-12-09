@@ -12,6 +12,12 @@ export interface CreateInvoiceRequest {
         quantity: number;
         unitPrice: number;
     }>;
+    insurance?: {
+        provider: string;
+        policyNumber: string;
+        coveragePercentage: number;
+    };
+    insuranceCoverageAmount?: number;
 }
 export interface CreateInvoiceResponse {
     invoiceId: string;

@@ -49,6 +49,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { DashboardLayout } from '@/components/layout';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 interface AppointmentDetail {
   id: string;
@@ -143,13 +144,7 @@ const statusConfig: Record<
     borderColor: 'border-emerald-200',
     icon: CheckCircle2,
   },
-  CHECKED_IN: {
-    label: 'Đã check-in',
-    color: 'text-violet-700',
-    bgColor: 'bg-violet-50',
-    borderColor: 'border-violet-200',
-    icon: User,
-  },
+
   IN_PROGRESS: {
     label: 'Đang khám',
     color: 'text-amber-700',
@@ -239,7 +234,11 @@ export default function AppointmentDetailPage() {
       });
     } catch (error) {
       console.error('Failed to fetch appointment:', error);
-      toast.error('Không thể tải thông tin lịch hẹn');
+      showErrorToast(error, {
+        title: 'Không thể tải thông tin lịch hẹn',
+        fallbackMessage: 'Không thể tải thông tin lịch hẹn. Vui lòng thử lại.',
+        context: 'Admin/Appointments:detail',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -280,9 +279,6 @@ export default function AppointmentDetailPage() {
           res = await appointmentsService.cancel(id, { cancellationReason: cancelReason });
           setIsCancelDialogOpen(false);
           break;
-        case 'check-in':
-          res = await appointmentsService.checkInAppointment(id);
-          break;
         case 'complete':
           break;
       }
@@ -292,7 +288,12 @@ export default function AppointmentDetailPage() {
         fetchAppointment();
       }
     } catch (error: any) {
-      toast.error(error.message || 'Lỗi cập nhật trạng thái');
+      console.error('[AdminAppointmentDetail] Failed to update status', error);
+      showErrorToast(error, {
+        title: 'Lỗi cập nhật trạng thái',
+        fallbackMessage: 'Không thể cập nhật trạng thái lịch hẹn. Vui lòng thử lại.',
+        context: `Admin/Appointments:detail:update:${action}`,
+      });
     }
   };
 
@@ -314,7 +315,12 @@ export default function AppointmentDetailPage() {
         fetchAppointment();
       }
     } catch (error: any) {
-      toast.error(error?.message || 'Không thể dời lịch hẹn');
+      console.error('[AdminAppointmentDetail] Failed to reschedule', error);
+      showErrorToast(error, {
+        title: 'Không thể dời lịch hẹn',
+        fallbackMessage: 'Không thể dời lịch hẹn. Vui lòng thử lại sau.',
+        context: 'Admin/Appointments:detail:reschedule',
+      });
     } finally {
       setIsRescheduling(false);
     }
@@ -465,19 +471,7 @@ export default function AppointmentDetailPage() {
                   </Button>
                 )}
 
-                {appointment.status.toUpperCase() === 'CONFIRMED' && (
-                  <Button
-                    onClick={() => handleStatusChange('check-in')}
-                    className="bg-violet-600 text-white shadow-lg shadow-violet-600/20 transition-all hover:bg-violet-700 hover:shadow-xl hover:shadow-violet-600/30"
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    Check-in bệnh nhân
-                  </Button>
-                )}
-
-                {['SCHEDULED', 'CONFIRMED', 'CHECKED_IN'].includes(
-                  appointment.status.toUpperCase()
-                ) && (
+                {['SCHEDULED', 'CONFIRMED'].includes(appointment.status.toUpperCase()) && (
                   <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
                     <DialogTrigger asChild>
                       <Button

@@ -1,52 +1,12 @@
 import { BaseHealthcareUseCase } from "../../../../shared/application/base/base-healthcare-use-case";
 import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
 import { ILogger } from "../../../../shared/application/services/logger.interface";
+import { type PatientInvoiceResponse } from "../mappers/patient-invoice.mapper";
 export interface GetPatientInvoicesRequest {
     patientId: string;
 }
 export interface GetPatientInvoicesResponse {
-    invoices: Array<{
-        invoiceId: string;
-        invoiceNumber?: string;
-        invoiceCode?: string;
-        patientName?: string;
-        appointmentId?: string;
-        appointmentCode?: string;
-        doctorName?: string;
-        doctorDepartment?: string;
-        cancellationReason?: string;
-        metadata?: Record<string, any>;
-        items: Array<{
-            id: string;
-            description: string;
-            quantity: number;
-            unitPrice: number;
-            totalPrice: number;
-        }>;
-        subtotal: number;
-        tax: number;
-        totalAmount: number;
-        outstandingAmount: number;
-        paidAmount: number;
-        status: string;
-        createdAt: Date;
-        issuedAt: Date;
-        issueDate: Date;
-        dueDate: Date;
-        payments: Array<{
-            id: string;
-            amount: number;
-            currency: string;
-            method: string;
-            status: string;
-            transactionId?: string;
-            paidAt?: Date;
-            refundedAt?: Date;
-            refundReason?: string;
-            refundedBy?: string;
-            gatewayRefundId?: string;
-        }>;
-    }>;
+    invoices: PatientInvoiceResponse[];
     totalCount: number;
 }
 export declare class GetPatientInvoicesUseCase extends BaseHealthcareUseCase<GetPatientInvoicesRequest, GetPatientInvoicesResponse> {

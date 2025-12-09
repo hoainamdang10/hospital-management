@@ -16,7 +16,6 @@ import { StaffId } from "../value-objects/StaffId";
 import { PersonalInfo } from "../value-objects/PersonalInfo";
 import { ProfessionalInfo } from "../value-objects/ProfessionalInfo";
 import { WorkSchedule } from "../value-objects/WorkSchedule";
-import { Specialization } from "../entities/Specialization";
 import { StaffCredential } from "../entities/StaffCredential";
 import { StaffCertification } from "../entities/StaffCertification";
 // REMOVED: StaffAvailability - Belongs to Scheduling/Appointment Service (bounded context violation)
@@ -27,7 +26,6 @@ import { StaffUpdatedEvent } from "../events/StaffUpdatedEvent";
 import { StaffScheduleUpdatedEvent } from "../events/StaffScheduleUpdatedEvent";
 import { StaffStatusChangedEvent } from "../events/StaffStatusChangedEvent";
 // import { StaffEmploymentStatusUpdatedEvent } from '../events/StaffEmploymentStatusUpdatedEvent'; // Event removed in scope reduction
-// import { StaffSpecializationAddedEvent } from '../events/StaffSpecializationAddedEvent'; // Event removed in scope reduction
 import { StaffDepartmentAssignedEvent } from "../events/StaffDepartmentAssignedEvent";
 
 export type StaffType = "doctor" | "receptionist";
@@ -51,7 +49,6 @@ export interface ProviderStaffProps {
   personalInfo: PersonalInfo;
   professionalInfo: ProfessionalInfo;
   workSchedule: WorkSchedule;
-  specializations: Specialization[];
   credentials: StaffCredential[];
   certifications: StaffCertification[];
   // REMOVED: availability - Belongs to Scheduling/Appointment Service (bounded context violation)
@@ -106,7 +103,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     employmentType: EmploymentType,
     hireDate: Date,
     yearsOfExperience: number,
-    specializations: Specialization[] = [],
     vietnameseHealthcareLicense?: string,
     mohRegistrationNumber?: string,
     departmentCode?: string, // 🔄 NEW: Optional department parameter
@@ -135,16 +131,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       throw new Error("Ngày tuyển dụng không được là ngày trong tương lai");
     }
 
-    // Doctors must have specializations
-    if (staffType === "doctor" && specializations.length === 0) {
-      throw new Error("Bác sĩ phải có ít nhất một chuyên khoa");
-    }
-
-    // Receptionists should not have specializations
-    if (staffType === "receptionist" && specializations.length > 0) {
-      throw new Error("Lễ tân không cần chuyên khoa");
-    }
-
     const staff = new ProviderStaff({
       id: staffId,
       userId,
@@ -152,7 +138,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       personalInfo,
       professionalInfo,
       workSchedule,
-      specializations,
       credentials: [],
       certifications: [],
       // REMOVED: availability - Belongs to Scheduling/Appointment Service
@@ -242,10 +227,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     return this.props.workSchedule;
   }
 
-  public get specializations(): Specialization[] {
-    return [...this.props.specializations];
-  }
-
   public get licenseNumber(): string {
     return this.props.licenseNumber;
   }
@@ -323,43 +304,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   }
 
   // Business methods
-  public addSpecialization(specialization: Specialization): void {
-    if (
-      this.props.specializations.some((s) => s.code === specialization.code)
-    ) {
-      throw new Error("Chuyên khoa này đã tồn tại");
-    }
-
-    this.props.specializations.push(specialization);
-    this.props.updatedAt = new Date();
-
-    // Publish domain event - Disabled in scope reduction
-    // this.addDomainEvent(new StaffSpecializationAddedEvent(
-    //   this.props.id,
-    //   specialization
-    // ));
-  }
-
-  public removeSpecialization(specializationCode: string): void {
-    const index = this.props.specializations.findIndex(
-      (s) => s.code === specializationCode,
-    );
-    if (index === -1) {
-      throw new Error("Không tìm thấy chuyên khoa");
-    }
-
-    // Doctors must have at least one specialization
-    if (
-      this.props.staffType === "doctor" &&
-      this.props.specializations.length === 1
-    ) {
-      throw new Error("Bác sĩ phải có ít nhất một chuyên khoa");
-    }
-
-    this.props.specializations.splice(index, 1);
-    this.props.updatedAt = new Date();
-  }
-
   public addCredential(credential: StaffCredential): void {
     if (
       this.props.credentials.some(
@@ -747,10 +691,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
   }
 
   // Query methods
-  public getActiveSpecializations(): Specialization[] {
-    return this.props.specializations.filter((s) => s.isActive);
-  }
-
   public getValidCredentials(): StaffCredential[] {
     const now = new Date();
     return this.props.credentials.filter(
@@ -833,22 +773,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     // Years of experience must be non-negative
     if (this.props.yearsOfExperience < 0) {
       throw new Error("Số năm kinh nghiệm không được âm");
-    }
-
-    // Doctors must have specializations
-    if (
-      this.props.staffType === "doctor" &&
-      this.props.specializations.length === 0
-    ) {
-      throw new Error("Bác sĩ phải có ít nhất một chuyên khoa");
-    }
-
-    // Receptionists should not have specializations
-    if (
-      this.props.staffType === "receptionist" &&
-      this.props.specializations.length > 0
-    ) {
-      throw new Error("Lễ tân không cần chuyên khoa");
     }
 
     // Consultation fee validation for doctors
@@ -960,9 +884,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
         personal_info: this.props.personalInfo.toPersistence(),
         professional_info: this.props.professionalInfo.toPersistence(),
         work_schedule: this.props.workSchedule.toPersistence(),
-        specializations: this.props.specializations.map((s) =>
-          s.toPersistence(),
-        ),
         credentials: this.props.credentials.map((c) => c.toPersistence()),
         certifications: this.props.certifications.map((c) => c.toPersistence()),
         // REMOVED: availability - Belongs to Scheduling/Appointment Service
@@ -1043,43 +964,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
         data.professional_info,
       ),
       workSchedule: WorkSchedule.fromPersistence(data.work_schedule),
-      specializations: (() => {
-        const items = (data.specializations || []).map((s: any) => {
-          if (typeof s === "string") {
-            return Specialization.fromPersistenceData({
-              code: s.toUpperCase().replace(/\s+/g, "_"),
-              name: s,
-              description: "",
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-          }
-          return Specialization.fromPersistenceData(s);
-        });
-        if (items.length === 0) {
-          const deptName =
-            data.professional_info?.department ||
-            (Array.isArray(data.department_assignments) &&
-              data.department_assignments[0]?.departmentNameEn) ||
-            (Array.isArray(data.department_assignments) &&
-              data.department_assignments[0]?.departmentNameVi) ||
-            undefined;
-          if (typeof deptName === "string" && deptName.trim().length > 0) {
-            items.push(
-              Specialization.fromPersistenceData({
-                code: deptName.toUpperCase().replace(/\s+/g, "_"),
-                name: deptName,
-                description: "",
-                is_active: true,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }),
-            );
-          }
-        }
-        return items;
-      })(),
       credentials: (data.credentials || []).map((c: any) =>
         StaffCredential.fromPersistenceData(c),
       ),
@@ -1172,7 +1056,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
       // REMOVED: rating - Belongs to Review/Rating Service
       // REMOVED: totalPatients - Belongs to Scheduling/Appointment Service
       // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service
-      specializationsCount: this.props.specializations.length,
       credentialsCount: this.props.credentials.length,
       certificationsCount: this.props.certifications.length,
       departmentAssignmentsCount: this.props.departmentAssignments.length,
@@ -1201,7 +1084,6 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
    * Check if staff can work with specific patient type
    */
   public canWorkWithPatientType(_patientType: string): boolean {
-    // This would be expanded based on specializations and certifications
     return this.props.isActive && this.props.status === "active";
   }
 

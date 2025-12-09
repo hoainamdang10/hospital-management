@@ -3,6 +3,7 @@ import { CreateInvoiceUseCase } from "../../application/use-cases/CreateInvoiceU
 import { GetInvoiceUseCase } from "../../application/use-cases/GetInvoiceUseCase";
 import { ProcessPaymentUseCase } from "../../application/use-cases/ProcessPaymentUseCase";
 import { GetPatientInvoicesUseCase } from "../../application/use-cases/GetPatientInvoicesUseCase";
+import { GetInvoicesByAppointmentUseCase } from "../../application/use-cases/GetInvoicesByAppointmentUseCase";
 import { SearchInvoicesUseCase } from "../../application/use-cases/SearchInvoicesUseCase";
 import { GetOverdueInvoicesUseCase } from "../../application/use-cases/GetOverdueInvoicesUseCase";
 import { GetPatientBillingSummaryUseCase } from "../../application/use-cases/GetPatientBillingSummaryUseCase";
@@ -11,11 +12,13 @@ import { CreatePayOSPaymentLinkUseCase } from "../../application/use-cases/Creat
 import { HandlePayOSWebhookUseCase } from "../../application/use-cases/HandlePayOSWebhookUseCase";
 import { PayInvoiceWithWalletUseCase } from "../../application/use-cases/PayInvoiceWithWalletUseCase";
 import { AuthenticatedRequest } from "../middleware/AuthenticationMiddleware";
+import { SupabasePatientRepository } from "../../infrastructure/repositories/SupabasePatientRepository";
 export declare class InvoiceController {
     private readonly createInvoiceUseCase;
     private readonly getInvoiceUseCase;
     private readonly processPaymentUseCase;
     private readonly getPatientInvoicesUseCase;
+    private readonly getInvoicesByAppointmentUseCase;
     private readonly searchInvoicesUseCase;
     private readonly getOverdueInvoicesUseCase;
     private readonly getPatientBillingSummaryUseCase;
@@ -23,12 +26,14 @@ export declare class InvoiceController {
     private readonly createPayOSPaymentLinkUseCase;
     private readonly handlePayOSWebhookUseCase;
     private readonly payInvoiceWithWalletUseCase;
-    constructor(createInvoiceUseCase: CreateInvoiceUseCase, getInvoiceUseCase: GetInvoiceUseCase, processPaymentUseCase: ProcessPaymentUseCase, getPatientInvoicesUseCase: GetPatientInvoicesUseCase, searchInvoicesUseCase: SearchInvoicesUseCase, getOverdueInvoicesUseCase: GetOverdueInvoicesUseCase, getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase, getRevenueReportUseCase: GetRevenueReportUseCase, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase, payInvoiceWithWalletUseCase: PayInvoiceWithWalletUseCase);
+    private readonly patientRepository?;
+    constructor(createInvoiceUseCase: CreateInvoiceUseCase, getInvoiceUseCase: GetInvoiceUseCase, processPaymentUseCase: ProcessPaymentUseCase, getPatientInvoicesUseCase: GetPatientInvoicesUseCase, getInvoicesByAppointmentUseCase: GetInvoicesByAppointmentUseCase, searchInvoicesUseCase: SearchInvoicesUseCase, getOverdueInvoicesUseCase: GetOverdueInvoicesUseCase, getPatientBillingSummaryUseCase: GetPatientBillingSummaryUseCase, getRevenueReportUseCase: GetRevenueReportUseCase, createPayOSPaymentLinkUseCase: CreatePayOSPaymentLinkUseCase, handlePayOSWebhookUseCase: HandlePayOSWebhookUseCase, payInvoiceWithWalletUseCase: PayInvoiceWithWalletUseCase, patientRepository?: SupabasePatientRepository | undefined);
     createInvoice: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     getInvoice: (req: Request, res: Response) => Promise<void>;
     processPayment: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     payWithWallet: (req: AuthenticatedRequest, res: Response) => Promise<void>;
     getPatientInvoices: (req: Request, res: Response) => Promise<void>;
+    getInvoicesByAppointment: (req: Request, res: Response) => Promise<void>;
     searchInvoices: (req: Request, res: Response) => Promise<void>;
     getOverdueInvoices: (req: Request, res: Response) => Promise<void>;
     getPatientBillingSummary: (req: Request, res: Response) => Promise<void>;

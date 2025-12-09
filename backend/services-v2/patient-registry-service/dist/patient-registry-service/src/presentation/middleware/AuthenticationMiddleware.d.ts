@@ -5,8 +5,8 @@
  * @author Hospital Management Team
  * @version 2.0.0
  */
-import { Request, Response, NextFunction } from 'express';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { Request, Response, NextFunction } from "express";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface AuthenticatedUser {
     userId: string;
     email: string;

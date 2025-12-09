@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 import {
   getUserNotifications,
@@ -367,7 +368,11 @@ function useProvideNotifications(): NotificationContextValue {
           }
         }
         console.error('[useNotifications] Failed to mark as read:', err);
-        toast.error('Không thể đánh dấu thông báo đã đọc');
+        showErrorToast(err, {
+          title: 'Không thể đánh dấu thông báo đã đọc',
+          fallbackMessage: 'Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.',
+          context: 'Notifications:markAsRead',
+        });
       }
     },
     [notifications, primaryRecipientId, persistUnreadCount, filter]
@@ -428,7 +433,11 @@ function useProvideNotifications(): NotificationContextValue {
       }
     } catch (err) {
       console.error('[useNotifications] Failed to mark all as read:', err);
-      toast.error('Không thể đánh dấu tất cả thông báo');
+      showErrorToast(err, {
+        title: 'Không thể đánh dấu tất cả thông báo',
+        fallbackMessage: 'Không thể đánh dấu tất cả thông báo. Vui lòng thử lại.',
+        context: 'Notifications:markAllAsRead',
+      });
     }
   }, [notifications, primaryRecipientId, persistUnreadCount, filter, fetchUnreadCount]);
 

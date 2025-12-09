@@ -109,6 +109,11 @@ export interface IAuthorizationService {
      */
     canViewQueueStatus(userId: string, patientId?: string, doctorId?: string): Promise<boolean>;
     /**
+     * Resolve canonical patientId (PAT-YYYYMM-XXX) from identity userId.
+     * Returns null if user does not have a patient profile.
+     */
+    resolvePatientIdForUser(userId: string): Promise<string | null>;
+    /**
      * Check if user has specific role
      */
     hasRole(userId: string, role: UserRole): Promise<boolean>;

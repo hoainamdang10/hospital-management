@@ -25,7 +25,8 @@ class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase
             }
             return acc;
         }, { paid: 0, refunded: 0 });
-        const outstandingAmount = Math.max(0, invoice.totalAmount.amount - paymentStats.paid);
+        const insuranceCoverageAmount = invoice.insuranceCoverage?.amount ?? 0;
+        const outstandingAmount = Math.max(0, invoice.totalAmount.amount - insuranceCoverageAmount - paymentStats.paid);
         const status = paymentStats.refunded > 0 ? "refunded" : invoice.status.value;
         return {
             invoiceId: invoice.id,
@@ -49,7 +50,12 @@ class GetInvoiceUseCase extends base_healthcare_use_case_1.BaseHealthcareUseCase
             totalAmount: invoice.totalAmount.amount,
             outstandingAmount,
             status,
-            // REMOVED (Phase 1): insuranceCoverage, insurance
+            insuranceCoverage: insuranceCoverageAmount,
+            insurance: invoice.insurance ? {
+                provider: invoice.insurance.provider,
+                policyNumber: invoice.insurance.policyNumber,
+                coveragePercentage: invoice.insurance.coveragePercentage,
+            } : undefined,
             payments: payments.map((p) => ({
                 id: p.id,
                 amount: p.amount.amount,

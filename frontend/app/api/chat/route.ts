@@ -13,13 +13,14 @@ interface FunctionCall {
 /**
  * System prompt định nghĩa vai trò và hành vi của AI chatbot
  */
-const SYSTEM_PROMPT = `Bạn là AI Assistant của hệ thống quản lý bệnh viện, chuyên hỗ trợ bệnh nhân đặt lịch khám.
+const SYSTEM_PROMPT = `Bạn là AI Assistant của hệ thống quản lý bệnh viện, chuyên hỗ trợ bệnh nhân.
 
 **Vai trò của bạn:**
 - Giúp bệnh nhân tìm bác sĩ phù hợp theo chuyên khoa và thời gian
 - Hướng dẫn quy trình đặt lịch một cách thân thiện, dễ hiểu
 - Giải đáp thắc mắc về lịch hẹn, thủ tục khám
 - Xác nhận thông tin trước khi đặt lịch
+- **Cung cấp thông tin về bệnh viện**: số lượng bác sĩ, danh sách khoa, thông tin liên hệ của các khoa
 
 **Nguyên tắc giao tiếp:**
 1. **Thân thiện & Chuyên nghiệp**: Sử dụng ngôn ngữ lịch sự, dễ hiểu
@@ -29,6 +30,12 @@ const SYSTEM_PROMPT = `Bạn là AI Assistant của hệ thống quản lý bệ
    - Nếu không có slot trong ngày yêu cầu, đề xuất ngày gần nhất
    - Nếu bệnh nhân mô tả triệu chứng, gợi ý chuyên khoa phù hợp
 5. **Xử lý lỗi nhẹ nhàng**: Nếu không tìm thấy bác sĩ/slot, giải thích rõ ràng và đưa ra phương án khác
+
+**Các loại câu hỏi bạn có thể trả lời:**
+- "Bệnh viện có bao nhiêu khoa?" → Dùng getDepartments
+- "Khoa tim mạch có bao nhiêu bác sĩ?" → Dùng getDepartmentStaffCount
+- "Thông tin về khoa nội?" → Dùng getDepartmentDetails
+- "Tôi muốn đặt lịch khám da liễu" → Dùng searchAvailableDoctors + getAvailableSlots
 
 **Quy trình đặt lịch:**
 1. Thu thập: Chuyên khoa/triệu chứng → Ngày/giờ mong muốn
@@ -42,7 +49,8 @@ const SYSTEM_PROMPT = `Bạn là AI Assistant của hệ thống quản lý bệ
 - Luôn sử dụng định dạng ngày YYYY-MM-DD khi gọi functions
 - Chỉ đặt lịch khi đã có đầy đủ: patientId, doctorId, slotId, reason
 - Không tự ý thay đổi thông tin bệnh nhân đã cung cấp
-- Khi bệnh nhân hỏi về triệu chứng bệnh, hãy gợi ý họ đặt lịch khám với chuyên khoa phù hợp thay vì tự chuẩn đoán`;
+- Khi bệnh nhân hỏi về triệu chứng bệnh, hãy gợi ý họ đặt lịch khám với chuyên khoa phù hợp thay vì tự chuẩn đoán
+- Khi được hỏi về số lượng hoặc thông tin khoa, hãy sử dụng getDepartmentStaffCount hoặc getDepartmentDetails`;
 
 /**
  * Function declarations cho Gemini
@@ -128,6 +136,34 @@ const functionDeclarations = [
             type: 'object',
             properties: {},
             required: [],
+        },
+    },
+    {
+        name: 'getDepartmentStaffCount',
+        description: 'Đếm số lượng bác sĩ/nhân viên y tế trong một khoa cụ thể theo tên hoặc mã khoa',
+        parameters: {
+            type: 'object',
+            properties: {
+                departmentName: {
+                    type: 'string',
+                    description: 'Tên khoa (VD: Tim mạch, Cardiology, Nội khoa)',
+                },
+            },
+            required: ['departmentName'],
+        },
+    },
+    {
+        name: 'getDepartmentDetails',
+        description: 'Lấy thông tin chi tiết của một khoa (mô tả, trưởng khoa, danh sách bác sĩ)',
+        parameters: {
+            type: 'object',
+            properties: {
+                departmentName: {
+                    type: 'string',
+                    description: 'Tên khoa (VD: Tim mạch, Cardiology, Nội khoa)',
+                },
+            },
+            required: ['departmentName'],
         },
     },
 ];
@@ -302,6 +338,133 @@ async function handleFunctionCall(
                         nameVi: dept.nameVi,
                         description: dept.description,
                     })),
+                };
+            }
+
+            case 'getDepartmentStaffCount': {
+                const { departmentName } = args;
+
+                // First, find the department by name
+                const deptResponse = await fetch(`${baseUrl}/api/v1/departments`);
+                const deptData = await deptResponse.json();
+                const departments = Array.isArray(deptData) ? deptData : (deptData.data || []);
+
+                const dept = departments.find((d: any) =>
+                    (d.nameEn && d.nameEn.toLowerCase().includes(departmentName.toLowerCase())) ||
+                    (d.nameVi && d.nameVi.toLowerCase().includes(departmentName.toLowerCase())) ||
+                    (d.code && d.code.toLowerCase().includes(departmentName.toLowerCase()))
+                );
+
+                if (!dept) {
+                    return {
+                        success: false,
+                        message: `Không tìm thấy khoa "${departmentName}". Vui lòng thử với tên khác.`,
+                        availableDepartments: departments.map((d: any) => d.nameVi || d.nameEn),
+                    };
+                }
+
+                // Search for staff in this department - use departmentCode if available for better matching
+                // Backend SearchStaffUseCase checks: departmentId, departmentCode, nameEn, nameVi
+                const staffUrl = new URL(`${baseUrl}/api/v1/staff/search`);
+                // Prefer code (e.g., "CARD") over ID (UUID) as it's more likely to be in the assignments JSON
+                staffUrl.searchParams.set('departmentId', dept.code || dept.id);
+                staffUrl.searchParams.set('staffType', 'doctor');
+                staffUrl.searchParams.set('status', 'active');
+                staffUrl.searchParams.set('limit', '100'); // Get all to count
+
+                const staffResponse = await fetch(staffUrl.toString());
+                const staffData = await staffResponse.json();
+
+                let doctors = [];
+                if (Array.isArray(staffData)) {
+                    doctors = staffData;
+                } else if (staffData.data?.items && Array.isArray(staffData.data.items)) {
+                    doctors = staffData.data.items;
+                } else if (Array.isArray(staffData.data)) {
+                    doctors = staffData.data;
+                }
+
+                // Get total from pagination if available
+                const totalCount = staffData.data?.pagination?.total || doctors.length;
+
+                return {
+                    success: true,
+                    departmentName: dept.nameVi || dept.nameEn,
+                    departmentNameEn: dept.nameEn,
+                    departmentCode: dept.code,
+                    doctorCount: totalCount,
+                    doctors: doctors.slice(0, 10).map((doc: any) => ({
+                        name: `${doc.firstName || doc.first_name || ''} ${doc.lastName || doc.last_name || ''}`.trim(),
+                        specialization: doc.professionalDetails?.specialization || doc.professionalInfo?.specialization || 'General',
+                    })),
+                    message: `Khoa ${dept.nameVi || dept.nameEn} có ${totalCount} bác sĩ đang làm việc`,
+                };
+            }
+
+            case 'getDepartmentDetails': {
+                const { departmentName } = args;
+
+                // Find the department
+                const deptResponse = await fetch(`${baseUrl}/api/v1/departments`);
+                const deptData = await deptResponse.json();
+                const departments = Array.isArray(deptData) ? deptData : (deptData.data || []);
+
+                const dept = departments.find((d: any) =>
+                    (d.nameEn && d.nameEn.toLowerCase().includes(departmentName.toLowerCase())) ||
+                    (d.nameVi && d.nameVi.toLowerCase().includes(departmentName.toLowerCase())) ||
+                    (d.code && d.code.toLowerCase().includes(departmentName.toLowerCase()))
+                );
+
+                if (!dept) {
+                    return {
+                        success: false,
+                        message: `Không tìm thấy khoa "${departmentName}"`,
+                        availableDepartments: departments.map((d: any) => d.nameVi || d.nameEn),
+                    };
+                }
+
+                // Get staff in this department
+                const staffUrl = new URL(`${baseUrl}/api/v1/staff/search`);
+                // Prefer code over ID
+                staffUrl.searchParams.set('departmentId', dept.code || dept.id);
+                staffUrl.searchParams.set('staffType', 'doctor');
+                staffUrl.searchParams.set('status', 'active');
+                staffUrl.searchParams.set('limit', '20');
+
+                const staffResponse = await fetch(staffUrl.toString());
+                const staffData = await staffResponse.json();
+
+                let doctors = [];
+                if (Array.isArray(staffData)) {
+                    doctors = staffData;
+                } else if (staffData.data?.items && Array.isArray(staffData.data.items)) {
+                    doctors = staffData.data.items;
+                } else if (Array.isArray(staffData.data)) {
+                    doctors = staffData.data;
+                }
+
+                const totalCount = staffData.data?.pagination?.total || doctors.length;
+
+                return {
+                    success: true,
+                    department: {
+                        id: dept.id,
+                        code: dept.code,
+                        name: dept.nameEn,
+                        nameVi: dept.nameVi,
+                        description: dept.description,
+                        location: dept.location,
+                        phone: dept.phone,
+                        email: dept.email,
+                    },
+                    staffCount: totalCount,
+                    doctors: doctors.map((doc: any) => ({
+                        id: doc.id || doc.staffId,
+                        name: `${doc.firstName || doc.first_name || ''} ${doc.lastName || doc.last_name || ''}`.trim(),
+                        specialization: doc.professionalDetails?.specialization || doc.professionalInfo?.specialization || 'General',
+                        experience: doc.professionalDetails?.yearsOfExperience || doc.professionalInfo?.yearsOfExperience || 0,
+                    })),
+                    message: `Thông tin khoa ${dept.nameVi || dept.nameEn}`,
                 };
             }
 

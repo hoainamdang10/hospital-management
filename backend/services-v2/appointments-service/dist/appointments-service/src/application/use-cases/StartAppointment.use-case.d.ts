@@ -48,6 +48,7 @@ export declare class StartAppointmentUseCase extends BaseHealthcareUseCase<Start
     protected executeInternal(request: StartAppointmentRequest): Promise<StartAppointmentResponse>;
     /**
      * Validate if appointment can be started
+     * Updated for simplified 3-role system (no check-in required)
      */
     private validateStart;
     authorize(request: StartAppointmentRequest, userId: string): Promise<boolean>;

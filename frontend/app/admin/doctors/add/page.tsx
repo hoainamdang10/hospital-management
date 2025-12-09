@@ -43,7 +43,6 @@ export default function AddDoctorPage() {
     gender: 'male',
     nationality: 'Vietnamese',
     address: '',
-    specialization: '',
     department: '',
     position: 'doctor',
     licenseNumber: '',
@@ -83,9 +82,6 @@ export default function AddDoctorPage() {
     if (step === 1) {
       return !!(formData.fullName && formData.email && formData.phone && formData.department);
     }
-    if (step === 2) {
-      return !!formData.specialization;
-    }
     return true;
   };
 
@@ -111,8 +107,6 @@ export default function AddDoctorPage() {
     try {
       const { authService } = await import('@/lib/api/auth.service');
       const selectedDept = departments.find((d) => d.code === formData.department);
-      const selectedSpec =
-        departments.find((d) => d.code.toLowerCase() === formData.specialization) || selectedDept;
       const educationArray = formData.education
         ? formData.education
             .split(',')
@@ -128,11 +122,6 @@ export default function AddDoctorPage() {
         // Các field chuyên môn gửi phẳng để backend lưu vào invitationData
         departmentCode: formData.department || 'GENERAL',
         departmentName: selectedDept?.nameVi || selectedDept?.nameEn,
-        specializationCode:
-          formData.specialization || selectedSpec?.code?.toLowerCase() || undefined,
-        specialization: formData.specialization || selectedSpec?.code?.toLowerCase() || undefined,
-        specializationName:
-          selectedSpec?.nameVi || selectedSpec?.nameEn || formData.specialization || undefined,
         title: 'Bác sĩ',
         position: 'Bác sĩ điều trị',
         licenseNumber: formData.licenseNumber || `TEMP-${Date.now()}`,
@@ -479,26 +468,6 @@ export default function AddDoctorPage() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-gray-700">
-                        Chuyên khoa <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        required
-                        value={formData.specialization}
-                        onChange={(e) =>
-                          setFormData({ ...formData, specialization: e.target.value })
-                        }
-                        className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      >
-                        <option value="">Chọn chuyên khoa</option>
-                        {departments.map((d) => (
-                          <option key={d.id} value={d.code.toLowerCase()}>
-                            {d.nameVi}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-gray-700">
                         Số chứng chỉ hành nghề

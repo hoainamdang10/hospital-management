@@ -18,6 +18,8 @@ export interface InvoiceRecord {
     insurance_coverage_currency: string;
     patient_payment_amount: number;
     patient_payment_currency: string;
+    outstanding_amount?: number;
+    outstanding_currency?: string;
     insurance_type?: string;
     insurance_number?: string;
     insurance_valid_until?: string;
@@ -97,5 +99,10 @@ export declare class InvoiceMapper {
     private static normalizeMetadata;
     private static detectInvoiceType;
     private static getDefaultServiceName;
+    /**
+     * Map insurance provider name to valid insurance_type enum
+     * Valid enum values: BHYT, BHTN, Private, Self-pay
+     */
+    private static mapProviderToInsuranceType;
 }
 //# sourceMappingURL=InvoiceMapper.d.ts.map

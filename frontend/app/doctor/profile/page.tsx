@@ -83,7 +83,7 @@ export default function DoctorProfilePage() {
           const education = data.professionalInfo?.education || [];
           const languageList = data.professionalInfo?.languages || [];
           const specialization =
-            data.specializations?.[0]?.name || data.professionalInfo?.department || 'Chưa cập nhật';
+            data.professionalInfo?.department || 'Chưa cập nhật';
           const years =
             (data as any).yearsOfExperience ?? (data as any).employmentInfo?.yearsOfExperience ?? 0;
           const licenseOrCert =
@@ -254,7 +254,6 @@ export default function DoctorProfilePage() {
           const education = fresh.professionalInfo?.education || [];
           const languageList = fresh.professionalInfo?.languages || [];
           const specialization =
-            fresh.specializations?.[0]?.name ||
             fresh.professionalInfo?.department ||
             'Chưa cập nhật';
           const years =

@@ -147,7 +147,6 @@ export class StaffReadModelRepository implements IStaffReadModelRepository {
       const updatePayload = {
         user_id: props.userId,
         full_name: props.fullName,
-        specialization: props.specialization || null,
         department: props.department || null,
         updated_at: new Date().toISOString(),
       };
@@ -183,7 +182,6 @@ export class StaffReadModelRepository implements IStaffReadModelRepository {
         staff_id: props.staffId,
         user_id: props.userId,
         full_name: props.fullName,
-        specialization: props.specialization || null,
         department: props.department || null,
         average_rating: 0.0,
         total_reviews: 0,
@@ -297,7 +295,6 @@ export class StaffReadModelRepository implements IStaffReadModelRepository {
       staffId: data.staff_id,
       userId: data.user_id,
       fullName: data.full_name,
-      specialization: data.specialization,
       department: data.department,
       averageRating: parseFloat(data.average_rating) || 0,
       totalReviews: data.total_reviews || 0,

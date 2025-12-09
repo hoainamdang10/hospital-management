@@ -419,12 +419,38 @@ export default function InvoiceDetailPage() {
                                             )}
                                         </tbody>
                                         <tfoot className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                                            <tr className="border-b border-slate-200">
+                                                <td colSpan={4} className="px-6 py-3 text-right text-sm text-slate-600">
+                                                    Tạm tính:
+                                                </td>
+                                                <td className="whitespace-nowrap px-6 py-3 text-right text-sm font-medium text-slate-900">
+                                                    {formatCurrency(invoice.subtotal || invoice.amount)}
+                                                </td>
+                                            </tr>
+                                            <tr className="border-b border-slate-200">
+                                                <td colSpan={4} className="px-6 py-3 text-right text-sm text-slate-600">
+                                                    Thuế VAT (10%):
+                                                </td>
+                                                <td className="whitespace-nowrap px-6 py-3 text-right text-sm font-medium text-slate-900">
+                                                    {formatCurrency(invoice.tax || 0)}
+                                                </td>
+                                            </tr>
+                                            {(invoice.insuranceCoverage && invoice.insuranceCoverage > 0) && (
+                                                <tr className="border-b border-slate-200 bg-emerald-50/50">
+                                                    <td colSpan={4} className="px-6 py-3 text-right text-sm font-medium text-emerald-700">
+                                                        🛡️ Bảo hiểm chi trả:
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-emerald-600">
+                                                        -{formatCurrency(invoice.insuranceCoverage)}
+                                                    </td>
+                                                </tr>
+                                            )}
                                             <tr>
                                                 <td colSpan={4} className="px-6 py-4 text-right text-sm font-bold text-slate-900">
-                                                    Tổng cộng:
+                                                    Tổng thanh toán:
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-right text-xl font-bold text-indigo-600">
-                                                    {formatCurrency(invoice.amount)}
+                                                    {formatCurrency(invoice.outstandingAmount || invoice.amount)}
                                                 </td>
                                             </tr>
                                         </tfoot>

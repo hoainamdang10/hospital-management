@@ -40,6 +40,7 @@ import { DashboardLayout } from '@/components/layout';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { getStaffByUserId } from '@/lib/api/staff.service';
 import { useAuth } from '@/hooks/useAuth';
+import { showErrorToast } from '@/lib/utils/error-toast';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -71,13 +72,48 @@ interface Appointment {
 
 // Status configuration with consistent styling
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  CANCELLED: { label: 'Đã hủy', color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200', icon: AlertCircle },
-  PENDING_PAYMENT: { label: 'Chờ thanh toán', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: Clock },
-  CHECKED_IN: { label: 'Đã đến', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', icon: MapPin },
-  IN_PROGRESS: { label: 'Đang khám', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', icon: Activity },
-  COMPLETED: { label: 'Hoàn thành', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200', icon: CheckCircle2 },
-  CONFIRMED: { label: 'Chờ đến', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', icon: Clock },
-  DEFAULT: { label: 'Không rõ', color: 'text-slate-500', bg: 'bg-slate-50 border-slate-200', icon: AlertCircle },
+  CANCELLED: {
+    label: 'Đã hủy',
+    color: 'text-rose-600',
+    bg: 'bg-rose-50 border-rose-200',
+    icon: AlertCircle,
+  },
+  PENDING_PAYMENT: {
+    label: 'Chờ thanh toán',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50 border-amber-200',
+    icon: Clock,
+  },
+  CHECKED_IN: {
+    label: 'Đã đến',
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50 border-emerald-200',
+    icon: MapPin,
+  },
+  IN_PROGRESS: {
+    label: 'Đang khám',
+    color: 'text-blue-600',
+    bg: 'bg-blue-50 border-blue-200',
+    icon: Activity,
+  },
+  COMPLETED: {
+    label: 'Hoàn thành',
+    color: 'text-slate-600',
+    bg: 'bg-slate-50 border-slate-200',
+    icon: CheckCircle2,
+  },
+  CONFIRMED: {
+    label: 'Chờ đến',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50 border-amber-200',
+    icon: Clock,
+  },
+  DEFAULT: {
+    label: 'Không rõ',
+    color: 'text-slate-500',
+    bg: 'bg-slate-50 border-slate-200',
+    icon: AlertCircle,
+  },
 };
 
 // Tab configuration
@@ -148,7 +184,11 @@ export default function DoctorAppointmentsPage() {
       } catch (error) {
         if (!isCancelled) {
           console.error('Failed to resolve doctor staffId', error);
-          toast.error('Không thể xác định mã bác sĩ');
+          showErrorToast(error, {
+            title: 'Không thể xác định mã bác sĩ',
+            fallbackMessage: 'Không thể xác định mã bác sĩ từ hồ sơ nhân sự. Vui lòng thử lại sau.',
+            context: 'Doctor/Appointments:resolveStaff',
+          });
           setDoctorStaffId(null);
         }
       } finally {
@@ -233,7 +273,11 @@ export default function DoctorAppointmentsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch appointments:', error);
-      toast.error('Không thể tải danh sách khám');
+      showErrorToast(error, {
+        title: 'Không thể tải danh sách khám',
+        fallbackMessage: 'Không thể tải danh sách khám. Vui lòng thử lại.',
+        context: 'Doctor/Appointments:list',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -249,7 +293,12 @@ export default function DoctorAppointmentsPage() {
       await appointmentsService.startAppointment(id);
       router.push(`/doctor/appointments/${id}`);
     } catch (error) {
-      toast.error('Không thể bắt đầu ca khám');
+      console.error('[DoctorAppointments] Failed to start exam', error);
+      showErrorToast(error, {
+        title: 'Không thể bắt đầu ca khám',
+        fallbackMessage: 'Không thể bắt đầu ca khám. Vui lòng thử lại hoặc liên hệ hỗ trợ.',
+        context: 'Doctor/Appointments:start',
+      });
     }
   };
 
@@ -285,31 +334,34 @@ export default function DoctorAppointmentsPage() {
   }, [appointments, searchTerm, activeTab]);
 
   // Stats
-  const stats = useMemo(() => [
-    {
-      title: 'Tổng bệnh nhân',
-      value: appointments.length,
-      icon: Users,
-      gradient: 'from-blue-500 to-cyan-500',
-      lightBg: 'bg-blue-50',
-    },
-    {
-      title: 'Đang chờ',
-      value: appointments.filter((a) =>
-        ['CHECKED_IN', 'CONFIRMED'].includes(a.status.toUpperCase())
-      ).length,
-      icon: Clock,
-      gradient: 'from-amber-500 to-orange-500',
-      lightBg: 'bg-amber-50',
-    },
-    {
-      title: 'Hoàn thành',
-      value: appointments.filter((a) => a.status.toUpperCase() === 'COMPLETED').length,
-      icon: CheckCircle2,
-      gradient: 'from-emerald-500 to-teal-500',
-      lightBg: 'bg-emerald-50',
-    },
-  ], [appointments]);
+  const stats = useMemo(
+    () => [
+      {
+        title: 'Tổng bệnh nhân',
+        value: appointments.length,
+        icon: Users,
+        gradient: 'from-blue-500 to-cyan-500',
+        lightBg: 'bg-blue-50',
+      },
+      {
+        title: 'Đang chờ',
+        value: appointments.filter((a) =>
+          ['CHECKED_IN', 'CONFIRMED'].includes(a.status.toUpperCase())
+        ).length,
+        icon: Clock,
+        gradient: 'from-amber-500 to-orange-500',
+        lightBg: 'bg-amber-50',
+      },
+      {
+        title: 'Hoàn thành',
+        value: appointments.filter((a) => a.status.toUpperCase() === 'COMPLETED').length,
+        icon: CheckCircle2,
+        gradient: 'from-emerald-500 to-teal-500',
+        lightBg: 'bg-emerald-50',
+      },
+    ],
+    [appointments]
+  );
 
   const getStatusConfig = (status: string, paymentStatus?: string) => {
     if (status === 'CANCELLED') return STATUS_CONFIG.CANCELLED;
@@ -328,13 +380,13 @@ export default function DoctorAppointmentsPage() {
         >
           {/* Background decorations */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
             <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
             <div
               className="absolute inset-0 opacity-10"
               style={{
                 backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-                backgroundSize: '32px 32px'
+                backgroundSize: '32px 32px',
               }}
             />
           </div>
@@ -389,20 +441,21 @@ export default function DoctorAppointmentsPage() {
               className="group relative overflow-hidden rounded-xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-lg"
             >
               {/* Gradient accent */}
-              <div className={cn(
-                'absolute inset-x-0 top-0 h-1 bg-gradient-to-r',
-                stat.gradient
-              )} />
+              <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', stat.gradient)} />
 
               <div className="flex items-center gap-4">
-                <div className={cn(
-                  'flex h-12 w-12 items-center justify-center rounded-xl',
-                  stat.lightBg
-                )}>
-                  <stat.icon className={cn(
-                    'h-6 w-6 bg-gradient-to-r bg-clip-text',
-                    stat.gradient.replace('from-', 'text-').split(' ')[0]
-                  )} />
+                <div
+                  className={cn(
+                    'flex h-12 w-12 items-center justify-center rounded-xl',
+                    stat.lightBg
+                  )}
+                >
+                  <stat.icon
+                    className={cn(
+                      'h-6 w-6 bg-gradient-to-r bg-clip-text',
+                      stat.gradient.replace('from-', 'text-').split(' ')[0]
+                    )}
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500">{stat.title}</p>
@@ -446,7 +499,7 @@ export default function DoctorAppointmentsPage() {
           {/* Search & Date Filter */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Tìm tên hoặc mã BN..."
                 className="w-full rounded-lg border-slate-200 bg-slate-50 pl-10 transition-all focus:bg-white sm:w-64"
@@ -523,16 +576,18 @@ export default function DoctorAppointmentsPage() {
                         {/* Left: Time + Avatar + Info */}
                         <div className="flex items-center gap-4">
                           {/* Time Badge */}
-                          <div className={cn(
-                            'flex h-14 w-14 flex-col items-center justify-center rounded-xl border-2 bg-white transition-all lg:h-16 lg:w-16',
-                            apt.status === 'IN_PROGRESS'
-                              ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
-                              : 'border-slate-100 group-hover:border-cyan-200 group-hover:shadow-sm'
-                          )}>
+                          <div
+                            className={cn(
+                              'flex h-14 w-14 flex-col items-center justify-center rounded-xl border-2 bg-white transition-all lg:h-16 lg:w-16',
+                              apt.status === 'IN_PROGRESS'
+                                ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
+                                : 'border-slate-100 group-hover:border-cyan-200 group-hover:shadow-sm'
+                            )}
+                          >
                             <span className="text-base font-bold text-slate-900 lg:text-lg">
                               {apt.appointmentTime.substring(0, 5)}
                             </span>
-                            <span className="text-[10px] font-medium uppercase text-slate-400">
+                            <span className="text-[10px] font-medium text-slate-400 uppercase">
                               {parseInt(apt.appointmentTime.substring(0, 2)) >= 12 ? 'PM' : 'AM'}
                             </span>
                           </div>
@@ -553,7 +608,10 @@ export default function DoctorAppointmentsPage() {
                               <h3 className="text-base font-semibold text-slate-900 transition-colors group-hover:text-cyan-600 lg:text-lg">
                                 {apt.patientName}
                               </h3>
-                              <Badge variant="outline" className="text-xs font-normal text-slate-500">
+                              <Badge
+                                variant="outline"
+                                className="text-xs font-normal text-slate-500"
+                              >
                                 {apt.patientId}
                               </Badge>
                             </div>
@@ -564,10 +622,12 @@ export default function DoctorAppointmentsPage() {
                                 {apt.patientAge ? `, ${apt.patientAge} tuổi` : ''}
                               </span>
                               <span className="h-1 w-1 rounded-full bg-slate-300" />
-                              <span className={cn(
-                                'font-medium',
-                                apt.type === 'FOLLOW_UP' ? 'text-purple-600' : 'text-cyan-600'
-                              )}>
+                              <span
+                                className={cn(
+                                  'font-medium',
+                                  apt.type === 'FOLLOW_UP' ? 'text-purple-600' : 'text-cyan-600'
+                                )}
+                              >
                                 {apt.type === 'FOLLOW_UP' ? 'Tái khám' : 'Khám mới'}
                               </span>
                             </div>
@@ -579,7 +639,10 @@ export default function DoctorAppointmentsPage() {
                           {/* Reason - Hidden on mobile */}
                           <div className="hidden max-w-[180px] text-right lg:block">
                             <p className="mb-0.5 text-xs text-slate-400">Lý do khám</p>
-                            <p className="truncate text-sm font-medium text-slate-700" title={apt.reason}>
+                            <p
+                              className="truncate text-sm font-medium text-slate-700"
+                              title={apt.reason}
+                            >
                               {apt.reason || 'Không có lý do'}
                             </p>
                           </div>

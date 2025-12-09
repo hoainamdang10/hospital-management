@@ -10,7 +10,7 @@ import { DashboardLayout } from '@/components/layout';
  * Payment Cancel Page
  * Route: /patient/billing/payment/cancel
  *
- * Displayed when user cancels PayOS payment
+ * Displayed when user cancels VNPay payment
  * Query params: orderCode, status
  */
 function PaymentCancelPageContent() {

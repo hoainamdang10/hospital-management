@@ -85,14 +85,6 @@ export function createAppointmentRoutes(): Router {
   );
 
   router.post(
-    '/appointments/:id/check-in',
-    authenticate,
-    requireRole(['RECEPTIONIST', 'NURSE', 'ADMIN']),
-    idempotencyMiddleware,
-    (req, res) => controller.checkInAppointment(req, res)
-  );
-
-  router.post(
     '/appointments/:id/no-show',
     authenticate,
     requireRole(['RECEPTIONIST', 'DOCTOR', 'NURSE', 'ADMIN']),

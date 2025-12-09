@@ -46,7 +46,7 @@ export default function LandingPage() {
   const filteredDoctors = featuredDoctors
     .filter((d) => {
       if (!selectedSpecialty) return true;
-      const spec = d.specializations?.[0]?.code || d.professionalInfo?.department || '';
+      const spec = d.professionalInfo?.department || '';
       return spec.toUpperCase().includes(selectedSpecialty.toUpperCase());
     })
     .slice(0, 6);
@@ -178,8 +178,8 @@ export default function LandingPage() {
                 whileHover={{ y: -4, scale: 1.05 }}
                 onClick={() => setSelectedSpecialty(specialty.code)}
                 className={`rounded-2xl border-2 p-6 text-center transition-all ${selectedSpecialty === specialty.id
-                    ? 'border-primary bg-primary-50 shadow-lg'
-                    : 'hover:border-primary/50 border-gray-200 bg-white hover:shadow-md'
+                  ? 'border-primary bg-primary-50 shadow-lg'
+                  : 'hover:border-primary/50 border-gray-200 bg-white hover:shadow-md'
                   }`}
               >
                 <div className="mb-3 text-4xl">🏥</div>
@@ -228,7 +228,7 @@ export default function LandingPage() {
                     id: doctor.id,
                     name: doctor.personalInfo?.fullName || 'Chưa cập nhật',
                     degree: 'MD',
-                    specialtyId: doctor.specializations?.[0]?.code || 'GENMED',
+                    specialtyId: doctor.professionalInfo?.department || 'GENMED',
                     hospital: doctor.professionalInfo?.department || 'Chưa cập nhật',
                     rating: 4.8,
                     reviewCount: 0,

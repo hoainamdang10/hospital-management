@@ -49,9 +49,6 @@ import { TerminateStaffUseCase } from "./application/use-cases/TerminateStaffUse
 import { UpdateEmploymentStatusUseCase } from "./application/use-cases/UpdateEmploymentStatusUseCase";
 import { UpdateStaffScheduleUseCase } from "./application/use-cases/UpdateStaffScheduleUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
-import { GetStaffSpecializationsUseCase } from "./application/use-cases/GetStaffSpecializationsUseCase";
-import { AddStaffSpecializationUseCase } from "./application/use-cases/AddStaffSpecializationUseCase";
-import { RemoveStaffSpecializationUseCase } from "./application/use-cases/RemoveStaffSpecializationUseCase";
 import { StaffCommandHandlers } from "./application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "./application/handlers/StaffQueryHandlers";
 
@@ -586,19 +583,7 @@ class ProviderStaffServiceApp {
       this.container.resolve<UpdateStaffScheduleUseCase>(
         ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE,
       );
-    // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-    const getStaffSpecializationsUseCase =
-      this.container.resolve<GetStaffSpecializationsUseCase>(
-        ServiceTokens.GET_STAFF_SPECIALIZATIONS_USE_CASE,
-      );
-    const addStaffSpecializationUseCase =
-      this.container.resolve<AddStaffSpecializationUseCase>(
-        ServiceTokens.ADD_STAFF_SPECIALIZATION_USE_CASE,
-      );
-    const removeStaffSpecializationUseCase =
-      this.container.resolve<RemoveStaffSpecializationUseCase>(
-        ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE,
-      );
+    // REMOVED: Availability/legacy profile use cases - Belongs to Scheduling/Appointment Service
     const setDepartmentHeadUseCase =
       this.container.resolve<SetDepartmentHeadUseCase>(
         ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE,
@@ -622,10 +607,7 @@ class ProviderStaffServiceApp {
       this.terminateStaffUseCase,
       this.updateEmploymentStatusUseCase,
       updateStaffScheduleUseCase,
-      // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-      getStaffSpecializationsUseCase,
-      addStaffSpecializationUseCase,
-      removeStaffSpecializationUseCase,
+      // REMOVED: Availability/legacy profile use cases - Belongs to Scheduling/Appointment Service
     );
 
     logger.info("Routes setup complete");

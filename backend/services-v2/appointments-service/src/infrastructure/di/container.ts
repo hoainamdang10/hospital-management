@@ -85,7 +85,8 @@ import { CompleteAppointmentUseCase } from "../../application/use-cases/Complete
 import { GetAppointmentUseCase } from "../../application/use-cases/GetAppointment.use-case";
 import { ListAppointmentsUseCase } from "../../application/use-cases/ListAppointments.use-case";
 import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
-import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
+// Simplified 3-role flow doesn't use check-in
+// import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
 import { MarkAsNoShowUseCase } from "../../application/use-cases/MarkAsNoShow.use-case";
 import { StartAppointmentUseCase } from "../../application/use-cases/StartAppointment.use-case";
 import { CallNextPatientUseCase } from "../../application/use-cases/CallNextPatient.use-case";
@@ -192,7 +193,8 @@ export class DIContainer {
   private getAppointmentUseCase: GetAppointmentUseCase;
   private listAppointmentsUseCase: ListAppointmentsUseCase;
   private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase;
-  private checkInAppointmentUseCase: CheckInAppointmentUseCase;
+  // Simplified 3-role flow doesn't use check-in
+  // private checkInAppointmentUseCase: CheckInAppointmentUseCase;
   private markAsNoShowUseCase: MarkAsNoShowUseCase;
   private startAppointmentUseCase: StartAppointmentUseCase;
   private callNextPatientUseCase: CallNextPatientUseCase;
@@ -564,11 +566,12 @@ export class DIContainer {
       this.reminderService,
     );
 
-    this.checkInAppointmentUseCase = new CheckInAppointmentUseCase(
-      this.appointmentRepository,
-      this.authorizationService,
-      this.queueRepository, // Add queue integration
-    );
+    // Simplified 3-role flow doesn't use check-in
+    // this.checkInAppointmentUseCase = new CheckInAppointmentUseCase(
+    //   this.appointmentRepository,
+    //   this.authorizationService,
+    //   this.queueRepository, // Add queue integration
+    // );
 
     this.markAsNoShowUseCase = new MarkAsNoShowUseCase(
       this.appointmentRepository,
@@ -866,7 +869,7 @@ export class DIContainer {
       this.getAppointmentUseCase,
       this.listAppointmentsUseCase,
       this.rescheduleAppointmentUseCase,
-      this.checkInAppointmentUseCase,
+      // this.checkInAppointmentUseCase, // Simplified 3-role flow
       this.markAsNoShowUseCase,
       this.startAppointmentUseCase,
       // this.bulkRescheduleAppointmentsUseCase, // ARCHIVED FOR POST-MVP
@@ -986,10 +989,11 @@ export class DIContainer {
 
   /**
    * Get check-in appointment use case
+   * Simplified 3-role flow doesn't use check-in
    */
-  public getCheckInAppointmentUseCase(): CheckInAppointmentUseCase {
-    return this.checkInAppointmentUseCase;
-  }
+  // public getCheckInAppointmentUseCase(): CheckInAppointmentUseCase {
+  //   return this.checkInAppointmentUseCase;
+  // }
 
   /**
    * Get mark as no-show use case

@@ -24,7 +24,6 @@ export interface SearchStaffRequest {
   staffType?: StaffType;
   department?: string;
   departmentId?: string;
-  specialization?: string;
   status?: "active" | "inactive" | "on_leave" | "suspended" | "terminated";
   isActive?: boolean;
 
@@ -78,12 +77,6 @@ export interface SearchStaffResponse {
         bio?: string;
       };
       workSchedule: any;
-      specializations: Array<{
-        code: string;
-        name: string;
-        description?: string;
-        isActive: boolean;
-      }>;
       credentials: any[];
       certifications: any[];
       yearsOfExperience: number;
@@ -126,7 +119,6 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<
         filters: {
           staffType: request.staffType,
           department: request.department,
-          specialization: request.specialization,
           status: request.status,
         },
         requestedBy: request.requestedBy,
@@ -188,20 +180,6 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<
               .map((value) => value!.toLowerCase());
             return candidateValues.includes(normalizedDept);
           }),
-        );
-      }
-
-      if (request.specialization) {
-        allStaff = allStaff.filter((staff) =>
-          staff
-            .getActiveSpecializations()
-            .some(
-              (spec) =>
-                spec.code === request.specialization ||
-                spec.name
-                  .toLowerCase()
-                  .includes(request.specialization!.toLowerCase()),
-            ),
         );
       }
 
@@ -349,7 +327,7 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<
   private prepareStaffData(staff: ProviderStaff): any {
     return {
       id: staff.id,
-      staffId: staff.staffIdValue,  // Use business ID, not UUID
+      staffId: staff.staffIdValue, // Use business ID, not UUID
       userId: staff.userId,
       staffType: staff.staffType,
       personalInfo: {
@@ -370,12 +348,6 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<
         bio: staff.professionalInfo.bio,
       },
       workSchedule: staff.workSchedule,
-      specializations: staff.getActiveSpecializations().map((spec) => ({
-        code: spec.code,
-        name: spec.name,
-        description: spec.description,
-        isActive: spec.isActive,
-      })),
       credentials: staff.credentials,
       certifications: staff.certifications,
       // REMOVED: rating, isAcceptingNewPatients - Belong to other services
@@ -401,7 +373,6 @@ export class SearchStaffUseCase extends BaseHealthcareUseCase<
         staffType: request.staffType,
         department: request.department,
         departmentId: request.departmentId,
-        specialization: request.specialization,
         status: request.status,
       },
       resultsCount,

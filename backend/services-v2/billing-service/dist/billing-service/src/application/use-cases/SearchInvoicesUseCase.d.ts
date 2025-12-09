@@ -1,6 +1,6 @@
-import { BaseHealthcareUseCase } from '../../../../shared/application/base/base-healthcare-use-case';
-import { IInvoiceRepository } from '../../domain/repositories/IInvoiceRepository';
-import { ILogger } from '../../../../shared/application/services/logger.interface';
+import { BaseHealthcareUseCase } from "../../../../shared/application/base/base-healthcare-use-case";
+import { IInvoiceRepository } from "../../domain/repositories/IInvoiceRepository";
+import { ILogger } from "../../../../shared/application/services/logger.interface";
 export interface SearchInvoicesRequest {
     patientId?: string;
     status?: string;
@@ -9,11 +9,13 @@ export interface SearchInvoicesRequest {
     minAmount?: number;
     maxAmount?: number;
     invoiceNumber?: string;
+    dateField?: "created_at" | "paid_at" | "updated_at";
 }
 export interface InvoiceSummary {
     invoiceId: string;
     invoiceNumber?: string;
     patientId: string;
+    patientName?: string;
     totalAmount: number;
     outstandingAmount: number;
     status: string;

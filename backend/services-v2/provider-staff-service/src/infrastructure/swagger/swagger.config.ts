@@ -1,19 +1,19 @@
 /**
  * Swagger/OpenAPI Configuration
  * Auto-generates API documentation from JSDoc comments
- * 
+ *
  * @author Hospital Management Team
  * @version 2.0.0
  */
 
-import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerJsdoc from "swagger-jsdoc";
 
 const options: swaggerJsdoc.Options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Provider/Staff Service API',
-      version: '2.0.0',
+      title: "Provider/Staff Service API",
+      version: "2.0.0",
       description: `
 # Hospital Management System - Provider/Staff Service
 
@@ -24,7 +24,7 @@ Complete healthcare provider and staff management system for Vietnamese healthca
 - ✅ Credentials & Certifications Tracking
 - ✅ Department Assignments
 - ✅ Schedule Management
-- ✅ Specialization Management
+- ✅ Department-driven search
 - ✅ Availability Tracking
 - ✅ Performance Metrics
 - ✅ Event-Driven Architecture
@@ -44,123 +44,129 @@ Authorization: Bearer <your-jwt-token>
 - 1000 requests per hour per authenticated user
       `,
       contact: {
-        name: 'Hospital Management Team',
-        email: 'api@hospital.vn',
-        url: 'https://hospital.vn'
+        name: "Hospital Management Team",
+        email: "api@hospital.vn",
+        url: "https://hospital.vn",
       },
       license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
-      }
+        name: "MIT",
+        url: "https://opensource.org/licenses/MIT",
+      },
     },
     servers: [
       {
-        url: 'http://localhost:3022',
-        description: 'Development server'
+        url: "http://localhost:3022",
+        description: "Development server",
       },
       {
-        url: 'https://api.hospital.vn',
-        description: 'Production server'
+        url: "https://api.hospital.vn",
+        description: "Production server",
       },
       {
-        url: 'https://staging-api.hospital.vn',
-        description: 'Staging server'
-      }
+        url: "https://staging-api.hospital.vn",
+        description: "Staging server",
+      },
     ],
     tags: [
       {
-        name: 'Providers',
-        description: 'Healthcare provider management operations'
+        name: "Providers",
+        description: "Healthcare provider management operations",
       },
       {
-        name: 'Staff',
-        description: 'Staff management operations'
+        name: "Staff",
+        description: "Staff management operations",
       },
       {
-        name: 'Credentials',
-        description: 'Credentials and certifications management'
+        name: "Credentials",
+        description: "Credentials and certifications management",
       },
       {
-        name: 'Schedules',
-        description: 'Provider schedule management'
+        name: "Schedules",
+        description: "Provider schedule management",
       },
       {
-        name: 'Departments',
-        description: 'Department assignment operations'
+        name: "Departments",
+        description: "Department assignment operations",
       },
       {
-        name: 'Statistics',
-        description: 'Provider statistics and performance metrics'
+        name: "Statistics",
+        description: "Provider statistics and performance metrics",
       },
       {
-        name: 'Health',
-        description: 'Service health checks'
+        name: "Health",
+        description: "Service health checks",
       },
       {
-        name: 'Metrics',
-        description: 'Service metrics and monitoring'
-      }
+        name: "Metrics",
+        description: "Service metrics and monitoring",
+      },
     ],
     components: {
       securitySchemes: {
         BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'JWT authentication token from Identity Service'
-        }
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "JWT authentication token from Identity Service",
+        },
       },
       schemas: {
         // Provider/Staff Types
         ProviderType: {
-          type: 'string',
-          enum: ['DOCTOR', 'NURSE', 'TECHNICIAN', 'PHARMACIST', 'ADMIN', 'OTHER']
+          type: "string",
+          enum: [
+            "DOCTOR",
+            "NURSE",
+            "TECHNICIAN",
+            "PHARMACIST",
+            "ADMIN",
+            "OTHER",
+          ],
         },
         ProviderStatus: {
-          type: 'string',
-          enum: ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'SUSPENDED']
+          type: "string",
+          enum: ["ACTIVE", "INACTIVE", "ON_LEAVE", "SUSPENDED"],
         },
         CredentialType: {
-          type: 'string',
-          enum: ['LICENSE', 'CERTIFICATION', 'DEGREE', 'TRAINING']
+          type: "string",
+          enum: ["LICENSE", "CERTIFICATION", "DEGREE", "TRAINING"],
         },
         CredentialStatus: {
-          type: 'string',
-          enum: ['VALID', 'EXPIRED', 'PENDING_RENEWAL', 'REVOKED']
+          type: "string",
+          enum: ["VALID", "EXPIRED", "PENDING_RENEWAL", "REVOKED"],
         },
-        
+
         // Request/Response schemas
         CreateProviderRequest: {
-          type: 'object',
-          required: ['userId', 'type', 'specialization'],
+          type: "object",
+          required: ["userId", "type", "department"],
           properties: {
             userId: {
-              type: 'string',
-              pattern: '^USR-\\d{6}-\\d{3}$',
-              example: 'USR-202510-001'
+              type: "string",
+              pattern: "^USR-\\d{6}-\\d{3}$",
+              example: "USR-202510-001",
             },
             type: {
-              $ref: '#/components/schemas/ProviderType'
+              $ref: "#/components/schemas/ProviderType",
             },
-            specialization: {
-              type: 'string',
-              example: 'Cardiology'
-            }
-          }
-        }
-      }
+            department: {
+              type: "string",
+              example: "INTE",
+            },
+          },
+        },
+      },
     },
     security: [
       {
-        BearerAuth: []
-      }
-    ]
+        BearerAuth: [],
+      },
+    ],
   },
   apis: [
-    './src/presentation/routes/*.ts',
-    './src/presentation/controllers/*.ts'
-  ]
+    "./src/presentation/routes/*.ts",
+    "./src/presentation/controllers/*.ts",
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
-

@@ -64,6 +64,7 @@ import {
   type WalletTransaction,
 } from '@/modules/billing/services/wallet.service';
 import { cn, formatCurrency } from '@/lib/utils';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 type SummaryTone = 'primary' | 'warning' | 'success' | 'info';
 type StatusFilterValue = 'all' | 'pending' | 'paid' | 'overdue' | 'refunded' | 'cancelled';
@@ -194,7 +195,7 @@ export default function PatientBillingPage() {
     const pendingCount =
       eligibleInvoices.length > 0
         ? eligibleInvoices.filter((inv) => isPendingStatus(inv.status) || inv.status === 'draft')
-          .length
+            .length
         : (summary?.pendingInvoiceCount ?? 0);
 
     const paidCount =
@@ -268,7 +269,11 @@ export default function PatientBillingPage() {
     } catch (err: any) {
       console.error('[Payment] Failed to create payment link:', err);
       toast.dismiss('payment-loading');
-      toast.error(err?.message || 'Không thể tạo link thanh toán');
+      showErrorToast(err, {
+        title: 'Không thể tạo link thanh toán',
+        fallbackMessage: 'Không thể tạo link thanh toán. Vui lòng thử lại sau.',
+        context: `Patient/Billing:createPaymentLink:${invoice.id}`,
+      });
     } finally {
       setProcessingPayment(null);
     }
@@ -314,12 +319,12 @@ export default function PatientBillingPage() {
       await Promise.all([reload(), reloadWallet()]);
     } catch (err: any) {
       toast.dismiss(toastId);
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        err?.response?.data?.errors?.[0] ||
-        'Không thể thanh toán bằng ví';
-      toast.error(message);
+      showErrorToast(err, {
+        title: 'Không thể thanh toán bằng ví',
+        fallbackMessage:
+          'Không thể thanh toán bằng ví. Vui lòng thử lại hoặc chọn phương thức khác.',
+        context: `Patient/Billing:walletPayment:${invoice.id}`,
+      });
     } finally {
       setWalletPayingInvoice(null);
     }
@@ -337,7 +342,11 @@ export default function PatientBillingPage() {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error('[Billing] Failed to download invoice:', err);
-      toast.error(err?.message || 'Không thể tải hóa đơn');
+      showErrorToast(err, {
+        title: 'Không thể tải hóa đơn',
+        fallbackMessage: 'Không thể tải hóa đơn. Vui lòng thử lại.',
+        context: `Patient/Billing:downloadInvoice:${invoice.id}`,
+      });
     } finally {
       setDownloadingInvoice(null);
     }
@@ -376,7 +385,11 @@ export default function PatientBillingPage() {
     } catch (err: any) {
       console.error('[Wallet] Failed to create top-up link:', err);
       toast.dismiss('wallet-topup');
-      toast.error(err?.message || 'Không thể tạo link nạp ví');
+      showErrorToast(err, {
+        title: 'Không thể tạo link nạp ví',
+        fallbackMessage: 'Không thể tạo link nạp ví. Vui lòng thử lại.',
+        context: 'Patient/Billing:walletTopUp',
+      });
     } finally {
       setIsCreatingTopUpLink(false);
     }
@@ -744,7 +757,9 @@ function WalletSection({
       {/* Right: Recent Transactions (List) */}
       <Card className="rounded-2xl border-slate-100 bg-white/80 shadow-sm backdrop-blur-sm lg:col-span-2">
         <CardHeader className="flex flex-row items-center justify-between border-b-0 px-6 py-4 pb-2">
-          <CardTitle className="text-base font-semibold text-slate-900">Giao dịch gần đây</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Giao dịch gần đây
+          </CardTitle>
           <Button
             variant="ghost"
             size="sm"
@@ -882,10 +897,19 @@ function WalletTopUpDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="rounded-xl">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+            className="rounded-xl"
+          >
             Hủy
           </Button>
-          <Button onClick={onSubmit} disabled={isSubmitting} className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+          <Button
+            onClick={onSubmit}
+            disabled={isSubmitting}
+            className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+          >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -976,6 +1000,12 @@ function InvoiceRow({
   const invoiceExpired = hasInvoiceExpired(invoice, currentTime);
   const badge = getStatusBadge(invoice.status);
   const outstanding = getOutstandingAmount(invoice);
+  const patientLiability = Math.max(
+    0,
+    (invoice.totalAmount ?? 0) - (invoice.insuranceCoverage ?? 0)
+  );
+  const totalAmountLabel = formatCurrency(invoice.totalAmount);
+  const patientLiabilityLabel = formatCurrency(patientLiability);
   const issuedDate = invoice.issueDate ?? invoice.issuedAt ?? invoice.createdAt;
   const invoiceTitle = getInvoiceTitle(invoice);
   const invoiceCodeLabel = getInvoiceLabel(invoice);
@@ -1034,9 +1064,17 @@ function InvoiceRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex flex-col items-end">
-          <span className={cn('font-semibold', isPending ? 'text-amber-600' : 'text-gray-900')}>
-            {formatCurrency(invoice.totalAmount)}
+          <span
+            className={cn('font-semibold', isPending ? 'text-amber-600' : 'text-gray-900')}
+            title={`Tổng: ${totalAmountLabel}`}
+          >
+            {patientLiabilityLabel}
           </span>
+          {invoice.insuranceCoverage > 0 && (
+            <span className="text-xs text-emerald-600">
+              Bảo hiểm: -{formatCurrency(invoice.insuranceCoverage)}
+            </span>
+          )}
           {outstanding > 0 && isPending && (
             <span className="text-xs text-red-500">Nợ: {formatCurrency(outstanding)}</span>
           )}
@@ -1132,11 +1170,31 @@ function InvoiceDetailsDialog({
     invoice.subtotal ||
     (invoice.items?.reduce((sum, item) => sum + (item.totalPrice || 0), 0) ?? 0);
 
-  // Derive payment method if missing
-  const displayPaymentMethod =
+  const resolvedPatientName =
+    invoice.patientName ||
+    invoice.metadata?.patientName ||
+    invoice.metadata?.patient_name ||
+    invoice.metadata?.patient?.fullName ||
+    invoice.metadata?.patient?.name ||
+    'Khách vãng lai';
+
+  const paymentMethodRaw =
     invoice.paymentMethod ||
-    invoice.payments?.find((p) => p.status === 'completed' || p.method !== 'refund')?.method ||
-    (isPaid ? 'Không xác định' : 'Chưa thanh toán');
+    invoice.payments?.find((p) => p.status === 'completed' || p.method !== 'refund')?.method;
+  const displayPaymentMethod = paymentMethodRaw
+    ? getPaymentMethodLabel(paymentMethodRaw)
+    : isPaid
+      ? 'Không xác định'
+      : 'Chưa thanh toán';
+
+  const patientLiability = Math.max(
+    0,
+    typeof invoice.patientPaymentAmount === 'number'
+      ? invoice.patientPaymentAmount
+      : (invoice.totalAmount ?? 0) - (invoice.insuranceCoverage ?? 0)
+  );
+  const outstandingAmount = getOutstandingAmount(invoice);
+  const paidAmountDisplay = Math.max(0, patientLiability - outstandingAmount);
 
   return (
     <Dialog open={!!invoice} onOpenChange={onClose}>
@@ -1173,7 +1231,7 @@ function InvoiceDetailsDialog({
                 Thông tin chung
               </h4>
               <div className="space-y-4">
-                <InfoItem label="Khách hàng" value={invoice.patientName || 'Khách vãng lai'} />
+                <InfoItem label="Khách hàng" value={resolvedPatientName} />
                 <InfoItem label="Bác sĩ chỉ định" value={invoice.doctorName} />
                 <InfoItem label="Khoa / Phòng" value={invoice.doctorDepartment} />
               </div>
@@ -1254,16 +1312,32 @@ function InvoiceDetailsDialog({
               <div className="my-2 h-px bg-gray-100" />
 
               <div className="flex items-baseline justify-between">
-                <span className="text-base font-medium text-gray-900">Tổng thanh toán</span>
+                <span className="text-base font-medium text-gray-900">
+                  Người bệnh cần thanh toán
+                </span>
                 <span className="text-2xl font-bold tracking-tight text-gray-900">
-                  {formatCurrency(invoice.totalAmount)}
+                  {formatCurrency(patientLiability)}
                 </span>
               </div>
+              <p className="text-right text-xs text-gray-500">
+                Đã bao gồm VAT, trừ phần bảo hiểm chi trả
+              </p>
 
-              {invoice.outstandingAmount !== undefined && invoice.outstandingAmount > 0 && (
+              {paidAmountDisplay > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span>Đã thanh toán</span>
+                  <span>{formatCurrency(paidAmountDisplay)}</span>
+                </div>
+              )}
+
+              {outstandingAmount > 0 ? (
                 <div className="flex justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
                   <span>Còn lại phải trả</span>
-                  <span>{formatCurrency(invoice.outstandingAmount)}</span>
+                  <span>{formatCurrency(outstandingAmount)}</span>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-medium text-emerald-700">
+                  Đã thanh toán đủ
                 </div>
               )}
             </div>
@@ -1301,7 +1375,7 @@ function InvoiceDetailsDialog({
                       </div>
                       <p className="text-xs text-gray-500">
                         {formatDate(payment.processedAt || payment.paidAt)} qua{' '}
-                        <span className="capitalize">{payment.method}</span>
+                        <span className="capitalize">{getPaymentMethodLabel(payment.method)}</span>
                       </p>
                     </div>
                   </div>
@@ -1331,6 +1405,25 @@ function InfoItem({
       <p className="text-sm font-medium text-gray-900">{value}</p>
     </div>
   );
+}
+
+function getPaymentMethodLabel(method?: string) {
+  const normalized = (method || '').toLowerCase();
+  switch (normalized) {
+    case 'payos':
+    case 'vnpay':
+      return 'VNPAY';
+    case 'wallet':
+      return 'Ví điện tử';
+    case 'cash':
+      return 'Tiền mặt';
+    case 'card':
+      return 'Thẻ ngân hàng';
+    case 'bank_transfer':
+      return 'Chuyển khoản';
+    default:
+      return method || 'Không xác định';
+  }
 }
 
 function EmptyState() {

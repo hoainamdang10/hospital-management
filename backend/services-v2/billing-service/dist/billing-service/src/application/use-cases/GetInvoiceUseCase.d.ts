@@ -36,6 +36,12 @@ export interface GetInvoiceResponse {
     createdAt: Date;
     updatedAt: Date;
     dueDate: Date;
+    insuranceCoverage: number;
+    insurance?: {
+        provider: string;
+        policyNumber: string;
+        coveragePercentage: number;
+    };
 }
 export declare class GetInvoiceUseCase extends BaseHealthcareUseCase<GetInvoiceRequest, GetInvoiceResponse> {
     private readonly invoiceRepository;

@@ -15,7 +15,8 @@ import { CompleteAppointmentUseCase } from "../../application/use-cases/Complete
 import { GetAppointmentUseCase } from "../../application/use-cases/GetAppointment.use-case";
 import { ListAppointmentsUseCase } from "../../application/use-cases/ListAppointments.use-case";
 import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
-import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
+// Simplified 3-role flow doesn't use check-in
+// import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
 import { MarkAsNoShowUseCase } from "../../application/use-cases/MarkAsNoShow.use-case";
 import { StartAppointmentUseCase } from "../../application/use-cases/StartAppointment.use-case";
 import {
@@ -39,7 +40,8 @@ export class AppointmentController {
     private readonly getAppointmentUseCase: GetAppointmentUseCase,
     private readonly listAppointmentsUseCase: ListAppointmentsUseCase,
     private readonly rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
-    private readonly checkInAppointmentUseCase: CheckInAppointmentUseCase,
+    // Simplified 3-role flow doesn't use check-in
+    // private readonly checkInAppointmentUseCase: CheckInAppointmentUseCase,
     private readonly markAsNoShowUseCase: MarkAsNoShowUseCase,
     private readonly startAppointmentUseCase: StartAppointmentUseCase,
     // ===== ARCHIVED FOR POST-MVP: BulkReschedule Use Case =====
@@ -585,47 +587,49 @@ export class AppointmentController {
   /**
    * POST /api/appointments/:id/check-in
    * Check in patient for appointment
+   * DISABLED: Simplified 3-role flow doesn't use check-in
+   * Doctors can start appointments directly
    */
-  async checkInAppointment(req: Request, res: Response): Promise<void> {
-    try {
-      const user = (req as any).user;
-      const userId = user?.id;
-      const userRole = user?.role;
-      if (!userId) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-      }
-      // Optional guard: doctor can only check-in own appointments if doctorId is provided in body
-      if (
-        userRole === "doctor" &&
-        req.body?.doctorId &&
-        req.body.doctorId !== userId
-      ) {
-        res.status(403).json({
-          success: false,
-          message: "Forbidden: doctor can only check-in own appointments",
-        });
-        return;
-      }
-
-      const result = await this.checkInAppointmentUseCase.execute(
-        {
-          appointmentId: req.params.id,
-          checkedInBy: userId,
-          ...req.body,
-        },
-        { userId, timestamp: new Date() },
-      );
-
-      res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        errors: [error instanceof Error ? error.message : "Unknown error"],
-      });
-    }
-  }
+  // async checkInAppointment(req: Request, res: Response): Promise<void> {
+  //   try {
+  //     const user = (req as any).user;
+  //     const userId = user?.id;
+  //     const userRole = user?.role;
+  //     if (!userId) {
+  //       res.status(401).json({ success: false, message: \"Unauthorized\" });
+  //       return;
+  //     }
+  //     // Optional guard: doctor can only check-in own appointments if doctorId is provided in body
+  //     if (
+  //       userRole === \"doctor\" &&
+  //       req.body?.doctorId &&
+  //       req.body.doctorId !== userId
+  //     ) {
+  //       res.status(403).json({
+  //         success: false,
+  //         message: \"Forbidden: doctor can only check-in own appointments\",
+  //       });
+  //       return;
+  //     }
+  //
+  //     const result = await this.checkInAppointmentUseCase.execute(
+  //       {
+  //         appointmentId: req.params.id,
+  //         checkedInBy: userId,
+  //         ...req.body,
+  //       },
+  //       { userId, timestamp: new Date() },
+  //     );
+  //
+  //     res.status(result.success ? 200 : 400).json(result);
+  //   } catch (error) {
+  //     res.status(500).json({
+  //       success: false,
+  //       message: \"Internal server error\",
+  //       errors: [error instanceof Error ? error.message : \"Unknown error\"],
+  //     });
+  //   }
+  // }
 
   /**
    * POST /api/appointments/:id/no-show

@@ -668,7 +668,6 @@ export default function AppointmentCalendarPage() {
                             <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                             <SelectItem value="SCHEDULED">Đã đặt</SelectItem>
                             <SelectItem value="CONFIRMED">Đã xác nhận</SelectItem>
-                            <SelectItem value="CHECKED_IN">Đã check-in</SelectItem>
                             <SelectItem value="IN_PROGRESS">Đang khám</SelectItem>
                             <SelectItem value="COMPLETED">Hoàn thành</SelectItem>
                             <SelectItem value="CANCELLED">Đã hủy</SelectItem>

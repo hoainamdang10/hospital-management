@@ -47,6 +47,37 @@ class InvoiceMapper {
             p.status || undefined, p.processed_at ? new Date(p.processed_at) : undefined, p.refunded_at ? new Date(p.refunded_at) : undefined, p.refund_reason, p.refunded_by, p.gateway_refund_id);
         });
         const normalizedMetadata = this.normalizeMetadata(record, itemRecords, paymentRecords);
+        const totalAmountValue = Number(record.total_amount) || 0;
+        const insuranceCoverageValue = Number(record.insurance_coverage_amount) || 0;
+        const patientLiability = Math.max(totalAmountValue - insuranceCoverageValue, 0);
+        const totalPaid = paymentRecords
+            .filter((payment) => (payment.method || "").toLowerCase() !== "refund")
+            .reduce((sum, payment) => sum + Math.max(0, Number(payment.amount) || 0), 0);
+        const outstandingFromPayments = Math.max(patientLiability - totalPaid, 0);
+        const storedOutstandingRaw = Number(record.outstanding_amount);
+        const storedPatientPayment = Number(record.patient_payment_amount);
+        let normalizedOutstanding;
+        if (Number.isFinite(storedOutstandingRaw)) {
+            normalizedOutstanding = storedOutstandingRaw;
+        }
+        else if (Number.isFinite(storedPatientPayment)) {
+            normalizedOutstanding = storedPatientPayment;
+        }
+        else {
+            normalizedOutstanding = patientLiability;
+        }
+        if (normalizedOutstanding > patientLiability) {
+            normalizedOutstanding = patientLiability;
+        }
+        if (outstandingFromPayments > normalizedOutstanding) {
+            normalizedOutstanding = outstandingFromPayments;
+        }
+        if (normalizedOutstanding < 0) {
+            normalizedOutstanding = 0;
+        }
+        const outstandingCurrency = record.outstanding_currency ||
+            record.patient_payment_currency ||
+            record.total_currency;
         const props = {
             id: InvoiceId_1.InvoiceId.create(record.id),
             patientId: record.patient_id,
@@ -57,11 +88,11 @@ class InvoiceMapper {
             items,
             subtotal: Money_1.Money.create(record.subtotal_amount, record.subtotal_currency),
             tax: Money_1.Money.create(record.tax_amount, record.tax_currency),
-            // REMOVED (Phase 1 Prepaid Model): insuranceCoverage - no insurance in MVP
+            insuranceCoverage: Money_1.Money.create(record.insurance_coverage_amount || 0, record.insurance_coverage_currency || record.total_currency),
+            insurance,
             totalAmount: Money_1.Money.create(record.total_amount, record.total_currency),
-            outstandingAmount: Money_1.Money.create(record.patient_payment_amount, record.patient_payment_currency),
+            outstandingAmount: Money_1.Money.create(normalizedOutstanding, outstandingCurrency),
             status: InvoiceStatus_1.InvoiceStatus.create(record.status),
-            // REMOVED (Phase 1 Prepaid Model): insurance - will be added in Phase 2
             payments,
             paidAt: record.paid_at ? new Date(record.paid_at) : undefined,
             createdAt: new Date(record.created_at),
@@ -90,6 +121,7 @@ class InvoiceMapper {
         const dueDateIso = Number.isNaN(dueDateSource.getTime())
             ? new Date(persistence.createdAt.getTime() + 30 * 60 * 1000).toISOString()
             : dueDateSource.toISOString();
+        const patientLiability = Math.max((persistence.totalAmount ?? 0) - (persistence.insuranceCoverage ?? 0), 0);
         const invoiceRecord = {
             id: persistence.id,
             invoice_id: persistence.invoiceNumber || `INV-${Date.now()}`,
@@ -105,10 +137,22 @@ class InvoiceMapper {
             tax_currency: persistence.currency,
             total_amount: persistence.totalAmount,
             total_currency: persistence.currency,
-            // REMOVED (Phase 1 Prepaid Model): insurance_coverage_amount, insurance_coverage_currency - set to 0 by default in schema
-            patient_payment_amount: persistence.outstandingAmount,
+            // Insurance coverage - re-enabled
+            insurance_coverage_amount: persistence.insuranceCoverage ?? 0,
+            insurance_coverage_currency: persistence.currency,
+            patient_payment_amount: patientLiability,
             patient_payment_currency: persistence.currency,
-            // REMOVED (Phase 1 Prepaid Model): insurance_type, insurance_number, insurance_coverage_level, insurance_issued_by - nullable in schema for Phase 2
+            outstanding_amount: persistence.outstandingAmount,
+            outstanding_currency: persistence.currency,
+            // Insurance info - re-enabled
+            // Map provider name to valid insurance_type enum: BHYT, BHTN, Private, Self-pay
+            insurance_type: this.mapProviderToInsuranceType(persistence.insurance?.provider),
+            insurance_number: persistence.insurance?.policyNumber,
+            insurance_coverage_level: persistence.insurance?.coveragePercentage,
+            insurance_issued_by: persistence.insurance?.provider,
+            insurance_data: persistence.insurance
+                ? JSON.stringify(persistence.insurance)
+                : undefined,
             issued_by: "00000000-0000-0000-0000-000000000000", // System-generated invoice
             issued_at: issuedAtIso,
             due_date: dueDateIso,
@@ -244,6 +288,35 @@ class InvoiceMapper {
             return mapping[invoiceType];
         }
         return "Dịch vụ y tế";
+    }
+    /**
+     * Map insurance provider name to valid insurance_type enum
+     * Valid enum values: BHYT, BHTN, Private, Self-pay
+     */
+    static mapProviderToInsuranceType(provider) {
+        if (!provider) {
+            return undefined;
+        }
+        const normalizedProvider = provider.toUpperCase().trim();
+        // Direct match for known enum values
+        if (normalizedProvider === 'BHYT' || normalizedProvider.includes('BHYT') ||
+            normalizedProvider.includes('BẢO HIỂM Y TẾ') || normalizedProvider.includes('BAO HIEM Y TE')) {
+            return 'BHYT';
+        }
+        if (normalizedProvider === 'BHTN' || normalizedProvider.includes('BHTN') ||
+            normalizedProvider.includes('TAI NẠN') || normalizedProvider.includes('TAI NAN')) {
+            return 'BHTN';
+        }
+        if (normalizedProvider.includes('PRIVATE') || normalizedProvider.includes('TƯ NHÂN') ||
+            normalizedProvider.includes('TU NHAN')) {
+            return 'Private';
+        }
+        if (normalizedProvider.includes('SELF') || normalizedProvider.includes('TỰ') ||
+            normalizedProvider.includes('TU TRA')) {
+            return 'Self-pay';
+        }
+        // Default fallback - if provider exists but doesn't match, assume it's private insurance
+        return 'Private';
     }
 }
 exports.InvoiceMapper = InvoiceMapper;

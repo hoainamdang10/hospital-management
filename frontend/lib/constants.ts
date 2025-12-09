@@ -141,7 +141,7 @@ export const ROUTES = {
   // Nurse routes
   NURSE_DASHBOARD: '/nurse/dashboard',
   NURSE_PATIENTS: '/nurse/patients',
-  NURSE_CHECK_IN: '/nurse/check-in',
+  NURSE: '/nurse',
   NURSE_VITALS: '/nurse/vitals',
 
   // Admin routes

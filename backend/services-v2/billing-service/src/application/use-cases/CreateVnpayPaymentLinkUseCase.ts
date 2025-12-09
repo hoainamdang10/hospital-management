@@ -66,11 +66,33 @@ export class CreateVnpayPaymentLinkUseCase extends BaseHealthcareUseCase<
       throw new Error("Hóa đơn đã hết hạn thanh toán");
     }
 
+    const insuranceCoverageAmount = invoice.insuranceCoverage?.amount ?? 0;
+    const patientLiability = Math.max(
+      invoice.totalAmount.amount - insuranceCoverageAmount,
+      0,
+    );
+    const totalPaid = invoice.payments
+      .filter((payment) => payment.method !== "refund")
+      .reduce((sum, payment) => sum + Math.max(0, payment.amount.amount), 0);
+    const outstandingFromPayments = Math.max(patientLiability - totalPaid, 0);
+    const storedOutstanding = Math.max(
+      Math.min(invoice.outstandingAmount.amount, patientLiability),
+      0,
+    );
+    const amountToCharge =
+      outstandingFromPayments > 0
+        ? outstandingFromPayments
+        : storedOutstanding || patientLiability;
+
+    if (amountToCharge <= 0) {
+      throw new Error("Invoice is already paid");
+    }
+
     const orderCode = VnpayIntegrationService.generateOrderCode();
 
     const paymentLink = await this.payosService.createPaymentLink({
       orderCode,
-      amount: invoice.outstandingAmount.amount,
+      amount: amountToCharge,
       description: `Thanh toán hóa đơn ${invoice.invoiceNumber || invoice.id}`,
       returnUrl: request.returnUrl || this.defaultReturnUrl,
     });

@@ -19,9 +19,9 @@ class SupabaseOutboxRepository {
     constructor(supabase, logger) {
         this.supabase = supabase;
         this.logger = logger;
-        this.TABLE_NAME = 'outbox_events';
-        this.DLQ_TABLE = 'outbox_dead_letter_queue';
-        this.SCHEMA = 'patient_schema';
+        this.TABLE_NAME = "outbox_events";
+        this.DLQ_TABLE = "outbox_dead_letter_queue";
+        this.SCHEMA = "patient_schema";
         this.networkRetryConfig = {
             maxAttempts: 3,
             baseDelayMs: 250,
@@ -40,7 +40,9 @@ class SupabaseOutboxRepository {
             const outboxRecords = events.map((event) => ({
                 event_id: event.eventId || event.aggregateId,
                 event_type: event.eventType,
-                aggregate_type: this.extractAggregateType(event.eventType),
+                aggregate_type: event.aggregateType ||
+                    event.aggregate_type ||
+                    this.extractAggregateType(event.eventType),
                 aggregate_id: event.aggregateId,
                 payload: event.toJSON(),
                 metadata: {
@@ -56,20 +58,20 @@ class SupabaseOutboxRepository {
             const { error } = await this.executeWithNetworkResilience(async () => await this.supabase
                 .schema(this.SCHEMA)
                 .from(this.TABLE_NAME)
-                .insert(outboxRecords), 'saveEvents.insert');
+                .insert(outboxRecords), "saveEvents.insert");
             if (error) {
-                this.logger.error('[OutboxRepository] Failed to save events', {
+                this.logger.error("[OutboxRepository] Failed to save events", {
                     error: this.extractErrorMessage(error),
                     count: events.length,
                 });
                 throw new Error(`Failed to save outbox events: ${this.extractErrorMessage(error)}`);
             }
-            this.logger.debug('[OutboxRepository] Events saved to outbox', {
+            this.logger.debug("[OutboxRepository] Events saved to outbox", {
                 count: events.length,
             });
         }
         catch (error) {
-            this.logger.error('[OutboxRepository] Error saving events', {
+            this.logger.error("[OutboxRepository] Error saving events", {
                 error: this.serializeError(error),
             });
             throw error;
@@ -83,12 +85,12 @@ class SupabaseOutboxRepository {
             const { data, error } = await this.executeWithNetworkResilience(async () => await this.supabase
                 .schema(this.SCHEMA)
                 .from(this.TABLE_NAME)
-                .select('*')
-                .eq('status', OutboxEventStatus.PENDING)
-                .order('created_at', { ascending: true })
-                .limit(batchSize), 'getPendingEvents.select');
+                .select("*")
+                .eq("status", OutboxEventStatus.PENDING)
+                .order("created_at", { ascending: true })
+                .limit(batchSize), "getPendingEvents.select");
             if (error) {
-                this.logger.error('[OutboxRepository] Failed to get pending events', {
+                this.logger.error("[OutboxRepository] Failed to get pending events", {
                     error: error.message,
                 });
                 throw new Error(`Failed to get pending events: ${error.message}`);
@@ -96,7 +98,7 @@ class SupabaseOutboxRepository {
             return (data || []);
         }
         catch (error) {
-            this.logger.error('[OutboxRepository] Error getting pending events', {
+            this.logger.error("[OutboxRepository] Error getting pending events", {
                 error: this.serializeError(error),
             });
             throw error;
@@ -117,16 +119,16 @@ class SupabaseOutboxRepository {
                 status: OutboxEventStatus.PUBLISHED,
                 published_at: new Date().toISOString(),
             })
-                .in('id', eventIds), 'markAsPublished.update');
+                .in("id", eventIds), "markAsPublished.update");
             if (error) {
-                this.logger.error('[OutboxRepository] Failed to mark as published', {
+                this.logger.error("[OutboxRepository] Failed to mark as published", {
                     error: error.message,
                 });
                 throw new Error(`Failed to mark events as published: ${error.message}`);
             }
         }
         catch (error) {
-            this.logger.error('[OutboxRepository] Error marking as published', {
+            this.logger.error("[OutboxRepository] Error marking as published", {
                 error: this.serializeError(error),
             });
             throw error;
@@ -140,25 +142,25 @@ class SupabaseOutboxRepository {
             const { data: event, error } = await this.executeWithNetworkResilience(async () => await this.supabase
                 .schema(this.SCHEMA)
                 .from(this.TABLE_NAME)
-                .select('*')
-                .eq('id', eventId)
-                .maybeSingle(), 'markAsFailed.fetch');
+                .select("*")
+                .eq("id", eventId)
+                .maybeSingle(), "markAsFailed.fetch");
             if (error) {
-                this.logger.error('[OutboxRepository] Failed to load event to mark failed', {
+                this.logger.error("[OutboxRepository] Failed to load event to mark failed", {
                     error: error.message,
                     eventId,
                 });
                 throw new Error(`Failed to load outbox event: ${error.message}`);
             }
             if (!event) {
-                this.logger.warn('[OutboxRepository] Event not found when marking as failed', {
+                this.logger.warn("[OutboxRepository] Event not found when marking as failed", {
                     eventId,
                 });
                 return;
             }
             const newRetryCount = (event.retry_count || 0) + 1;
             if (newRetryCount >= event.max_retries) {
-                this.logger.warn('[OutboxRepository] Max retries exceeded, moving to DLQ', {
+                this.logger.warn("[OutboxRepository] Max retries exceeded, moving to DLQ", {
                     eventId,
                     retryCount: newRetryCount,
                 });
@@ -173,21 +175,21 @@ class SupabaseOutboxRepository {
                 retry_count: newRetryCount,
                 last_error: errorMessage,
             })
-                .eq('id', eventId), 'markAsFailed.update');
+                .eq("id", eventId), "markAsFailed.update");
             if (updateError) {
-                this.logger.error('[OutboxRepository] Failed to mark as failed', {
+                this.logger.error("[OutboxRepository] Failed to mark as failed", {
                     error: updateError.message,
                     eventId,
                 });
                 throw new Error(`Failed to mark event as failed: ${updateError.message}`);
             }
-            this.logger.debug('[OutboxRepository] Event marked as failed', {
+            this.logger.debug("[OutboxRepository] Event marked as failed", {
                 eventId,
                 retryCount: newRetryCount,
             });
         }
         catch (error) {
-            this.logger.error('[OutboxRepository] Error marking as failed', {
+            this.logger.error("[OutboxRepository] Error marking as failed", {
                 error: this.serializeError(error),
                 eventId,
             });
@@ -201,24 +203,24 @@ class SupabaseOutboxRepository {
         try {
             const { error } = await this.executeWithNetworkResilience(async () => await this.supabase
                 .schema(this.SCHEMA)
-                .rpc('move_to_dead_letter_queue', {
+                .rpc("move_to_dead_letter_queue", {
                 p_event_id: eventId,
                 p_failure_reason: failureReason,
-            }), 'moveToDeadLetterQueue.rpc');
+            }), "moveToDeadLetterQueue.rpc");
             if (error) {
-                this.logger.error('[OutboxRepository] Failed to move to DLQ', {
+                this.logger.error("[OutboxRepository] Failed to move to DLQ", {
                     error: error.message,
                     eventId,
                 });
                 throw new Error(`Failed to move to DLQ: ${error.message}`);
             }
-            this.logger.info('[OutboxRepository] Event moved to DLQ', {
+            this.logger.info("[OutboxRepository] Event moved to DLQ", {
                 eventId,
                 failureReason,
             });
         }
         catch (error) {
-            this.logger.error('[OutboxRepository] Error moving to DLQ', {
+            this.logger.error("[OutboxRepository] Error moving to DLQ", {
                 error: this.serializeError(error),
                 eventId,
             });
@@ -232,24 +234,24 @@ class SupabaseOutboxRepository {
         try {
             const { data, error } = await this.executeWithNetworkResilience(async () => await this.supabase
                 .schema(this.SCHEMA)
-                .rpc('cleanup_old_published_events', {
+                .rpc("cleanup_old_published_events", {
                 p_retention_days: retentionDays,
-            }), 'cleanupPublishedEvents.rpc');
+            }), "cleanupPublishedEvents.rpc");
             if (error) {
-                this.logger.error('[OutboxRepository] Failed to cleanup events', {
+                this.logger.error("[OutboxRepository] Failed to cleanup events", {
                     error: error.message,
                 });
                 throw new Error(`Failed to cleanup events: ${error.message}`);
             }
             const deletedCount = data || 0;
-            this.logger.info('[OutboxRepository] Cleaned up old events', {
+            this.logger.info("[OutboxRepository] Cleaned up old events", {
                 deletedCount,
                 retentionDays,
             });
             return deletedCount;
         }
         catch (error) {
-            this.logger.error('[OutboxRepository] Error cleaning up events', {
+            this.logger.error("[OutboxRepository] Error cleaning up events", {
                 error: this.serializeError(error),
             });
             throw error;
@@ -268,7 +270,7 @@ class SupabaseOutboxRepository {
                 throw error;
             }
             const delayMs = Math.min(this.networkRetryConfig.baseDelayMs * Math.pow(2, attempt - 1), this.networkRetryConfig.maxDelayMs);
-            this.logger.warn('[OutboxRepository] Transient Supabase error, retrying operation', {
+            this.logger.warn("[OutboxRepository] Transient Supabase error, retrying operation", {
                 context,
                 attempt,
                 delayMs,
@@ -282,13 +284,13 @@ class SupabaseOutboxRepository {
         if (!(error instanceof Error)) {
             return false;
         }
-        const message = error.message?.toLowerCase() ?? '';
-        return (message.includes('fetch failed') ||
-            message.includes('network') ||
-            message.includes('ecconnreset') ||
-            message.includes('etimedout') ||
-            message.includes('socket hang up') ||
-            message.includes('dns'));
+        const message = error.message?.toLowerCase() ?? "";
+        return (message.includes("fetch failed") ||
+            message.includes("network") ||
+            message.includes("ecconnreset") ||
+            message.includes("etimedout") ||
+            message.includes("socket hang up") ||
+            message.includes("dns"));
     }
     delay(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
@@ -298,25 +300,25 @@ class SupabaseOutboxRepository {
             return {
                 message: error.message,
                 stack: error.stack,
-                cause: error instanceof Error && 'cause' in error
+                cause: error instanceof Error && "cause" in error
                     ? error.cause
                     : undefined,
             };
         }
-        return typeof error === 'string' ? error : JSON.stringify(error);
+        return typeof error === "string" ? error : JSON.stringify(error);
     }
     extractErrorMessage(error) {
         if (error instanceof Error) {
             return error.message;
         }
-        if (typeof error === 'string') {
+        if (typeof error === "string") {
             return error;
         }
         try {
             return JSON.stringify(error);
         }
         catch {
-            return 'Unknown error';
+            return "Unknown error";
         }
     }
     /**
@@ -324,12 +326,12 @@ class SupabaseOutboxRepository {
      * Example: 'patient.patient_registered' -> 'Patient'
      */
     extractAggregateType(eventType) {
-        const parts = eventType.split('.');
+        const parts = eventType.split(".");
         if (parts.length >= 2) {
             // Capitalize first letter
             return parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
         }
-        return 'Unknown';
+        return "Unknown";
     }
 }
 exports.SupabaseOutboxRepository = SupabaseOutboxRepository;

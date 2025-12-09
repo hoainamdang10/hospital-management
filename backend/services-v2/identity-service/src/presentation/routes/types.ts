@@ -27,6 +27,7 @@ import { AssignRoleUseCase } from "../../application/use-cases/AssignRoleUseCase
 import { UnlockAccountUseCase } from "../../application/use-cases/UnlockAccountUseCase";
 import { DeactivateUserUseCase } from "../../application/use-cases/DeactivateUserUseCase";
 import { ReactivatePatientAccountUseCase } from "../../application/use-cases/ReactivatePatientAccountUseCase";
+import { DeleteUserUseCase } from "../../application/use-cases/DeleteUserUseCase";
 import { IHealthCheckService } from "../../application/services/IHealthCheckService";
 import { IDegradationService } from "../../application/services/IDegradationService";
 import { IPermissionService } from "../../domain/services/IPermissionService";
@@ -66,6 +67,7 @@ export interface RouteDependencies {
   unlockAccountUseCase: UnlockAccountUseCase;
   deactivateUserUseCase: DeactivateUserUseCase;
   reactivatePatientAccountUseCase: ReactivatePatientAccountUseCase;
+  deleteUserUseCase: DeleteUserUseCase;
 
   // Staff Management Use Cases
   provisionStaffUseCase: ProvisionStaffUseCase;

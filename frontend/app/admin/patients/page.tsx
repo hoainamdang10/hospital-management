@@ -24,6 +24,7 @@ import {
   LockOpen,
   AlertTriangle,
   Power,
+  Trash2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
 import { patientService, Patient } from '@/lib/api/patient.service';
@@ -31,6 +32,7 @@ import {
   deactivateAccount,
   reactivateAccount,
   unlockAccount,
+  deleteAccount,
 } from '@/lib/api/admin-accounts.service';
 import { supabase } from '@/lib/supabase-client';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -38,6 +40,7 @@ import { toast } from 'sonner';
 import { parseISO, differenceInYears, differenceInDays } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 // ============================================================================
 // TYPES
@@ -188,6 +191,14 @@ export default function AdminPatientsPage() {
   const [unlockReason, setUnlockReason] = useState('');
   const [isSubmittingUnlock, setIsSubmittingUnlock] = useState(false);
 
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    patient: Patient | null;
+  }>({ open: false, patient: null });
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteForce, setDeleteForce] = useState(false);
+  const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
+
   // Stats - fetched from API for accurate counts
   const [stats, setStats] = useState<PatientStatsState>({
     total: 0,
@@ -232,7 +243,11 @@ export default function AdminPatientsPage() {
       });
     } catch (err) {
       console.error('❌ Error fetching stats:', err);
-      toast.error('Không thể tải thống kê bệnh nhân');
+      showErrorToast(err, {
+        title: 'Không thể tải thống kê bệnh nhân',
+        fallbackMessage: 'Không thể tải thống kê bệnh nhân. Vui lòng thử lại sau.',
+        context: 'Admin/Patients:stats',
+      });
     }
   }, []);
 
@@ -325,7 +340,11 @@ export default function AdminPatientsPage() {
         }
       } catch (error) {
         console.error('Failed to fetch patients:', error);
-        toast.error('Không thể tải danh sách bệnh nhân');
+        showErrorToast(error, {
+          title: 'Không thể tải danh sách bệnh nhân',
+          fallbackMessage: 'Không thể tải danh sách bệnh nhân. Vui lòng thử lại.',
+          context: 'Admin/Patients:list',
+        });
       } finally {
         if (manageLoading) {
           setIsLoading(false);
@@ -391,7 +410,7 @@ export default function AdminPatientsPage() {
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
-  type PatientAction = 'activate' | 'deactivate' | 'unlock';
+  type PatientAction = 'activate' | 'deactivate' | 'unlock' | 'delete';
 
   const handlePatientAction = (action: PatientAction, patient: Patient) => {
     setOpenActionMenu(null);
@@ -409,13 +428,19 @@ export default function AdminPatientsPage() {
         setUnlockModal({ open: true, patient });
         setUnlockReason('');
         break;
+      case 'delete':
+        setDeleteModal({ open: true, patient });
+        setDeleteReason('');
+        setDeleteForce(false);
+        break;
     }
   };
 
   const executePatientAction = async (
     action: PatientAction,
     patient: Patient,
-    providedReason?: string
+    providedReason?: string,
+    options?: { force?: boolean }
   ): Promise<boolean> => {
     if (!patient.userId) {
       toast.error('Không tìm thấy userId của bệnh nhân để thao tác');
@@ -428,6 +453,7 @@ export default function AdminPatientsPage() {
       activate: 'kích hoạt lại tài khoản',
       deactivate: 'vô hiệu hóa tài khoản',
       unlock: 'mở khóa tài khoản',
+      delete: 'xóa tài khoản',
     };
 
     try {
@@ -466,6 +492,19 @@ export default function AdminPatientsPage() {
           });
           break;
         }
+        case 'delete': {
+          const finalReason = (providedReason || '').trim();
+          if (!finalReason) {
+            toast.error('Vui lòng nhập lý do xóa tài khoản');
+            return false;
+          }
+          requestPromise = deleteAccount({
+            userId: patient.userId,
+            reason: finalReason,
+            force: options?.force ?? false,
+          });
+          break;
+        }
         default:
           return false;
       }
@@ -483,8 +522,10 @@ export default function AdminPatientsPage() {
       return true;
     } catch (error) {
       console.error('[PatientsPage] Account action failed', error);
-      toast.error(`Không thể ${actionLabels[action]}`, {
-        description: displayName || patient.patientId,
+      showErrorToast(error, {
+        title: `Không thể ${actionLabels[action]}`,
+        fallbackMessage: `Không thể ${actionLabels[action]} cho ${displayName || patient.patientId}.`,
+        context: `Admin/Patients:${action} – ${patient.patientId}`,
       });
       return false;
     }
@@ -563,6 +604,36 @@ export default function AdminPatientsPage() {
     setIsSubmittingUnlock(false);
     if (success) {
       closeUnlockModal();
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ open: false, patient: null });
+    setDeleteReason('');
+    setDeleteForce(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.patient) {
+      return;
+    }
+    const trimmedReason = deleteReason.trim();
+    if (!trimmedReason) {
+      toast.error('Vui lòng nhập lý do xóa tài khoản');
+      return;
+    }
+    if (trimmedReason.length < 5) {
+      toast.error('Lý do xóa phải có ít nhất 5 ký tự');
+      return;
+    }
+
+    setIsSubmittingDelete(true);
+    const success = await executePatientAction('delete', deleteModal.patient, trimmedReason, {
+      force: deleteForce,
+    });
+    setIsSubmittingDelete(false);
+    if (success) {
+      closeDeleteModal();
     }
   };
 
@@ -714,10 +785,11 @@ export default function AdminPatientsPage() {
                     <button
                       key={option.value}
                       onClick={() => handleGenderChange(option.value as GenderFilter)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${genderFilter === option.value
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                        genderFilter === option.value
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
                     >
                       {option.label}
                     </button>
@@ -728,10 +800,11 @@ export default function AdminPatientsPage() {
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${showFilters
-                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${
+                    showFilters
+                      ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   <span className="hidden sm:inline">Bộ lọc</span>
@@ -926,10 +999,11 @@ export default function AdminPatientsPage() {
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page as number)}
-                          className={`h-8 w-8 rounded-lg text-sm font-medium transition-all ${currentPage === page
-                            ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
-                            : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-cyan-600'
-                            }`}
+                          className={`h-8 w-8 rounded-lg text-sm font-medium transition-all ${
+                            currentPage === page
+                              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+                              : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-cyan-600'
+                          }`}
                         >
                           {page}
                         </button>
@@ -987,6 +1061,19 @@ export default function AdminPatientsPage() {
           onInputChange={setUnlockReason}
           onClose={closeUnlockModal}
           onSubmit={handleConfirmUnlock}
+        />
+      )}
+
+      {deleteModal.open && deleteModal.patient && (
+        <DeleteAccountModal
+          patient={deleteModal.patient}
+          reason={deleteReason}
+          force={deleteForce}
+          isSubmitting={isSubmittingDelete}
+          onReasonChange={setDeleteReason}
+          onForceChange={setDeleteForce}
+          onClose={closeDeleteModal}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </DashboardLayout>
@@ -1087,10 +1174,11 @@ function DemographicChartCard({ stats }: DemographicChartCardProps) {
                 onClick={() => setTab(key as 'gender' | 'age')}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`relative px-3 py-1.5 transition-all duration-200 ${tab === key
-                  ? 'rounded-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md shadow-cyan-500/30'
-                  : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                className={`relative px-3 py-1.5 transition-all duration-200 ${
+                  tab === key
+                    ? 'rounded-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md shadow-cyan-500/30'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
                 {key === 'gender' ? 'Giới tính' : 'Độ tuổi'}
               </motion.button>
@@ -1284,7 +1372,10 @@ interface PatientRowProps {
   avatarGradient: string;
   actionMenuOpen: string | null;
   onToggleActionMenu: (patientId: string) => void;
-  onActionSelect: (action: 'activate' | 'deactivate' | 'unlock', patient: Patient) => void;
+  onActionSelect: (
+    action: 'activate' | 'deactivate' | 'unlock' | 'delete',
+    patient: Patient
+  ) => void;
 }
 
 function PatientRow({
@@ -1464,13 +1555,14 @@ function PatientRow({
                 { key: 'activate', label: 'Kích hoạt lại', className: 'text-emerald-600' },
                 { key: 'deactivate', label: 'Vô hiệu hóa', className: 'text-amber-600' },
                 { key: 'unlock', label: 'Mở khóa tài khoản', className: 'text-slate-700' },
+                { key: 'delete', label: 'Xóa vĩnh viễn', className: 'text-rose-600' },
               ].map((action) => (
                 <button
                   key={action.key}
                   onClick={(e) => {
                     e.stopPropagation();
                     void onActionSelect(
-                      action.key as 'activate' | 'deactivate' | 'unlock',
+                      action.key as 'activate' | 'deactivate' | 'unlock' | 'delete',
                       patient
                     );
                   }}
@@ -1682,6 +1774,162 @@ function AccountActionModal({
                 <IconComponent className="h-4 w-4" />
               )}
               {config.confirmText}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+interface DeleteAccountModalProps {
+  patient: Patient;
+  reason: string;
+  force: boolean;
+  isSubmitting: boolean;
+  onReasonChange: (value: string) => void;
+  onForceChange: (value: boolean) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+function DeleteAccountModal({
+  patient,
+  reason,
+  force,
+  isSubmitting,
+  onReasonChange,
+  onForceChange,
+  onClose,
+  onConfirm,
+}: DeleteAccountModalProps) {
+  const fullName =
+    patient.fullName ||
+    `${patient.firstName || ''} ${patient.lastName || ''}`.trim() ||
+    'Bệnh nhân';
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4 py-8 backdrop-blur"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isSubmitting) {
+            onClose();
+          }
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: 'spring', duration: 0.5, bounce: 0.25 }}
+          className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+        >
+          <div className="relative border-b border-rose-100 bg-gradient-to-r from-rose-50 to-white px-6 py-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-slate-900">Xóa tài khoản vĩnh viễn</h2>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Hành động này sẽ loại bỏ hoàn toàn tài khoản khỏi hệ thống Identity & Patient
+                  Registry.
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-5 px-6 py-5">
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-sm font-bold text-white shadow-md">
+                {fullName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-900">{fullName}</p>
+                <p className="text-xs text-slate-500">{patient.patientId || patient.userId}</p>
+              </div>
+              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                {patient.accountStatus || 'unknown'}
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-700">
+              <p className="flex items-center gap-2 font-semibold">
+                <AlertTriangle className="h-4 w-4" />
+                Không thể hoàn tác
+              </p>
+              <p className="mt-1 text-xs text-rose-600">
+                Tài khoản Supabase Auth, vai trò, phân quyền và toàn bộ thông tin liên quan sẽ bị
+                xóa. Vui lòng chắc chắn rằng bạn đã xuất/backup dữ liệu cần thiết trước khi tiếp
+                tục.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-2 flex items-center gap-1 text-sm font-medium text-slate-700">
+                Lý do xóa tài khoản<span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => onReasonChange(e.target.value)}
+                rows={3}
+                disabled={isSubmitting}
+                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-700 transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-rose-500/30 focus:outline-none disabled:opacity-50"
+                placeholder="Ví dụ: Yêu cầu xóa theo GDPR từ bệnh nhân..."
+                autoFocus
+              />
+            </div>
+
+            <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                checked={force}
+                onChange={(e) => onForceChange(e.target.checked)}
+                disabled={isSubmitting}
+              />
+              <div>
+                <p className="font-semibold text-slate-900">Cho phép xóa khi chưa deactivate</p>
+                <p className="text-xs text-slate-500">
+                  Chỉ bật nếu bạn đã xác minh yêu cầu xóa hợp lệ (ví dụ: GDPR). Khi bật, hệ thống sẽ
+                  bỏ qua bước deactivate bắt buộc và xóa ngay lập tức.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:shadow disabled:opacity-50"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="button"
+              onClick={() => void onConfirm()}
+              disabled={isSubmitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/40 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-60"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Xóa vĩnh viễn
             </button>
           </div>
         </motion.div>

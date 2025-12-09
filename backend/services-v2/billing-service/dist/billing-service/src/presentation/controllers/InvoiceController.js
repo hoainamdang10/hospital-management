@@ -1,12 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoiceController = void 0;
+const logger_1 = require("../../infrastructure/logging/logger");
 class InvoiceController {
-    constructor(createInvoiceUseCase, getInvoiceUseCase, processPaymentUseCase, getPatientInvoicesUseCase, searchInvoicesUseCase, getOverdueInvoicesUseCase, getPatientBillingSummaryUseCase, getRevenueReportUseCase, createPayOSPaymentLinkUseCase, handlePayOSWebhookUseCase, payInvoiceWithWalletUseCase) {
+    constructor(createInvoiceUseCase, getInvoiceUseCase, processPaymentUseCase, getPatientInvoicesUseCase, getInvoicesByAppointmentUseCase, searchInvoicesUseCase, getOverdueInvoicesUseCase, getPatientBillingSummaryUseCase, getRevenueReportUseCase, createPayOSPaymentLinkUseCase, handlePayOSWebhookUseCase, payInvoiceWithWalletUseCase, patientRepository) {
         this.createInvoiceUseCase = createInvoiceUseCase;
         this.getInvoiceUseCase = getInvoiceUseCase;
         this.processPaymentUseCase = processPaymentUseCase;
         this.getPatientInvoicesUseCase = getPatientInvoicesUseCase;
+        this.getInvoicesByAppointmentUseCase = getInvoicesByAppointmentUseCase;
         this.searchInvoicesUseCase = searchInvoicesUseCase;
         this.getOverdueInvoicesUseCase = getOverdueInvoicesUseCase;
         this.getPatientBillingSummaryUseCase = getPatientBillingSummaryUseCase;
@@ -14,9 +16,47 @@ class InvoiceController {
         this.createPayOSPaymentLinkUseCase = createPayOSPaymentLinkUseCase;
         this.handlePayOSWebhookUseCase = handlePayOSWebhookUseCase;
         this.payInvoiceWithWalletUseCase = payInvoiceWithWalletUseCase;
+        this.patientRepository = patientRepository;
         this.createInvoice = async (req, res) => {
             try {
-                const result = await this.createInvoiceUseCase.execute(req.body);
+                const payload = { ...req.body };
+                // Fallback: nếu không có insurance input thì tự fetch từ patient
+                if (!payload.insurance &&
+                    !payload.insuranceCoverageAmount &&
+                    payload.patientId) {
+                    try {
+                        if (this.patientRepository) {
+                            const patient = await this.patientRepository.findById(payload.patientId);
+                            if (patient?.insuranceInfo) {
+                                payload.insurance = {
+                                    provider: patient.insuranceInfo.provider ||
+                                        patient.insuranceInfo.providerName,
+                                    policyNumber: patient.insuranceInfo.policyNumber,
+                                    coveragePercentage: patient.insuranceInfo.coveragePercentage ||
+                                        patient.insuranceInfo.coverage?.consultationCoverage ||
+                                        80,
+                                };
+                                const coveragePct = payload.insurance.coveragePercentage || 0;
+                                // Nếu có đơn giá line item, tính sơ bộ coverageAmount
+                                if (payload.items?.[0]?.unitPrice && coveragePct > 0) {
+                                    payload.insuranceCoverageAmount = Math.round(payload.items[0].unitPrice * (coveragePct / 100));
+                                }
+                            }
+                        }
+                        else {
+                            logger_1.logger.warn("Patient repository not available for insurance fallback", {
+                                patientId: payload.patientId,
+                            });
+                        }
+                    }
+                    catch (err) {
+                        logger_1.logger.warn("Failed to fetch insurance info in createInvoice fallback", {
+                            patientId: payload.patientId,
+                            error: err instanceof Error ? err.message : "Unknown error",
+                        });
+                    }
+                }
+                const result = await this.createInvoiceUseCase.execute(payload);
                 res.status(201).json(result);
             }
             catch (error) {
@@ -72,6 +112,17 @@ class InvoiceController {
             try {
                 const result = await this.getPatientInvoicesUseCase.execute({
                     patientId: req.params.patientId,
+                });
+                res.status(200).json(result);
+            }
+            catch (error) {
+                res.status(400).json({ error: error.message });
+            }
+        };
+        this.getInvoicesByAppointment = async (req, res) => {
+            try {
+                const result = await this.getInvoicesByAppointmentUseCase.execute({
+                    appointmentId: req.params.appointmentId,
                 });
                 res.status(200).json(result);
             }

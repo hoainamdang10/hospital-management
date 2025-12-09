@@ -149,16 +149,12 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
 
   /**
    * Validate if appointment can be marked as no-show
+   * Updated for simplified 3-role system
    */
   private validateNoShow(appointment: any): string | null {
-    // Check status
+    // Check status - only CONFIRMED or SCHEDULED can be marked as no-show
     if (appointment.status !== 'scheduled' && appointment.status !== 'confirmed') {
       return `Không thể đánh dấu no-show cho lịch hẹn với trạng thái ${appointment.status}`;
-    }
-
-    // Check if already checked in
-    if (appointment.getCheckedInAt && appointment.getCheckedInAt()) {
-      return 'Bệnh nhân đã check-in, không thể đánh dấu no-show';
     }
 
     // Check if appointment time has passed

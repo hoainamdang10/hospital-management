@@ -1,7 +1,7 @@
 import { OutboxRepository, OutboxEventRecord } from "./OutboxRepository";
 import { RemoteSchedulerAdapter } from "../adapters/RemoteSchedulerAdapter";
 import * as amqplib from "amqplib";
-import { Channel, Connection } from "amqplib";
+import { Channel, Connection, ConfirmChannel } from "amqplib";
 
 export interface OutboxWorkerOptions {
   intervalMs?: number; // polling interval
@@ -17,7 +17,7 @@ export class OutboxPublisherWorker {
   private timer?: NodeJS.Timeout;
   private running = false;
   private amqpConn?: any;
-  private amqpChannel?: any;
+  private amqpChannel?: ConfirmChannel;
 
   constructor(
     private outboxRepo: OutboxRepository,
@@ -53,20 +53,21 @@ export class OutboxPublisherWorker {
     return delay;
   }
 
-  private async ensureChannel(): Promise<Channel> {
-    if (this.amqpChannel) return this.amqpChannel as Channel;
+  // Confirm channel to ensure broker ack before marking SENT
+  private async ensureConfirmChannel(): Promise<ConfirmChannel> {
+    if (this.amqpChannel) return this.amqpChannel;
     const url =
       this.options.rabbitmqUrl ||
       process.env.RABBITMQ_URL ||
       "amqp://admin:admin@rabbitmq-v2:5672";
     this.amqpConn = await amqplib.connect(url);
-    this.amqpChannel = await this.amqpConn.createChannel();
-    await this.amqpChannel.assertExchange(
+    this.amqpChannel = await this.amqpConn.createConfirmChannel();
+    await this.amqpChannel!.assertExchange(
       this.options.exchange || "hospital.events",
       "topic",
       { durable: true },
     );
-    return this.amqpChannel as Channel;
+    return this.amqpChannel!;
   }
 
   private async processOne(evt: OutboxEventRecord): Promise<void> {
@@ -95,7 +96,7 @@ export class OutboxPublisherWorker {
         eventType.startsWith("appointments.")
       ) {
         // Generic relay to RabbitMQ for appointment.* events (billing/notifications)
-        const channel = await this.ensureChannel();
+        const channel = await this.ensureConfirmChannel();
         // Normalize routing key to singular prefix for compatibility with consumers
         const rawEventType =
           typeof eventType === "string" ? eventType.trim() : eventType;
@@ -113,16 +114,17 @@ export class OutboxPublisherWorker {
         if (!routingKey.startsWith("appointment.")) {
           routingKey = `appointment.${routingKey}`;
         }
-        channel.publish(
-          this.options.exchange || "hospital.events",
-          routingKey,
-          Buffer.from(JSON.stringify(payload)),
-          { persistent: true },
-        );
-        console.log("[OutboxWorker] published", {
-          id: evt.id,
-          routingKey,
+        await new Promise<void>((resolve, reject) => {
+          channel.publish(
+            this.options.exchange || "hospital.events",
+            routingKey,
+            Buffer.from(JSON.stringify(payload)),
+            { persistent: true },
+            (err?: any, ok?: amqplib.Replies.Empty) =>
+              err ? reject(err) : resolve(),
+          );
         });
+        console.log("[OutboxWorker] published", { id: evt.id, routingKey });
       } else {
         // Unknown event: mark sent to avoid poison
         console.warn(

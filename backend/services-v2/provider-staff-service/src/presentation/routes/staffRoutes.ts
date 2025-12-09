@@ -400,35 +400,6 @@ export function createStaffRoutes(controller: StaffController): Router {
   // - GET /api/appointments/providers/:providerId/schedule
 
   /**
-   * Specialization Management Routes
-   * GET /api/v1/staff/:staffId/specializations
-   * POST /api/v1/staff/:staffId/specializations
-   * DELETE /api/v1/staff/:staffId/specializations/:specializationCode
-   */
-  router.get(
-    "/:staffId/specializations",
-    requireAuth,
-    validateStaffId,
-    asyncHandler(controller.getStaffSpecializations.bind(controller)),
-  );
-
-  router.post(
-    "/:staffId/specializations",
-    RateLimitMiddleware.writeOperations,
-    adminOnly,
-    validateStaffId,
-    asyncHandler(controller.addStaffSpecialization.bind(controller)),
-  );
-
-  router.delete(
-    "/:staffId/specializations/:specializationCode",
-    RateLimitMiddleware.writeOperations,
-    adminOnly,
-    validateStaffId,
-    asyncHandler(controller.removeStaffSpecialization.bind(controller)),
-  );
-
-  /**
    * Set department head
    * PUT /api/v1/staff/:staffId/department-head
    */
@@ -462,7 +433,7 @@ export function createStaffRoutes(controller: StaffController): Router {
  *
  * 3. GET /search?searchTerm=...
  *    - Search staff
- *    - Query: searchTerm, staffType, departmentId, specialization, status, isActive, page, limit
+ *    - Query: searchTerm, staffType, departmentId, status, isActive, page, limit
  *    - Response: PaginatedResponse<StaffResponseDto>
  *
  * 3. GET /user/:userId

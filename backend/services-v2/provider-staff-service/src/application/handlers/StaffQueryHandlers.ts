@@ -67,7 +67,6 @@ export interface SearchStaffQuery {
     filters?: {
       staffType?: StaffType;
       departmentId?: string;
-      specialization?: string;
       status?: StaffStatus;
       isActive?: boolean;
       isAcceptingNewPatients?: boolean;
@@ -249,10 +248,10 @@ export class StaffQueryHandlers {
 
       // Map to response format
       const staffData = paginatedStaff.map((staff) => {
-        this.logger.info('[DEBUG] Mapping staff to DTO', {
+        this.logger.info("[DEBUG] Mapping staff to DTO", {
           uuid: staff.id.substring(0, 8),
           staffIdValue: staff.staffIdValue?.substring(0, 20),
-          propsId: staff.staffId?.value?.substring(0, 20)
+          propsId: staff.staffId?.value?.substring(0, 20),
         });
         return {
           id: staff.id,
@@ -345,7 +344,6 @@ export class StaffQueryHandlers {
         staffType: filters.staffType,
         department: undefined,
         departmentId: filters.departmentId,
-        specialization: filters.specialization,
         status: filters.status,
         isActive: filters.isActive,
         page: pagination?.page,
@@ -691,7 +689,7 @@ export class StaffQueryHandlers {
       "doctor",
       "nurse",
       "receptionist",
-      "patient",  // Allow patients to search doctors for appointment booking
+      "patient", // Allow patients to search doctors for appointment booking
     ].includes(normalizedRole);
   }
 

@@ -38,9 +38,6 @@ import { ReactivateStaffUseCase } from "../../application/use-cases/ReactivateSt
 import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaffUseCase";
 import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
-import { GetStaffSpecializationsUseCase } from "../../application/use-cases/GetStaffSpecializationsUseCase";
-import { AddStaffSpecializationUseCase } from "../../application/use-cases/AddStaffSpecializationUseCase";
-import { RemoveStaffSpecializationUseCase } from "../../application/use-cases/RemoveStaffSpecializationUseCase";
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
 
@@ -112,9 +109,6 @@ export const ServiceTokens = {
   TERMINATE_STAFF_USE_CASE: "TerminateStaffUseCase",
   UPDATE_EMPLOYMENT_STATUS_USE_CASE: "UpdateEmploymentStatusUseCase",
   // REMOVED: Availability use case tokens - Belongs to Scheduling/Appointment Service
-  GET_STAFF_SPECIALIZATIONS_USE_CASE: "GetStaffSpecializationsUseCase",
-  ADD_STAFF_SPECIALIZATION_USE_CASE: "AddStaffSpecializationUseCase",
-  REMOVE_STAFF_SPECIALIZATION_USE_CASE: "RemoveStaffSpecializationUseCase",
 
   // Handlers
   STAFF_COMMAND_HANDLERS: "StaffCommandHandlers",
@@ -336,7 +330,9 @@ export function setupDependencies(): DIContainer {
     (container) => {
       const supabaseUrl = container.resolve(ServiceTokens.SUPABASE_URL);
       const supabaseKey = container.resolve(ServiceTokens.SUPABASE_KEY);
-      const { SupabaseDepartmentRepository } = require("../repositories/SupabaseDepartmentRepository");
+      const {
+        SupabaseDepartmentRepository,
+      } = require("../repositories/SupabaseDepartmentRepository");
       return new SupabaseDepartmentRepository(supabaseUrl, supabaseKey);
     },
     ServiceLifetime.SINGLETON,
@@ -669,46 +665,6 @@ export function setupDependencies(): DIContainer {
   // - GET_STAFF_AVAILABILITY_USE_CASE
   // - ADD_STAFF_AVAILABILITY_USE_CASE
   // - REMOVE_STAFF_AVAILABILITY_USE_CASE
-
-  // Specialization Management Use Cases
-  container.registerFactory(
-    ServiceTokens.GET_STAFF_SPECIALIZATIONS_USE_CASE,
-    (container) => {
-      const staffRepository = container.resolve(
-        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
-      );
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new GetStaffSpecializationsUseCase(staffRepository, logger);
-    },
-    ServiceLifetime.TRANSIENT,
-  );
-
-  container.registerFactory(
-    ServiceTokens.ADD_STAFF_SPECIALIZATION_USE_CASE,
-    (container) => {
-      const staffRepository = container.resolve(
-        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
-      );
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new AddStaffSpecializationUseCase(staffRepository, logger);
-    },
-    ServiceLifetime.TRANSIENT,
-  );
-
-  container.registerFactory(
-    ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE,
-    (container) => {
-      const staffRepository = container.resolve(
-        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
-      );
-      const logger = container.resolve(ServiceTokens.LOGGER);
-
-      return new RemoveStaffSpecializationUseCase(staffRepository, logger);
-    },
-    ServiceLifetime.TRANSIENT,
-  );
 
   // Register handlers
   container.registerFactory(

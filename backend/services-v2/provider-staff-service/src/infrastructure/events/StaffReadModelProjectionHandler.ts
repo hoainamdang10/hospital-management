@@ -4,10 +4,7 @@ import { IProviderStaffRepository } from "../../domain/repositories/IProviderSta
 import { IStaffReadModelRepository } from "../repositories/StaffReadModelRepository";
 import { ILogger } from "../../application/interfaces/ILogger";
 import { StaffId } from "../../domain/value-objects/StaffId";
-import {
-  normalizeDepartment,
-  normalizeSpecialization,
-} from "../normalization/staff-profile-normalizer";
+import { normalizeDepartment } from "../normalization/staff-profile-normalizer";
 import { StaffReadModelCreateProps } from "../../domain/read-models/StaffReadModel";
 
 /**
@@ -118,24 +115,14 @@ export class StaffReadModelProjectionHandler
   }
 
   private async upsertReadModelFromAggregate(staff: any): Promise<void> {
-    const primarySpecialization =
-      staff.specializations?.[0]?.name ||
-      staff.professionalInfo?.department ||
-      null;
-    const normalizedSpecialization = normalizeSpecialization(
-      primarySpecialization,
-    );
-
     const normalizedDepartment = normalizeDepartment(
       staff.professionalInfo?.department || null,
-      normalizedSpecialization,
     );
 
     const payload: StaffReadModelCreateProps = {
       staffId: staff.staffIdValue,
       userId: staff.userId,
       fullName: staff.personalInfo?.fullName || staff.personalInfo?.full_name,
-      specialization: normalizedSpecialization || undefined,
       department: normalizedDepartment || undefined,
     };
 

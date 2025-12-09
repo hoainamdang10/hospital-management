@@ -53,6 +53,7 @@ export declare class MarkAsNoShowUseCase extends BaseHealthcareUseCase<MarkAsNoS
     protected executeInternal(request: MarkAsNoShowRequest): Promise<MarkAsNoShowResponse>;
     /**
      * Validate if appointment can be marked as no-show
+     * Updated for simplified 3-role system
      */
     private validateNoShow;
     authorize(request: MarkAsNoShowRequest, userId: string): Promise<boolean>;

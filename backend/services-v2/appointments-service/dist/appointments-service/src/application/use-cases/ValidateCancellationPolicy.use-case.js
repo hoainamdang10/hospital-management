@@ -41,20 +41,22 @@ class ValidateCancellationPolicyUseCase extends use_case_interface_1.BaseHealthc
                 };
             }
             // 2. Check if already checked in
-            if (appointment.getCheckedInAt()) {
-                return {
-                    success: true,
-                    message: 'Đã check-in, không thể hủy',
-                    policy: {
-                        canCancel: false,
-                        cancellationFee: appointment.getConsultationFee(),
-                        refundAmount: 0,
-                        refundPercentage: 0,
-                        hoursBeforeAppointment: 0,
-                        reason: 'Bệnh nhân đã check-in'
-                    }
-                };
-            }
+            // NOTE: Simplified 3-role flow doesn't use check-in step
+            // Doctors can start appointments directly from CONFIRMED/SCHEDULED
+            // if (appointment.getCheckedInAt()) {
+            //   return {
+            //     success: true,
+            //     message: 'Đã check-in, không thể hủy',
+            //     policy: {
+            //       canCancel: false,
+            //       cancellationFee: appointment.getConsultationFee(),
+            //       refundAmount: 0,
+            //       refundPercentage: 0,
+            //       hoursBeforeAppointment: 0,
+            //       reason: 'Bệnh nhân đã check-in'
+            //     }
+            //   };
+            // }
             // 3. Calculate hours before appointment
             const appointmentDateTime = new Date(`${appointment.timeSlot.appointmentDate}T${appointment.timeSlot.appointmentTime}`);
             const now = new Date();

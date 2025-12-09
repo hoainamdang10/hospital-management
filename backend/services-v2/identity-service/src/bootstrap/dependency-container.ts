@@ -73,6 +73,7 @@ import { ChangePasswordUseCase } from "../application/use-cases/ChangePasswordUs
 import { AssignRoleUseCase } from "../application/use-cases/AssignRoleUseCase";
 import { UnlockAccountUseCase } from "../application/use-cases/UnlockAccountUseCase";
 import { ReactivatePatientAccountUseCase } from "../application/use-cases/ReactivatePatientAccountUseCase";
+import { DeleteUserUseCase } from "../application/use-cases/DeleteUserUseCase";
 import { DeactivateUserUseCase } from "../application/use-cases/DeactivateUserUseCase";
 
 // Use Cases - Staff Management
@@ -153,6 +154,7 @@ export class DependencyContainer {
   private unlockAccountUseCase!: UnlockAccountUseCase;
   private deactivateUserUseCase!: DeactivateUserUseCase;
   private reactivatePatientAccountUseCase!: ReactivatePatientAccountUseCase;
+  private deleteUserUseCase!: DeleteUserUseCase;
 
   // Use Cases - Staff Management
   private provisionStaffUseCase!: ProvisionStaffUseCase;
@@ -603,6 +605,14 @@ export class DependencyContainer {
       CircuitBreakerFactory.getBreaker("reactivate-patient-use-case"),
     );
 
+    this.deleteUserUseCase = new DeleteUserUseCase(
+      this.userRepository,
+      this.logger,
+      CircuitBreakerFactory.getBreaker("delete-user-use-case"),
+      this.eventPublisher,
+      this.outboxService,
+    );
+
     // Staff management use cases
     this.provisionStaffUseCase = new ProvisionStaffUseCase(
       this.userRepository,
@@ -645,6 +655,7 @@ export class DependencyContainer {
       ["AssignRoleUseCase", this.assignRoleUseCase],
       ["DeactivateUserUseCase", this.deactivateUserUseCase],
       ["ReactivatePatientAccountUseCase", this.reactivatePatientAccountUseCase],
+      ["DeleteUserUseCase", this.deleteUserUseCase],
       ["ProvisionStaffUseCase", this.provisionStaffUseCase],
       ["AcceptStaffInvitationUseCase", this.acceptStaffInvitationUseCase],
       ["ValidateStaffInvitationUseCase", this.validateStaffInvitationUseCase],
@@ -889,6 +900,7 @@ export class DependencyContainer {
       unlockAccountUseCase: this.unlockAccountUseCase,
       deactivateUserUseCase: this.deactivateUserUseCase,
       reactivatePatientAccountUseCase: this.reactivatePatientAccountUseCase,
+      deleteUserUseCase: this.deleteUserUseCase,
 
       // Staff Management Use Cases
       provisionStaffUseCase: this.provisionStaffUseCase,

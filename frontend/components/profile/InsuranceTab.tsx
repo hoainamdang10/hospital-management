@@ -153,20 +153,19 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
 
         {!isEditing && insurance && (
           <div
-            className={`mb-6 flex items-center gap-3 rounded-xl border p-4 ${isActive ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-              }`}
+            className={`mb-6 flex items-center gap-3 rounded-xl border p-4 ${
+              isActive ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+            }`}
           >
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full ${isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                }`}
+              className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+              }`}
             >
               <Shield className="h-5 w-5" />
             </div>
             <div>
-              <p
-                className={`font-semibold ${isActive ? 'text-green-700' : 'text-red-700'
-                  }`}
-              >
+              <p className={`font-semibold ${isActive ? 'text-green-700' : 'text-red-700'}`}>
                 {isActive ? 'Đang có hiệu lực' : 'Hết hiệu lực / Chưa kích hoạt'}
               </p>
               <p className={`text-sm ${isActive ? 'text-green-600' : 'text-red-600'}`}>
@@ -181,7 +180,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Nhà cung cấp
               </label>
               {isEditing ? (
@@ -190,7 +189,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
                     type="text"
                     value={formData.provider}
                     onChange={(e) => handleChange('provider', e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     placeholder="Ví dụ: Bảo hiểm xã hội Việt Nam"
                   />
                   {errors.provider && <p className="text-xs text-red-500">{errors.provider}</p>}
@@ -203,7 +202,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Số thẻ bảo hiểm
               </label>
               {isEditing ? (
@@ -212,7 +211,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
                     type="text"
                     value={formData.policyNumber}
                     onChange={(e) => handleChange('policyNumber', e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     placeholder="DN479..."
                   />
                   {errors.policyNumber && (
@@ -227,7 +226,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Mã nhóm (tùy chọn)
               </label>
               {isEditing ? (
@@ -235,22 +234,26 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
                   type="text"
                   value={formData.groupNumber || ''}
                   onChange={(e) => handleChange('groupNumber', e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 />
               ) : (
-                <p className="text-base font-semibold text-gray-900">{insurance?.groupNumber || '—'}</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {insurance?.groupNumber || '—'}
+                </p>
               )}
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Loại bảo hiểm
               </label>
               {isEditing ? (
                 <select
                   value={formData.coverageType}
-                  onChange={(e) => handleChange('coverageType', e.target.value as InsuranceInfo['coverageType'])}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onChange={(e) =>
+                    handleChange('coverageType', e.target.value as InsuranceInfo['coverageType'])
+                  }
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 >
                   {coverageOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -265,7 +268,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
 
             {requiresBhytNumber && (
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                   Mã BHYT
                 </label>
                 {isEditing ? (
@@ -274,7 +277,7 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
                       type="text"
                       value={formData.bhytNumber || ''}
                       onChange={(e) => handleChange('bhytNumber', e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     />
                     {errors.bhytNumber && (
                       <p className="text-xs text-red-500">{errors.bhytNumber}</p>
@@ -289,20 +292,19 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
             )}
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Ngày bắt đầu
               </label>
               {isEditing ? (
                 <div>
                   <input
                     type="date"
+                    lang="vi"
                     value={formData.validFrom}
                     onChange={(e) => handleChange('validFrom', e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   />
-                  {errors.validFrom && (
-                    <p className="text-xs text-red-500">{errors.validFrom}</p>
-                  )}
+                  {errors.validFrom && <p className="text-xs text-red-500">{errors.validFrom}</p>}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -315,16 +317,17 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Ngày hết hạn
               </label>
               {isEditing ? (
                 <div>
                   <input
                     type="date"
+                    lang="vi"
                     value={formData.validTo}
                     onChange={(e) => handleChange('validTo', e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   />
                   {errors.validTo && <p className="text-xs text-red-500">{errors.validTo}</p>}
                 </div>
@@ -338,22 +341,20 @@ export function InsuranceTab({ insurance, onUpdate }: InsuranceTabProps) {
               )}
             </div>
 
-            <div className="md:col-span-2 space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wider text-gray-500">
+            <div className="space-y-1 md:col-span-2">
+              <label className="text-xs font-medium tracking-wider text-gray-500 uppercase">
                 Ghi chú (tùy chọn)
               </label>
               {isEditing ? (
                 <textarea
                   value={formData.notes || ''}
                   onChange={(e) => handleChange('notes', e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   rows={3}
                   placeholder="Thông tin bổ sung về bảo hiểm"
                 />
               ) : (
-                <p className="text-base font-semibold text-gray-900">
-                  {insurance?.notes || '—'}
-                </p>
+                <p className="text-base font-semibold text-gray-900">{insurance?.notes || '—'}</p>
               )}
             </div>
           </div>

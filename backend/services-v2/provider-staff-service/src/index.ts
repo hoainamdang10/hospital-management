@@ -249,9 +249,6 @@ setupRoutes(
   container.resolve(ServiceTokens.UPDATE_EMPLOYMENT_STATUS_USE_CASE),
   container.resolve(ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE),
   // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-  container.resolve(ServiceTokens.GET_STAFF_SPECIALIZATIONS_USE_CASE),
-  container.resolve(ServiceTokens.ADD_STAFF_SPECIALIZATION_USE_CASE),
-  container.resolve(ServiceTokens.REMOVE_STAFF_SPECIALIZATION_USE_CASE),
 );
 
 // Health check

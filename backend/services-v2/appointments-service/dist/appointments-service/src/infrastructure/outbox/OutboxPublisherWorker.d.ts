@@ -21,7 +21,7 @@ export declare class OutboxPublisherWorker {
     start(): void;
     stop(): void;
     private computeNextRetry;
-    private ensureChannel;
+    private ensureConfirmChannel;
     private processOne;
     runOnce(): Promise<void>;
 }

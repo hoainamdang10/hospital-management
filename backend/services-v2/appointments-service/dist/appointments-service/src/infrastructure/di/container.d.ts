@@ -22,7 +22,6 @@ import { StaffEventConsumer } from "../events/StaffEventConsumer";
 import { DepartmentEventConsumer } from "../events/DepartmentEventConsumer";
 import { BillingEventConsumer } from "../events/BillingEventConsumer";
 import { RescheduleAppointmentUseCase } from "../../application/use-cases/RescheduleAppointment.use-case";
-import { CheckInAppointmentUseCase } from "../../application/use-cases/CheckInAppointment.use-case";
 import { MarkAsNoShowUseCase } from "../../application/use-cases/MarkAsNoShow.use-case";
 import { StartAppointmentUseCase } from "../../application/use-cases/StartAppointment.use-case";
 import { CallNextPatientUseCase } from "../../application/use-cases/CallNextPatient.use-case";
@@ -86,7 +85,6 @@ export declare class DIContainer {
     private getAppointmentUseCase;
     private listAppointmentsUseCase;
     private rescheduleAppointmentUseCase;
-    private checkInAppointmentUseCase;
     private markAsNoShowUseCase;
     private startAppointmentUseCase;
     private callNextPatientUseCase;
@@ -206,8 +204,8 @@ export declare class DIContainer {
     getRescheduleAppointmentUseCase(): RescheduleAppointmentUseCase;
     /**
      * Get check-in appointment use case
+     * Simplified 3-role flow doesn't use check-in
      */
-    getCheckInAppointmentUseCase(): CheckInAppointmentUseCase;
     /**
      * Get mark as no-show use case
      */

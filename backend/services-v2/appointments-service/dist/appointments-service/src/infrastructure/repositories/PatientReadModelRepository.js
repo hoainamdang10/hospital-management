@@ -31,19 +31,26 @@ class PatientReadModelRepository {
      * Upsert patient read model (idempotent)
      */
     async upsert(patient) {
+        let hydratedPatient = patient;
+        if (this.shouldHydrateFromFallback(patient)) {
+            const fallback = await this.findByIdFallback(patient.patientId);
+            if (fallback) {
+                hydratedPatient = this.mergePatientProfiles(fallback, patient);
+            }
+        }
         const nowIso = new Date().toISOString();
         const { error } = await this.schemaClient.from(this.table).upsert({
-            patient_id: patient.patientId,
-            tenant_id: patient.tenantId,
-            full_name: patient.fullName,
-            phone: patient.phone || null,
-            email: patient.email || null,
-            date_of_birth: patient.dateOfBirth?.toISOString().split("T")[0] || null,
-            gender: patient.gender || null,
-            national_id: patient.nationalId || null,
-            insurance_number: patient.insuranceNumber || null,
-            insurance_type: patient.insuranceType || null,
-            address: patient.address || null,
+            patient_id: hydratedPatient.patientId,
+            tenant_id: hydratedPatient.tenantId,
+            full_name: hydratedPatient.fullName,
+            phone: hydratedPatient.phone || null,
+            email: hydratedPatient.email || null,
+            date_of_birth: hydratedPatient.dateOfBirth?.toISOString().split("T")[0] || null,
+            gender: hydratedPatient.gender || null,
+            national_id: hydratedPatient.nationalId || null,
+            insurance_number: hydratedPatient.insuranceNumber || null,
+            insurance_type: hydratedPatient.insuranceType || null,
+            address: hydratedPatient.address || null,
             synced_at: nowIso,
             updated_at: nowIso,
         }, {
@@ -69,7 +76,16 @@ class PatientReadModelRepository {
             throw new Error(`Failed to fetch patient read model: ${error.message}`);
         }
         if (data) {
-            return this.mapToModel(data);
+            const mapped = this.mapToModel(data);
+            if (this.shouldHydrateFromFallback(mapped)) {
+                const fallback = await this.findByIdFallback(patientId);
+                if (fallback) {
+                    const merged = this.mergePatientProfiles(fallback, mapped);
+                    await this.upsert(merged);
+                    return merged;
+                }
+            }
+            return mapped;
         }
         // Fallback to patient_schema.patients
         console.debug(`[PatientReadModelRepo] Patient ${patientId} not found in read model, trying fallback`);
@@ -241,6 +257,50 @@ class PatientReadModelRepository {
             throw new Error(`Failed to check patient existence: ${error.message}`);
         }
         return data !== null;
+    }
+    shouldHydrateFromFallback(patient) {
+        if (!patient) {
+            return true;
+        }
+        const fullName = patient.fullName?.trim();
+        if (!fullName || fullName.toLowerCase() === "unknown") {
+            return true;
+        }
+        if (!patient.phone &&
+            !patient.email &&
+            !patient.dateOfBirth &&
+            !patient.nationalId) {
+            return true;
+        }
+        return false;
+    }
+    mergePatientProfiles(fallback, incoming) {
+        const pickValue = (current, fallbackValue) => {
+            if (!current)
+                return fallbackValue;
+            if (typeof current === "string" &&
+                current.trim().toLowerCase() === "unknown" &&
+                fallbackValue) {
+                return fallbackValue;
+            }
+            return current;
+        };
+        return {
+            patientId: incoming.patientId || fallback.patientId,
+            tenantId: incoming.tenantId || fallback.tenantId,
+            fullName: pickValue(incoming.fullName, fallback.fullName) || "",
+            phone: incoming.phone ?? fallback.phone,
+            email: incoming.email ?? fallback.email,
+            dateOfBirth: incoming.dateOfBirth ?? fallback.dateOfBirth,
+            gender: incoming.gender ?? fallback.gender,
+            nationalId: incoming.nationalId ?? fallback.nationalId,
+            insuranceNumber: incoming.insuranceNumber ?? fallback.insuranceNumber,
+            insuranceType: incoming.insuranceType ?? fallback.insuranceType,
+            address: incoming.address ?? fallback.address,
+            syncedAt: incoming.syncedAt ?? fallback.syncedAt,
+            createdAt: incoming.createdAt ?? fallback.createdAt,
+            updatedAt: incoming.updatedAt ?? fallback.updatedAt,
+        };
     }
     /**
      * Count patients by tenant

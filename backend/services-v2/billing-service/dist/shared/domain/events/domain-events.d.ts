@@ -90,15 +90,16 @@ export declare class PatientRegisteredEvent extends DomainEvent {
     readonly userId: string;
     readonly patientIdCode: string;
     readonly fullName: string;
-    readonly dateOfBirth: Date;
-    readonly phoneNumber: string;
+    readonly dateOfBirth?: (Date | string) | undefined;
+    readonly phoneNumber?: string | undefined;
     readonly email?: string | undefined;
     readonly insuranceType?: string | undefined;
     constructor(patientId: string, userId: string, patientIdCode: string, // PAT-YYYYMM-XXX
-    fullName: string, dateOfBirth: Date, phoneNumber: string, email?: string | undefined, insuranceType?: string | undefined);
+    fullName: string, dateOfBirth?: (Date | string) | undefined, phoneNumber?: string | undefined, email?: string | undefined, insuranceType?: string | undefined);
     getEventData(): Record<string, unknown>;
     containsPHI(): boolean;
     getPatientId(): string | null;
+    private formatDate;
 }
 /**
  * Published when patient information is updated

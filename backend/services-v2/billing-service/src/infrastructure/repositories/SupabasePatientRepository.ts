@@ -13,18 +13,22 @@ import { OptimizedSupabaseClient } from "@shared/infrastructure/database/optimiz
 
 export interface PatientData {
   id: string;
+  patient_id: string;
   user_id: string;
-  full_name: string;
-  date_of_birth: string;
-  gender: "male" | "female" | "other";
-  national_id: string;
+  full_name?: string;
+  date_of_birth?: string;
+  gender?: "male" | "female" | "other";
+  national_id?: string;
   phone?: string;
   email?: string;
   address?: string;
+  personal_info?: any;
+  contact_info?: any;
   insurance_info?: any;
   created_at: string;
   updated_at: string;
-  is_active: boolean;
+  is_active?: boolean;
+  status?: string;
 }
 
 /**
@@ -64,7 +68,11 @@ export class SupabasePatientRepository implements IPatientRepository {
         return null;
       }
 
-      return this.mapToPatient(data as PatientData);
+      const insuranceInfo = await this.fetchInsuranceInfo(
+        (data as PatientData).patient_id || (data as PatientData).id,
+      );
+
+      return this.mapToPatient(data as PatientData, insuranceInfo);
     } catch (error) {
       this.loggerInstance.error("Failed to find patient by ID", {
         patientId: id,
@@ -99,7 +107,11 @@ export class SupabasePatientRepository implements IPatientRepository {
         return null;
       }
 
-      return this.mapToPatient(data as PatientData);
+      const insuranceInfo = await this.fetchInsuranceInfo(
+        (data as PatientData).patient_id || (data as PatientData).id,
+      );
+
+      return this.mapToPatient(data as PatientData, insuranceInfo);
     } catch (error) {
       this.loggerInstance.error("Failed to find patient by user ID", {
         userId,
@@ -135,7 +147,11 @@ export class SupabasePatientRepository implements IPatientRepository {
         return null;
       }
 
-      return this.mapToPatient(data as PatientData);
+      const insuranceInfo = await this.fetchInsuranceInfo(
+        (data as PatientData).patient_id || (data as PatientData).id,
+      );
+
+      return this.mapToPatient(data as PatientData, insuranceInfo);
     } catch (error) {
       this.loggerInstance.error("Failed to find patient by national ID", {
         nationalId,
@@ -186,20 +202,8 @@ export class SupabasePatientRepository implements IPatientRepository {
         patientId,
       });
 
-      const { column, value } = this.resolvePatientIdentifier(patientId);
-      const { data, error } = await this.fromTable()
-        .select("insurance_info")
-        .eq(column, value)
-        .single();
-
-      if (error) {
-        if (error.code === "PGRST116") {
-          return null;
-        }
-        throw error;
-      }
-
-      return data?.insurance_info || null;
+      const insuranceInfo = await this.fetchInsuranceInfo(patientId);
+      return insuranceInfo;
     } catch (error) {
       this.loggerInstance.error("Failed to get patient insurance info", {
         patientId,
@@ -244,24 +248,242 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   /**
+   * Synchronize patient insurance snapshot in patients table with latest insurance_info record.
+   * This ensures billing sees real-time insurance changes (including removal of insurance).
+   */
+  async syncInsuranceSnapshot(patientId: string): Promise<void> {
+    try {
+      const { column, value } = this.resolvePatientIdentifier(patientId);
+
+      // Resolve canonical patient_code for querying insurance_info table
+      let patientCode = value;
+      if (column === "id") {
+        const { data, error } = await this.fromTable()
+          .select("patient_id")
+          .eq("id", value)
+          .single();
+
+        if (error) {
+          if (error.code !== "PGRST116") {
+            throw error;
+          }
+        }
+
+        patientCode = (data as PatientData | null)?.patient_id || value;
+      }
+
+      const insuranceInfo = await this.fetchInsuranceInfo(patientCode);
+      const normalizedSnapshot = this.mergeInsuranceInfo(
+        undefined,
+        insuranceInfo || undefined,
+      );
+
+      const { error: updateError } = await this.fromTable()
+        .update({
+          insurance_info: normalizedSnapshot || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq(column, value);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      this.loggerInstance.info(
+        "Synced patient insurance snapshot for billing",
+        {
+          patientId,
+          hasInsurance: !!normalizedSnapshot,
+        },
+      );
+    } catch (error) {
+      this.loggerInstance.error(
+        "Failed to sync patient insurance snapshot for billing",
+        {
+          patientId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Map database record to Patient entity
    */
-  private mapToPatient(data: PatientData): Patient {
+  private mapToPatient(
+    data: PatientData,
+    insuranceInfo?: Record<string, any> | null,
+  ): Patient {
+    const personalInfo = data.personal_info || {};
+    const contactInfo = data.contact_info || {};
+
+    const firstName =
+      personalInfo.firstName ||
+      personalInfo.first_name ||
+      personalInfo.givenName ||
+      "";
+    const lastName =
+      personalInfo.lastName ||
+      personalInfo.last_name ||
+      personalInfo.familyName ||
+      "";
+    const fullNameRaw =
+      data.full_name ||
+      personalInfo.fullName ||
+      personalInfo.full_name ||
+      `${firstName} ${lastName}`.trim();
+    const fullName = (fullNameRaw && fullNameRaw.trim()) || "Khách vãng lai";
+
+    const dateOfBirthRaw =
+      personalInfo.dateOfBirth ||
+      personalInfo.date_of_birth ||
+      data.date_of_birth;
+    const dateOfBirth = dateOfBirthRaw ? new Date(dateOfBirthRaw) : new Date();
+
+    const genderRaw = personalInfo.gender || data.gender || "other";
+    const normalizedGender =
+      genderRaw === "male" || genderRaw === "female" ? genderRaw : "other";
+
+    const nationalId =
+      personalInfo.nationalId ||
+      personalInfo.national_id ||
+      data.national_id ||
+      "";
+
+    const primaryPhone =
+      contactInfo.primaryPhone ||
+      contactInfo.primary_phone ||
+      contactInfo.phone ||
+      data.phone;
+    const email =
+      contactInfo.email ||
+      contactInfo.primaryEmail ||
+      contactInfo.contactEmail ||
+      data.email;
+
+    const addressObject = contactInfo.address;
+    const address =
+      typeof addressObject === "string"
+        ? addressObject
+        : addressObject
+          ? [
+              addressObject.street,
+              addressObject.ward,
+              addressObject.district,
+              addressObject.city ||
+                addressObject.province ||
+                addressObject.state,
+              addressObject.country,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : data.address;
+
+    const status = (data.status || "").toLowerCase();
+    const isActive =
+      typeof data.is_active === "boolean"
+        ? data.is_active
+        : status
+          ? status !== "inactive" && status !== "archived"
+          : true;
+
     return {
       id: data.id,
       userId: data.user_id,
-      fullName: data.full_name,
-      dateOfBirth: new Date(data.date_of_birth),
-      gender: data.gender,
-      nationalId: data.national_id,
-      phone: data.phone,
-      email: data.email,
-      address: data.address,
-      insuranceInfo: data.insurance_info,
+      fullName,
+      dateOfBirth,
+      gender: normalizedGender,
+      nationalId,
+      phone: primaryPhone,
+      email,
+      address,
+      insuranceInfo: this.mergeInsuranceInfo(
+        data.insurance_info,
+        insuranceInfo,
+      ),
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
-      isActive: data.is_active,
+      isActive,
     };
+  }
+
+  /**
+   * Fetch primary & active insurance info for patient
+   */
+  private async fetchInsuranceInfo(
+    patientId: string | undefined,
+  ): Promise<Record<string, any> | null> {
+    if (!patientId) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .getRawClient()
+      .schema(this.schemaName)
+      .from("insurance_info")
+      .select("*")
+      .eq("patient_id", patientId)
+      .eq("is_primary", true)
+      .eq("is_active", true)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // no active insurance
+        return null;
+      }
+
+      this.loggerInstance.warn("Failed to fetch insurance info", {
+        patientId,
+        error: error.message,
+      });
+      return null;
+    }
+
+    return data as Record<string, any>;
+  }
+
+  /**
+   * Merge insurance info from patients table and insurance_info table
+   * - Preserve rich coverage object from patients.insurance_info if present
+   * - Normalize snake_case fields from insurance_info table to camelCase
+   */
+  private mergeInsuranceInfo(
+    patientInsurance: Record<string, any> | null | undefined,
+    fetchedInsurance: Record<string, any> | null | undefined,
+  ): Record<string, any> | undefined {
+    const normalizedFetched = fetchedInsurance
+      ? {
+          ...fetchedInsurance,
+          coverageType:
+            fetchedInsurance.coverageType || fetchedInsurance.coverage_type,
+          policyNumber:
+            fetchedInsurance.policyNumber || fetchedInsurance.policy_number,
+          providerName:
+            fetchedInsurance.providerName || fetchedInsurance.provider,
+          provider: fetchedInsurance.provider || fetchedInsurance.providerName,
+          isActive: fetchedInsurance.isActive ?? fetchedInsurance.is_active,
+        }
+      : undefined;
+
+    const normalizedPatient = patientInsurance
+      ? {
+          ...patientInsurance,
+          coverageType:
+            patientInsurance.coverageType || patientInsurance.coverage_type,
+          providerName:
+            patientInsurance.providerName || patientInsurance.provider,
+          provider: patientInsurance.provider || patientInsurance.providerName,
+        }
+      : undefined;
+
+    const merged = {
+      ...(normalizedPatient || {}),
+      ...(normalizedFetched || {}),
+    };
+
+    return Object.keys(merged).length > 0 ? merged : undefined;
   }
 
   /**

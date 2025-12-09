@@ -13,7 +13,6 @@ const AppointmentScheduledEvent_1 = require("../../domain/events/AppointmentSche
 const AppointmentRescheduledEvent_1 = require("../../domain/events/AppointmentRescheduledEvent");
 const AppointmentCancelledEvent_1 = require("../../domain/events/AppointmentCancelledEvent");
 const AppointmentCompletedEvent_1 = require("../../domain/events/AppointmentCompletedEvent");
-const AppointmentCheckedInEvent_1 = require("../../domain/events/AppointmentCheckedInEvent");
 const AppointmentReminderScheduledEvent_1 = require("../../domain/events/AppointmentReminderScheduledEvent");
 const AppointmentConfirmedEvent_1 = require("../../domain/events/AppointmentConfirmedEvent");
 const AppointmentStartedEvent_1 = require("../../domain/events/AppointmentStartedEvent");
@@ -76,20 +75,6 @@ class DomainEventMapper {
             return {
                 eventId: event.eventId,
                 eventType: 'appointment.completed',
-                aggregateId: event.aggregateId,
-                aggregateType: event.aggregateType,
-                occurredAt: event.occurredAt,
-                version: 1,
-                payload: event.getEventData(),
-                metadata: {
-                    correlationId: event.eventId,
-                },
-            };
-        }
-        if (event instanceof AppointmentCheckedInEvent_1.AppointmentCheckedInEvent) {
-            return {
-                eventId: event.eventId,
-                eventType: 'appointment.checked-in',
                 aggregateId: event.aggregateId,
                 aggregateType: event.aggregateType,
                 occurredAt: event.occurredAt,
@@ -215,9 +200,6 @@ class DomainEventMapper {
         }
         if (event instanceof AppointmentCompletedEvent_1.AppointmentCompletedEvent) {
             return 'appointment.completed';
-        }
-        if (event instanceof AppointmentCheckedInEvent_1.AppointmentCheckedInEvent) {
-            return 'appointment.checked-in';
         }
         if (event instanceof AppointmentReminderScheduledEvent_1.AppointmentReminderScheduledEvent) {
             return 'appointment.reminder-scheduled';

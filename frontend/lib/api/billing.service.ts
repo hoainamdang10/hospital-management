@@ -13,6 +13,15 @@ export interface Invoice {
   patientName: string;
   appointmentId: string;
   amount: number;
+  subtotal?: number;
+  tax?: number;
+  insuranceCoverage?: number;
+  outstandingAmount?: number;
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    coveragePercentage: number;
+  };
   status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'REFUNDED' | 'FAILED';
   dueDate: string;
   createdAt: string;
@@ -71,6 +80,11 @@ const toAdminInvoice = (invoice: SharedInvoice): Invoice => {
       invoice.paidAmount ??
       legacyFields.amount ??
       0,
+    subtotal: invoice.subtotal ?? 0,
+    tax: invoice.tax ?? 0,
+    insuranceCoverage: invoice.insuranceCoverage ?? 0,
+    outstandingAmount: invoice.outstandingAmount ?? invoice.totalAmount ?? 0,
+    insurance: invoice.insurance,
     status:
       ((invoice.status || legacyFields.status || 'pending').toUpperCase() as Invoice['status']) ||
       'PENDING',

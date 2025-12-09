@@ -12,6 +12,10 @@ export function createInvoiceRoutes(controller: InvoiceController): Router {
   router.post("/", controller.createInvoice.bind(controller));
   router.get("/search", controller.searchInvoices.bind(controller));
   router.get("/overdue", controller.getOverdueInvoices.bind(controller));
+  router.get(
+    "/appointments/:appointmentId",
+    controller.getInvoicesByAppointment.bind(controller),
+  );
   router.get("/:id", controller.getInvoice.bind(controller));
   // REMOVED (Phase 1 Out-of-Scope): finalize, cancel endpoints
   // router.post("/:id/finalize", controller.finalizeInvoice.bind(controller));

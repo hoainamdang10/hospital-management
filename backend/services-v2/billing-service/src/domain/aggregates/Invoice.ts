@@ -22,6 +22,8 @@ export interface InvoiceProps {
   items: InvoiceItem[];
   subtotal: Money;
   tax: Money;
+  insuranceCoverage: Money; // Amount covered by insurance
+  insurance?: Insurance; // Insurance information
   totalAmount: Money;
   outstandingAmount: Money;
   status: InvoiceStatus;
@@ -30,11 +32,12 @@ export interface InvoiceProps {
   createdAt: Date;
   updatedAt: Date;
   dueDate: Date;
-  // REMOVED (Phase 1 Prepaid Model): finalizedAt, cancelledAt, cancellationReason, insurance, insuranceCoverage
 }
 
 interface InvoiceCreateOptions {
   taxRate?: number;
+  insurance?: Insurance;
+  insuranceCoverageAmount?: number; // Amount covered by insurance (in VND)
 }
 
 export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
@@ -64,9 +67,17 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
     // Calculate tax (10% VAT)
     const tax = subtotal.multiply(taxRate);
 
-    // Calculate total and outstanding (no insurance coverage in Phase 1 Prepaid Model)
+    // Calculate insurance coverage
+    const insuranceCoverageAmount = options.insuranceCoverageAmount ?? 0;
+    const insuranceCoverage = Money.create(insuranceCoverageAmount);
+
+    // Calculate total and outstanding (with insurance deduction)
     const totalAmount = subtotal.add(tax);
-    const outstandingAmount = totalAmount;
+    const outstandingAmount = totalAmount.subtract(insuranceCoverage);
+    // Ensure outstanding is never negative
+    const finalOutstanding = outstandingAmount.amount < 0
+      ? Money.zero()
+      : outstandingAmount;
 
     // Generate invoice number automatically
     const invoiceNumber = Invoice.generateInvoiceNumber();
@@ -80,9 +91,11 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       items,
       subtotal,
       tax,
+      insuranceCoverage,
+      insurance: options.insurance,
       totalAmount,
-      outstandingAmount,
-      status: InvoiceStatus.pending(), // Phase 1: Start with PENDING (waiting for payment)
+      outstandingAmount: finalOutstanding,
+      status: InvoiceStatus.pending(), // Start with PENDING (waiting for payment)
       payments: [],
       paidAt: undefined, // Not paid yet
       createdAt: now,
@@ -348,8 +361,9 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       Money.zero(),
     );
 
-    // Phase 1 Prepaid Model: No insurance coverage deduction
-    this.props.outstandingAmount = this.props.totalAmount.subtract(totalPaid);
+    // Calculate outstanding: totalAmount - insuranceCoverage - totalPaid
+    const afterInsurance = this.props.totalAmount.subtract(this.props.insuranceCoverage);
+    this.props.outstandingAmount = afterInsurance.subtract(totalPaid);
 
     if (this.props.outstandingAmount.amount <= 0) {
       this.props.status = InvoiceStatus.paid();
@@ -437,6 +451,12 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       items: this.props.items.map((item) => item.toPersistence()),
       subtotal: this.props.subtotal.amount,
       tax: this.props.tax.amount,
+      insuranceCoverage: this.props.insuranceCoverage.amount,
+      insurance: this.props.insurance ? {
+        provider: this.props.insurance.provider,
+        policyNumber: this.props.insurance.policyNumber,
+        coveragePercentage: this.props.insurance.coveragePercentage,
+      } : null,
       totalAmount: this.props.totalAmount.amount,
       outstandingAmount: this.props.outstandingAmount.amount,
       currency: this.props.totalAmount.currency,
@@ -446,7 +466,6 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
       dueDate: this.props.dueDate,
-      // REMOVED (Phase 1): insuranceCoverage, insurance, finalizedAt, cancelledAt, cancellationReason
     };
   }
 
@@ -485,6 +504,14 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
 
   get tax(): Money {
     return this.props.tax;
+  }
+
+  get insuranceCoverage(): Money {
+    return this.props.insuranceCoverage;
+  }
+
+  get insurance(): Insurance | undefined {
+    return this.props.insurance;
   }
 
   get totalAmount(): Money {

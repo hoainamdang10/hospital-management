@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BillingService = exports.PayInvoiceWithWalletUseCase = exports.HandlePayOSWebhookUseCase = exports.CreateVnpayPaymentLinkUseCase = exports.GetRevenueReportUseCase = exports.GetPatientBillingSummaryUseCase = exports.GetOverdueInvoicesUseCase = exports.SearchInvoicesUseCase = exports.GetPatientInvoicesUseCase = exports.ProcessPaymentUseCase = exports.GetInvoiceUseCase = exports.CreateInvoiceUseCase = void 0;
+exports.BillingService = exports.PayInvoiceWithWalletUseCase = exports.HandlePayOSWebhookUseCase = exports.CreateVnpayPaymentLinkUseCase = exports.GetRevenueReportUseCase = exports.GetPatientBillingSummaryUseCase = exports.GetOverdueInvoicesUseCase = exports.SearchInvoicesUseCase = exports.GetInvoicesByAppointmentUseCase = exports.GetPatientInvoicesUseCase = exports.ProcessPaymentUseCase = exports.GetInvoiceUseCase = exports.CreateInvoiceUseCase = void 0;
 // Use Cases - Phase 1 (Prepaid Model)
 var CreateInvoiceUseCase_1 = require("./use-cases/CreateInvoiceUseCase");
 Object.defineProperty(exports, "CreateInvoiceUseCase", { enumerable: true, get: function () { return CreateInvoiceUseCase_1.CreateInvoiceUseCase; } });
@@ -16,6 +16,8 @@ var ProcessPaymentUseCase_1 = require("./use-cases/ProcessPaymentUseCase");
 Object.defineProperty(exports, "ProcessPaymentUseCase", { enumerable: true, get: function () { return ProcessPaymentUseCase_1.ProcessPaymentUseCase; } });
 var GetPatientInvoicesUseCase_1 = require("./use-cases/GetPatientInvoicesUseCase");
 Object.defineProperty(exports, "GetPatientInvoicesUseCase", { enumerable: true, get: function () { return GetPatientInvoicesUseCase_1.GetPatientInvoicesUseCase; } });
+var GetInvoicesByAppointmentUseCase_1 = require("./use-cases/GetInvoicesByAppointmentUseCase");
+Object.defineProperty(exports, "GetInvoicesByAppointmentUseCase", { enumerable: true, get: function () { return GetInvoicesByAppointmentUseCase_1.GetInvoicesByAppointmentUseCase; } });
 var SearchInvoicesUseCase_1 = require("./use-cases/SearchInvoicesUseCase");
 Object.defineProperty(exports, "SearchInvoicesUseCase", { enumerable: true, get: function () { return SearchInvoicesUseCase_1.SearchInvoicesUseCase; } });
 var GetOverdueInvoicesUseCase_1 = require("./use-cases/GetOverdueInvoicesUseCase");

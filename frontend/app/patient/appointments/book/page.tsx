@@ -15,7 +15,7 @@ import {
   Clock,
   CreditCard,
   ShieldCheck,
-  Sparkles
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
@@ -26,6 +26,13 @@ import { getDoctorsByDepartment, Staff } from '@/lib/api/staff.service';
 import { getAvailableSlots, TimeSlot } from '@/lib/api/availability.service';
 import { appointmentsService } from '@/lib/api/appointments.service';
 import { billingService } from '@/modules/billing/services/billing.service';
+import { patientService } from '@/lib/api/patient.service';
+import type { PatientProfile } from '@/lib/types/profile';
+import {
+  getConsultationCoveragePercent,
+  calculateInsuranceDiscount,
+  calculatePatientPayment,
+} from '@/lib/constants/insurance';
 import { DepartmentSelector } from '@/components/appointments/DepartmentSelector';
 import { DoctorSelector } from '@/components/appointments/DoctorSelector';
 import { DateTimePicker } from '@/components/appointments/DateTimePicker';
@@ -36,6 +43,7 @@ import { toast } from 'sonner';
 import type { AxiosError } from 'axios';
 import { cn, formatCurrency } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { showErrorToast } from '@/lib/utils/error-toast';
 
 /**
  * Book Appointment Page - 4 Steps (Refactored)
@@ -124,6 +132,32 @@ export default function BookAppointmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
 
+  // Patient profile for insurance
+  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(null);
+  const [patientInsurance, setPatientInsurance] = useState<{ coverageType?: string } | null>(null);
+
+  // Load patient profile and insurance on mount
+  useEffect(() => {
+    const loadPatientData = async () => {
+      if (user?.patientId) {
+        try {
+          // Load profile
+          const profile = await patientService.getPatientProfile(user.patientId);
+          setPatientProfile(profile);
+
+          // Load insurance separately (API trả về riêng)
+          const insuranceData = await patientService.getInsurance(user.patientId);
+          if (insuranceData?.insuranceInfo) {
+            setPatientInsurance(insuranceData.insuranceInfo);
+          }
+        } catch (error) {
+          console.error('Failed to load patient data:', error);
+        }
+      }
+    };
+    loadPatientData();
+  }, [user?.patientId]);
+
   // Load departments on mount
   useEffect(() => {
     loadDepartments();
@@ -151,7 +185,11 @@ export default function BookAppointmentPage() {
       setDepartments(activeDepts);
     } catch (error) {
       console.error('Error loading departments:', error);
-      toast.error('Không thể tải danh sách khoa');
+      showErrorToast(error, {
+        title: 'Không thể tải danh sách khoa',
+        fallbackMessage: 'Không thể tải danh sách khoa. Vui lòng thử lại.',
+        context: 'Patient/BookAppointment:departments',
+      });
     } finally {
       setLoadingDepartments(false);
     }
@@ -168,7 +206,11 @@ export default function BookAppointmentPage() {
       }
     } catch (error) {
       console.error('Error loading doctors:', error);
-      toast.error('Không thể tải danh sách bác sĩ');
+      showErrorToast(error, {
+        title: 'Không thể tải danh sách bác sĩ',
+        fallbackMessage: 'Không thể tải danh sách bác sĩ. Vui lòng thử lại sau.',
+        context: 'Patient/BookAppointment:doctors',
+      });
       setDoctors([]);
     } finally {
       setLoadingDoctors(false);
@@ -186,7 +228,11 @@ export default function BookAppointmentPage() {
       }
     } catch (error) {
       console.error('Error loading slots:', error);
-      toast.error('Không thể tải lịch trống');
+      showErrorToast(error, {
+        title: 'Không thể tải lịch trống',
+        fallbackMessage: 'Không thể tải lịch trống. Vui lòng thử lại sau.',
+        context: 'Patient/BookAppointment:slots',
+      });
       setAvailableSlots([]);
     } finally {
       setLoadingSlots(false);
@@ -294,7 +340,11 @@ export default function BookAppointmentPage() {
         return;
       }
 
-      toast.error(apiError?.message || 'Đặt lịch thất bại. Vui lòng thử lại.');
+      showErrorToast(error, {
+        title: 'Đặt lịch thất bại',
+        fallbackMessage: 'Đặt lịch thất bại. Vui lòng thử lại.',
+        context: 'Patient/BookAppointment:submit',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -322,7 +372,11 @@ export default function BookAppointmentPage() {
       setStep(4); // Go to Confirmation
     } catch (error) {
       console.error('Error applying suggestion:', error);
-      toast.error('Không thể áp dụng gợi ý. Vui lòng chọn thời gian khác.');
+      showErrorToast(error, {
+        title: 'Không thể áp dụng gợi ý',
+        fallbackMessage: 'Không thể áp dụng gợi ý. Vui lòng chọn thời gian khác.',
+        context: 'Patient/BookAppointment:suggestion',
+      });
     }
   }
 
@@ -367,18 +421,23 @@ export default function BookAppointmentPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-6xl space-y-8 pb-12">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Đặt lịch khám</h1>
-          <p className="text-slate-500 max-w-lg mx-auto">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Đặt lịch khám</h1>
+          <p className="mx-auto max-w-lg text-slate-500">
             Đặt lịch khám nhanh chóng, tiện lợi với đội ngũ bác sĩ chuyên khoa hàng đầu
           </p>
         </div>
 
         {/* Progress Steps */}
         <div className="relative">
-          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10" />
-          <div className="flex justify-between max-w-3xl mx-auto px-4">
-            <StepIndicator number={1} title="Chuyên khoa" active={step === 1} completed={step > 1} />
+          <div className="absolute top-1/2 left-0 -z-10 h-0.5 w-full bg-slate-100" />
+          <div className="mx-auto flex max-w-3xl justify-between px-4">
+            <StepIndicator
+              number={1}
+              title="Chuyên khoa"
+              active={step === 1}
+              completed={step > 1}
+            />
             <StepIndicator number={2} title="Bác sĩ" active={step === 2} completed={step > 2} />
             <StepIndicator number={3} title="Thời gian" active={step === 3} completed={step > 3} />
             <StepIndicator number={4} title="Xác nhận" active={step === 4} completed={false} />
@@ -395,11 +454,11 @@ export default function BookAppointmentPage() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
               {/* Step 1: Choose Department */}
               {step === 1 && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
                   <DepartmentSelector
                     departments={departments}
                     selectedDepartment={selectedDepartment}
@@ -409,11 +468,11 @@ export default function BookAppointmentPage() {
                     }}
                     loading={loadingDepartments}
                   />
-                  <div className="flex justify-end pt-8 mt-4 border-t border-slate-100">
+                  <div className="mt-4 flex justify-end border-t border-slate-100 pt-8">
                     <Button
                       onClick={handleNext}
                       disabled={!selectedDepartment}
-                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                      className="h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 text-base font-medium shadow-lg shadow-emerald-500/20 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Tiếp tục
                       <ChevronRight className="ml-2 h-5 w-5" />
@@ -424,22 +483,27 @@ export default function BookAppointmentPage() {
 
               {/* Step 2: Choose Doctor */}
               {step === 2 && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
                   <DoctorSelector
                     doctors={doctors}
                     selectedDoctor={selectedDoctor}
+                    selectedDepartment={selectedDepartment}
                     onSelect={setSelectedDoctor}
                     loading={loadingDoctors}
                   />
-                  <div className="flex justify-between pt-8 mt-4 border-t border-slate-100">
-                    <Button variant="ghost" onClick={handleBack} className="h-12 px-6 rounded-xl hover:bg-slate-100">
+                  <div className="mt-4 flex justify-between border-t border-slate-100 pt-8">
+                    <Button
+                      variant="ghost"
+                      onClick={handleBack}
+                      className="h-12 rounded-xl px-6 hover:bg-slate-100"
+                    >
                       <ChevronLeft className="mr-2 h-5 w-5" />
                       Quay lại
                     </Button>
                     <Button
                       onClick={handleNext}
                       disabled={!selectedDoctor}
-                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                      className="h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 text-base font-medium shadow-lg shadow-emerald-500/20 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Tiếp tục
                       <ChevronRight className="ml-2 h-5 w-5" />
@@ -450,7 +514,7 @@ export default function BookAppointmentPage() {
 
               {/* Step 3: Choose Date & Time */}
               {step === 3 && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
                   <DateTimePicker
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
@@ -466,15 +530,15 @@ export default function BookAppointmentPage() {
                   {conflictInfo && (
                     <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6">
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-red-100 rounded-full">
+                        <div className="rounded-full bg-red-100 p-2">
                           <AlertCircle className="h-6 w-6 text-red-600" />
                         </div>
                         <div className="flex-1 space-y-3">
                           <div>
-                            <p className="font-bold text-red-800 text-lg">
+                            <p className="text-lg font-bold text-red-800">
                               {conflictInfo.message || 'Bác sĩ đã có lịch hẹn tại thời điểm này.'}
                             </p>
-                            <p className="text-red-600 mt-1">
+                            <p className="mt-1 text-red-600">
                               Vui lòng chọn khung giờ khác hoặc dùng một trong các gợi ý dưới đây.
                             </p>
                           </div>
@@ -487,13 +551,15 @@ export default function BookAppointmentPage() {
                                   onClick={() => handleSuggestionSelect(suggestion)}
                                   className="flex flex-col rounded-xl border border-red-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-red-400 hover:shadow-md"
                                 >
-                                  <span className="font-bold text-gray-900 flex items-center gap-2">
+                                  <span className="flex items-center gap-2 font-bold text-gray-900">
                                     <Clock className="h-4 w-4 text-red-500" />
                                     {format(new Date(suggestion.startTime), 'HH:mm')} -{' '}
                                     {format(new Date(suggestion.endTime), 'HH:mm')}
                                   </span>
                                   {suggestion.reason && (
-                                    <span className="text-xs text-gray-500 mt-1">{suggestion.reason}</span>
+                                    <span className="mt-1 text-xs text-gray-500">
+                                      {suggestion.reason}
+                                    </span>
                                   )}
                                 </button>
                               ))}
@@ -508,15 +574,19 @@ export default function BookAppointmentPage() {
                     </div>
                   )}
 
-                  <div className="flex justify-between pt-8 mt-4 border-t border-slate-100">
-                    <Button variant="ghost" onClick={handleBack} className="h-12 px-6 rounded-xl hover:bg-slate-100">
+                  <div className="mt-4 flex justify-between border-t border-slate-100 pt-8">
+                    <Button
+                      variant="ghost"
+                      onClick={handleBack}
+                      className="h-12 rounded-xl px-6 hover:bg-slate-100"
+                    >
                       <ChevronLeft className="mr-2 h-5 w-5" />
                       Quay lại
                     </Button>
                     <Button
                       onClick={handleNext}
                       disabled={!selectedDate || !selectedTime}
-                      className="px-8 h-12 rounded-xl text-base font-medium shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                      className="h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 text-base font-medium shadow-lg shadow-emerald-500/20 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Xem xác nhận
                       <ChevronRight className="ml-2 h-5 w-5" />
@@ -526,131 +596,200 @@ export default function BookAppointmentPage() {
               )}
 
               {/* Step 4: Confirmation */}
-              {step === 4 && selectedDepartment && selectedDoctor && selectedDate && selectedTime && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Left Column: Form & Details */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-                      <ConfirmationStep
-                        department={selectedDepartment}
-                        doctor={selectedDoctor}
-                        date={selectedDate}
-                        time={selectedTime}
-                        reason={reason}
-                        appointmentType={appointmentType}
-                        onReasonChange={setReason}
-                        onTypeChange={setAppointmentType}
-                      />
-                    </div>
-
-                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-                      <PaymentMethodSelector
-                        walletAccount={walletAccount}
-                        isWalletLoading={isWalletLoading}
-                        walletError={walletError}
-                        selectedMethod={paymentMethod}
-                        onSelect={setPaymentMethod}
-                        consultationFee={consultationFee}
-                      />
-                    </div>
-
-                    <div className="flex justify-between pt-4">
-                      <Button variant="ghost" onClick={handleBack} disabled={submitting} className="h-12 px-6 rounded-xl hover:bg-slate-100">
-                        <ChevronLeft className="mr-2 h-5 w-5" />
-                        Quay lại
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Sticky Summary */}
-                  <div className="lg:col-span-1">
-                    <div className="sticky top-6 space-y-6">
-                      <div className="bg-white rounded-3xl p-6 shadow-lg shadow-emerald-900/5 border border-emerald-100 overflow-hidden relative">
-                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-
-                        <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-emerald-600" />
-                          Tóm tắt lịch hẹn
-                        </h3>
-
-                        <div className="space-y-6 relative z-10">
-                          {/* Doctor Info */}
-                          <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center text-emerald-700 font-bold text-lg shrink-0">
-                              {selectedDoctor.personalInfo?.fullName?.split(' ').pop()?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="text-sm text-slate-500 font-medium">Bác sĩ phụ trách</p>
-                              <p className="font-bold text-slate-900 text-base">
-                                BS. {selectedDoctor.personalInfo?.fullName}
-                              </p>
-                              <p className="text-sm text-emerald-600 bg-emerald-50 inline-block px-2 py-0.5 rounded-md mt-1">
-                                {selectedDepartment.nameVi}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="h-px bg-slate-100" />
-
-                          {/* Time Info */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                              <Calendar className="h-5 w-5 text-slate-400" />
-                              <div>
-                                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Ngày khám</p>
-                                <p className="font-semibold text-slate-900">
-                                  {format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <Clock className="h-5 w-5 text-slate-400" />
-                              <div>
-                                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Giờ khám</p>
-                                <p className="font-semibold text-slate-900">
-                                  {selectedTime.formattedTime || format(new Date(selectedTime.startTime), 'HH:mm')}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="h-px bg-slate-100" />
-
-                          {/* Price */}
-                          <div className="flex items-end justify-between">
-                            <p className="text-slate-600 font-medium">Tổng phí khám</p>
-                            <p className="text-2xl font-bold text-emerald-600">
-                              {formatCurrency(consultationFee)}
-                            </p>
-                          </div>
-                        </div>
+              {step === 4 &&
+                selectedDepartment &&
+                selectedDoctor &&
+                selectedDate &&
+                selectedTime && (
+                  <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* Left Column: Form & Details */}
+                    <div className="space-y-6 lg:col-span-2">
+                      <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
+                        <ConfirmationStep
+                          department={selectedDepartment}
+                          doctor={selectedDoctor}
+                          date={selectedDate}
+                          time={selectedTime}
+                          reason={reason}
+                          appointmentType={appointmentType}
+                          onReasonChange={setReason}
+                          onTypeChange={setAppointmentType}
+                        />
                       </div>
 
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={submitting}
-                        className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Đang xử lý...
-                          </>
-                        ) : (
-                          <>
-                            Xác nhận đặt lịch
-                            <Check className="ml-2 h-5 w-5" />
-                          </>
-                        )}
-                      </Button>
+                      <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
+                        <PaymentMethodSelector
+                          walletAccount={walletAccount}
+                          isWalletLoading={isWalletLoading}
+                          walletError={walletError}
+                          selectedMethod={paymentMethod}
+                          onSelect={setPaymentMethod}
+                          consultationFee={consultationFee}
+                        />
+                      </div>
 
-                      <p className="text-xs text-center text-gray-400">
-                        Bằng việc xác nhận, bạn đồng ý với quy định đặt lịch của chúng tôi.
-                      </p>
+                      <div className="flex justify-between pt-4">
+                        <Button
+                          variant="ghost"
+                          onClick={handleBack}
+                          disabled={submitting}
+                          className="h-12 rounded-xl px-6 hover:bg-slate-100"
+                        >
+                          <ChevronLeft className="mr-2 h-5 w-5" />
+                          Quay lại
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Sticky Summary */}
+                    <div className="lg:col-span-1">
+                      <div className="sticky top-6 space-y-6">
+                        <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-900/5">
+                          <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+
+                          <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-slate-900">
+                            <Sparkles className="h-5 w-5 text-emerald-600" />
+                            Tóm tắt lịch hẹn
+                          </h3>
+
+                          <div className="relative z-10 space-y-6">
+                            {/* Doctor Info */}
+                            <div className="flex items-start gap-4">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-lg font-bold text-emerald-700">
+                                {selectedDoctor.personalInfo?.fullName?.split(' ').pop()?.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-500">
+                                  Bác sĩ phụ trách
+                                </p>
+                                <p className="text-base font-bold text-slate-900">
+                                  BS. {selectedDoctor.personalInfo?.fullName}
+                                </p>
+                                <p className="mt-1 inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-sm text-emerald-600">
+                                  {selectedDepartment.nameVi}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="h-px bg-slate-100" />
+
+                            {/* Time Info */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <Calendar className="h-5 w-5 text-slate-400" />
+                                <div>
+                                  <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Ngày khám
+                                  </p>
+                                  <p className="font-semibold text-slate-900">
+                                    {format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Clock className="h-5 w-5 text-slate-400" />
+                                <div>
+                                  <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    Giờ khám
+                                  </p>
+                                  <p className="font-semibold text-slate-900">
+                                    {selectedTime.formattedTime ||
+                                      format(new Date(selectedTime.startTime), 'HH:mm')}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="h-px bg-slate-100" />
+
+                            {/* Price */}
+                            <div className="space-y-2">
+                              <div className="flex items-end justify-between">
+                                <p className="font-medium text-slate-600">Phí khám</p>
+                                <p
+                                  className={`text-lg font-semibold ${patientInsurance?.coverageType && patientInsurance?.coverageType !== 'self_pay' ? 'text-slate-500 line-through' : 'text-emerald-600'}`}
+                                >
+                                  {formatCurrency(consultationFee)}
+                                </p>
+                              </div>
+
+                              {/* Insurance Estimate */}
+                              {patientInsurance?.coverageType &&
+                                patientInsurance?.coverageType !== 'self_pay' && (
+                                  <>
+                                    <div className="flex items-center justify-between text-sm">
+                                      <p className="flex items-center gap-1 font-medium text-emerald-700">
+                                        <ShieldCheck className="h-4 w-4" />
+                                        Bảo hiểm chi trả (
+                                        {getConsultationCoveragePercent(
+                                          patientInsurance?.coverageType
+                                        )}
+                                        %)
+                                      </p>
+                                      <p className="font-semibold text-emerald-600">
+                                        -
+                                        {formatCurrency(
+                                          calculateInsuranceDiscount(
+                                            consultationFee,
+                                            patientInsurance?.coverageType
+                                          )
+                                        )}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-end justify-between border-t border-slate-100 pt-2">
+                                      <p className="font-medium text-slate-600">Còn phải trả</p>
+                                      <p className="text-2xl font-bold text-emerald-600">
+                                        {formatCurrency(
+                                          calculatePatientPayment(
+                                            consultationFee,
+                                            patientInsurance?.coverageType
+                                          )
+                                        )}
+                                      </p>
+                                    </div>
+                                    <p className="text-xs text-slate-400 italic">
+                                      * Số tiền chính xác sẽ được tính khi tạo hóa đơn
+                                    </p>
+                                  </>
+                                )}
+                              {(!patientInsurance?.coverageType ||
+                                patientInsurance?.coverageType === 'self_pay') && (
+                                <div className="flex items-end justify-between">
+                                  <p className="font-medium text-slate-600">Tổng phí khám</p>
+                                  <p className="text-2xl font-bold text-emerald-600">
+                                    {formatCurrency(consultationFee)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={handleSubmit}
+                          disabled={submitting}
+                          className="h-14 w-full transform rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-lg font-bold shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.02] hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 active:scale-[0.98]"
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Đang xử lý...
+                            </>
+                          ) : (
+                            <>
+                              Xác nhận đặt lịch
+                              <Check className="ml-2 h-5 w-5" />
+                            </>
+                          )}
+                        </Button>
+
+                        <p className="text-center text-xs text-gray-400">
+                          Bằng việc xác nhận, bạn đồng ý với quy định đặt lịch của chúng tôi.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -672,20 +811,22 @@ function StepIndicator({
   completed: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center relative z-10">
+    <div className="relative z-10 flex flex-col items-center">
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-bold transition-all duration-300 ${active
-          ? 'border-emerald-600 bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30'
-          : completed
-            ? 'border-emerald-600 bg-white text-emerald-600'
-            : 'border-slate-200 bg-white text-slate-300'
-          }`}
+        className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-bold transition-all duration-300 ${
+          active
+            ? 'scale-110 border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+            : completed
+              ? 'border-emerald-600 bg-white text-emerald-600'
+              : 'border-slate-200 bg-white text-slate-300'
+        }`}
       >
         {completed ? <Check className="h-5 w-5" /> : number}
       </div>
       <span
-        className={`mt-2 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${active ? 'text-emerald-700' : completed ? 'text-emerald-600' : 'text-slate-400'
-          }`}
+        className={`mt-2 text-xs font-bold tracking-wider uppercase transition-colors duration-300 ${
+          active ? 'text-emerald-700' : completed ? 'text-emerald-600' : 'text-slate-400'
+        }`}
       >
         {title}
       </span>
@@ -717,7 +858,7 @@ function PaymentMethodSelector({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Phương thức thanh toán</h2>
           <p className="text-sm text-slate-500">Chọn cách bạn muốn thanh toán cho lịch hẹn này</p>
@@ -727,7 +868,7 @@ function PaymentMethodSelector({
       <div className="grid gap-4 md:grid-cols-2">
         <PaymentMethodOption
           title="Thanh toán trực tuyến"
-          description="Thanh toán qua PayOS/VNPAY. Nhận liên kết thanh toán ngay sau khi đặt lịch."
+          description="Thanh toán qua VNPAY. Nhận liên kết thanh toán ngay sau khi đặt lịch."
           selected={selectedMethod === 'online'}
           onClick={() => onSelect('online')}
           icon={<CreditCard className="h-6 w-6 text-teal-600" />}
@@ -753,7 +894,7 @@ function PaymentMethodSelector({
         />
       </div>
       {walletError && (
-        <p className="mt-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+        <p className="mt-3 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">
           Không thể tải thông tin ví: {walletError}. Bạn có thể chọn thanh toán trực tuyến thay thế.
         </p>
       )}
@@ -786,32 +927,43 @@ function PaymentMethodOption({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'relative flex flex-col p-6 rounded-2xl border-2 text-left transition-all duration-200 outline-none',
+        'relative flex flex-col rounded-2xl border-2 p-6 text-left transition-all duration-200 outline-none',
         selected
           ? 'border-emerald-600 bg-emerald-50/50 shadow-md ring-1 ring-emerald-600'
-          : 'border-slate-100 bg-white hover:border-emerald-200 hover:shadow-lg hover:-translate-y-0.5',
-        disabled && 'cursor-not-allowed opacity-60 hover:border-slate-100 hover:shadow-none hover:translate-y-0 bg-slate-50'
+          : 'border-slate-100 bg-white hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg',
+        disabled &&
+          'cursor-not-allowed bg-slate-50 opacity-60 hover:translate-y-0 hover:border-slate-100 hover:shadow-none'
       )}
     >
-      <div className="flex items-start gap-4 mb-4">
-        <div className={`p-3 rounded-xl transition-colors ${selected ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+      <div className="mb-4 flex items-start gap-4">
+        <div
+          className={`rounded-xl p-3 transition-colors ${selected ? 'bg-emerald-100' : 'bg-slate-100'}`}
+        >
           {icon}
         </div>
         <div>
-          <p className={`font-bold text-lg ${selected ? 'text-emerald-900' : 'text-slate-900'}`}>{title}</p>
+          <p className={`text-lg font-bold ${selected ? 'text-emerald-900' : 'text-slate-900'}`}>
+            {title}
+          </p>
         </div>
       </div>
 
-      <p className="text-sm text-gray-500 leading-relaxed mb-4 flex-1">{description}</p>
+      <p className="mb-4 flex-1 text-sm leading-relaxed text-gray-500">{description}</p>
 
-      {extraInfo && <p className="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md inline-block mb-2">{extraInfo}</p>}
+      {extraInfo && (
+        <p className="mb-2 inline-block rounded-md bg-red-50 px-2 py-1 text-xs font-bold text-red-500">
+          {extraInfo}
+        </p>
+      )}
 
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100/50 w-full">
-        <span className={`text-sm font-semibold ${selected ? 'text-emerald-600' : 'text-slate-400'}`}>
+      <div className="mt-auto flex w-full items-center justify-between border-t border-slate-100/50 pt-4">
+        <span
+          className={`text-sm font-semibold ${selected ? 'text-emerald-600' : 'text-slate-400'}`}
+        >
           {selected ? 'Đang chọn' : disabled ? 'Không khả dụng' : 'Chọn phương thức này'}
         </span>
         {selected && (
-          <div className="h-6 w-6 rounded-full bg-emerald-600 flex items-center justify-center">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600">
             <Check className="h-3.5 w-3.5 text-white" />
           </div>
         )}

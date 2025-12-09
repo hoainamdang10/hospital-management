@@ -1,30 +1,12 @@
 'use client';
 
-import { Loader2, Star, Calendar as CalendarIcon, ShieldCheck } from 'lucide-react';
+import { Loader2, Star, Calendar as CalendarIcon } from 'lucide-react';
 import { Staff } from '@/lib/api/staff.service';
-
-const DEPARTMENT_TRANSLATIONS: Record<string, string> = {
-  general: 'Khoa Tổng quát',
-  cardiology: 'Khoa Tim mạch',
-  'internal medicine': 'Nội tổng quát',
-};
-
-const SPECIALIZATION_TRANSLATIONS: Record<string, string> = {
-  'heart failure': 'Suy tim',
-  'preventive cardiology': 'Tim mạch dự phòng',
-  electrophysiology: 'Điện sinh lý tim',
-  'cardiac electrophysiology': 'Điện sinh lý tim',
-};
-
-function translateValue(value?: string, dict?: Record<string, string>) {
-  if (!value) return value;
-  const key = value.toLowerCase();
-  return dict?.[key] || value;
-}
 
 interface DoctorSelectorProps {
   doctors: Staff[];
   selectedDoctor: Staff | null;
+  selectedDepartment?: { id: string; nameVi: string } | null;
   onSelect: (doctor: Staff) => void;
   loading?: boolean;
 }
@@ -32,6 +14,7 @@ interface DoctorSelectorProps {
 export function DoctorSelector({
   doctors,
   selectedDoctor,
+  selectedDepartment,
   onSelect,
   loading = false,
 }: DoctorSelectorProps) {
@@ -63,11 +46,6 @@ export function DoctorSelector({
       <div className="space-y-3">
         {doctors.map((doctor) => {
           const isSelected = selectedDoctor?.staffId === doctor.staffId;
-          const specializationNames =
-            doctor.specializations
-              ?.map((s) => translateValue(s.name, SPECIALIZATION_TRANSLATIONS))
-              .filter(Boolean)
-              .slice(0, 2) || [];
           const experience =
             typeof doctor.yearsOfExperience === 'number' ? doctor.yearsOfExperience : undefined;
           const fee =
@@ -80,8 +58,8 @@ export function DoctorSelector({
               key={doctor.staffId}
               onClick={() => onSelect(doctor)}
               className={`group relative w-full rounded-2xl border-2 p-5 text-left transition-all duration-200 cursor-pointer ${isSelected
-                  ? 'border-blue-600 bg-blue-50/30 shadow-md ring-1 ring-blue-600'
-                  : 'border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-0.5 bg-white'
+                ? 'border-blue-600 bg-blue-50/30 shadow-md ring-1 ring-blue-600'
+                : 'border-gray-100 hover:border-blue-200 hover:shadow-lg hover:-translate-y-0.5 bg-white'
                 }`}
             >
               <div className="flex items-start gap-5">
@@ -110,21 +88,12 @@ export function DoctorSelector({
                       </h3>
 
                       <div className="space-y-1">
-                        {doctor.professionalInfo?.department && (
+                        {selectedDepartment?.nameVi && (
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <span className="font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full text-xs">
-                              {translateValue(
-                                doctor.professionalInfo.department,
-                                DEPARTMENT_TRANSLATIONS
-                              )}
+                              {selectedDepartment.nameVi}
                             </span>
                           </div>
-                        )}
-                        {specializationNames.length > 0 && (
-                          <p className="text-sm text-gray-500">
-                            {specializationNames.join(', ')}
-                            {doctor.specializations && doctor.specializations.length > 2 ? '…' : ''}
-                          </p>
                         )}
                       </div>
                     </div>
@@ -154,8 +123,8 @@ export function DoctorSelector({
 
                     <button
                       className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isSelected
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
                         }`}
                     >
                       {isSelected ? 'Đã chọn' : 'Chọn bác sĩ'}

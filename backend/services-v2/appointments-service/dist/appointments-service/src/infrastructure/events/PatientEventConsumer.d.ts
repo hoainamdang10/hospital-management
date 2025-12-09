@@ -6,8 +6,8 @@
  * @version 1.0.0
  * @compliance Event-Driven Architecture, CQRS, Eventual Consistency
  */
-import { PatientReadModelRepository } from '../repositories/PatientReadModelRepository';
-import { InboxRepository } from '../inbox/InboxRepository';
+import { PatientReadModelRepository } from "../repositories/PatientReadModelRepository";
+import { InboxRepository } from "../inbox/InboxRepository";
 /**
  * Patient Event Consumer
  *
@@ -51,5 +51,6 @@ export declare class PatientEventConsumer {
     private extractInsuranceNumber;
     private extractInsuranceType;
     private extractAddress;
+    private extractPayload;
 }
 //# sourceMappingURL=PatientEventConsumer.d.ts.map

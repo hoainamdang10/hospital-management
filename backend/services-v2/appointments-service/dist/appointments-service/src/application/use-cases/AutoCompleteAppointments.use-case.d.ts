@@ -6,10 +6,10 @@ import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRe
  * Runs periodically via cron job
  *
  * Business Rule:
- * - Appointments with status CONFIRMED or SCHEDULED (auto check-in/start)
- * - Appointments with status ARRIVED or IN_PROGRESS (already in workflow)
+ * - Appointments with status CONFIRMED or SCHEDULED
+ * - Appointments with status IN_PROGRESS (already started)
  * - Appointment time + buffer (e.g., 30 minutes) has passed
- * - Auto-mark as COMPLETED
+ * - Auto-start from CONFIRMED/SCHEDULED, then mark as COMPLETED
  */
 export declare class AutoCompleteAppointmentsUseCase {
     private readonly appointmentRepository;

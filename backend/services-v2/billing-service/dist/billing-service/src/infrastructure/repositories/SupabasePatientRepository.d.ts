@@ -11,18 +11,22 @@ import { logger } from "../logging/logger";
 import { OptimizedSupabaseClient } from "../../../../shared/infrastructure/database/optimized-supabase-client";
 export interface PatientData {
     id: string;
+    patient_id: string;
     user_id: string;
-    full_name: string;
-    date_of_birth: string;
-    gender: "male" | "female" | "other";
-    national_id: string;
+    full_name?: string;
+    date_of_birth?: string;
+    gender?: "male" | "female" | "other";
+    national_id?: string;
     phone?: string;
     email?: string;
     address?: string;
+    personal_info?: any;
+    contact_info?: any;
     insurance_info?: any;
     created_at: string;
     updated_at: string;
-    is_active: boolean;
+    is_active?: boolean;
+    status?: string;
 }
 /**
  * SupabasePatientRepository - Implementation for Supabase database
@@ -61,6 +65,16 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * Map database record to Patient entity
      */
     private mapToPatient;
+    /**
+     * Fetch primary & active insurance info for patient
+     */
+    private fetchInsuranceInfo;
+    /**
+     * Merge insurance info from patients table and insurance_info table
+     * - Preserve rich coverage object from patients.insurance_info if present
+     * - Normalize snake_case fields from insurance_info table to camelCase
+     */
+    private mergeInsuranceInfo;
     /**
      * Determine whether provided identifier is UUID or patient_code (PAT-YYYYMM-XXX)
      */

@@ -58,12 +58,6 @@ export interface RegisterStaffRequestDto {
   contractEndDate?: string;
   yearsOfExperience: number;
   consultationFee?: number;
-  specializations?: Array<{
-    code: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-  }>;
   vietnameseHealthcareLicense?: string;
   mohRegistrationNumber?: string;
 }
@@ -132,7 +126,6 @@ export interface SearchStaffRequestDto {
   searchTerm?: string;
   staffType?: StaffType;
   departmentId?: string;
-  specialization?: string;
   status?: StaffStatus;
   isActive?: boolean;
   // REMOVED: isAcceptingNewPatients - Belongs to Scheduling/Appointment Service
@@ -186,12 +179,6 @@ export interface StaffResponseDto {
   contractEndDate?: string;
   yearsOfExperience: number;
   consultationFee?: number;
-  specializations: Array<{
-    code: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-  }>;
   credentials: Array<{
     type: string;
     number: string;

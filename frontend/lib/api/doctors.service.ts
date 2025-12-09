@@ -35,12 +35,7 @@ export async function getDoctors(params?: { department?: string }): Promise<{ da
       id: d.staffId || d.id,
       fullName: d.personalInfo?.fullName ?? 'Chưa có tên',
       department: d.professionalInfo?.department,
-      specialization:
-        Array.isArray(d.specializations) && d.specializations.length > 0
-          ? typeof d.specializations[0] === 'string'
-            ? d.specializations[0]
-            : d.specializations[0]?.name
-          : undefined,
+      specialization: d.professionalInfo?.department || undefined,
     })) ?? [];
     return { data };
   } catch (error) {
@@ -57,9 +52,7 @@ export async function getFeaturedDoctors(): Promise<Doctor[]> {
 
     return (
       res.data?.data?.items?.map((d: any) => {
-        const specialization = Array.isArray(d.specializations) && d.specializations.length > 0
-          ? (typeof d.specializations[0] === 'string' ? d.specializations[0] : d.specializations[0]?.name)
-          : 'Đa khoa';
+        const specialization = d.professionalInfo?.department || 'Đa khoa';
 
         // Map specialization name to ID if possible, or use a default
         // This is a simplified mapping, ideally should match with specialties.json IDs

@@ -21,7 +21,7 @@ export interface IAuthorizationService {
   canCancelAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
@@ -30,7 +30,7 @@ export interface IAuthorizationService {
   canRescheduleAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
@@ -39,7 +39,7 @@ export interface IAuthorizationService {
   canConfirmAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
@@ -49,7 +49,7 @@ export interface IAuthorizationService {
   canCompleteAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
@@ -59,7 +59,7 @@ export interface IAuthorizationService {
   canStartAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
@@ -69,26 +69,20 @@ export interface IAuthorizationService {
   canCheckInAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
    * Check if user can call next patient from queue
    * Only doctors, nurses, and staff can call patients
    */
-  canCallNextPatient(
-    userId: string,
-    doctorId: string
-  ): Promise<boolean>;
+  canCallNextPatient(userId: string, doctorId: string): Promise<boolean>;
 
   /**
    * Check if user can remove patient from queue
    * Patient can leave their own queue, staff can remove any
    */
-  canLeaveQueue(
-    userId: string,
-    patientId: string
-  ): Promise<boolean>;
+  canLeaveQueue(userId: string, patientId: string): Promise<boolean>;
 
   /**
    * Check if user can transfer appointments to another doctor
@@ -97,7 +91,7 @@ export interface IAuthorizationService {
   canTransferAppointment(
     userId: string,
     appointmentId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   // ===== ARCHIVED FOR POST-MVP: BulkReschedule Authorization =====
@@ -114,9 +108,7 @@ export interface IAuthorizationService {
    * Check if user can create emergency appointments
    * Only doctor, nurse, or admin can create emergency appointments
    */
-  canCreateEmergencyAppointment(
-    userId: string
-  ): Promise<boolean>;
+  canCreateEmergencyAppointment(userId: string): Promise<boolean>;
 
   /**
    * Check if user can view appointment history
@@ -125,31 +117,31 @@ export interface IAuthorizationService {
   canViewAppointmentHistory(
     userId: string,
     patientId?: string,
-    doctorId?: string
+    doctorId?: string,
   ): Promise<boolean>;
 
   /**
    * Check if user can view appointment statistics
    * Only admin and doctors can view statistics
    */
-  canViewStatistics(
-    userId: string,
-    doctorId?: string
-  ): Promise<boolean>;
+  canViewStatistics(userId: string, doctorId?: string): Promise<boolean>;
 
   /**
    * Check if user can view appointment details
    */
   canViewAppointment(
     userId: string,
-    appointment: { patientId: string; doctorId: string }
+    appointment: { patientId: string; doctorId: string },
   ): Promise<boolean>;
 
   /**
    * Check if user can manage appointment reminders
    * Patient can manage their own reminders, Staff can manage any reminders
    */
-  canManageAppointmentReminders(userId: string, patientId: string): Promise<boolean>;
+  canManageAppointmentReminders(
+    userId: string,
+    patientId: string,
+  ): Promise<boolean>;
 
   /**
    * Check if user can view queue status
@@ -158,8 +150,14 @@ export interface IAuthorizationService {
   canViewQueueStatus(
     userId: string,
     patientId?: string,
-    doctorId?: string
+    doctorId?: string,
   ): Promise<boolean>;
+
+  /**
+   * Resolve canonical patientId (PAT-YYYYMM-XXX) from identity userId.
+   * Returns null if user does not have a patient profile.
+   */
+  resolvePatientIdForUser(userId: string): Promise<string | null>;
 
   /**
    * Check if user has specific role
@@ -181,12 +179,12 @@ export interface IAuthorizationService {
  * User roles in the system
  */
 export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  DOCTOR = 'DOCTOR',
-  NURSE = 'NURSE',
-  RECEPTIONIST = 'RECEPTIONIST',
-  PATIENT = 'PATIENT',
+  SUPER_ADMIN = "SUPER_ADMIN",
+  ADMIN = "ADMIN",
+  DOCTOR = "DOCTOR",
+  NURSE = "NURSE",
+  RECEPTIONIST = "RECEPTIONIST",
+  PATIENT = "PATIENT",
 }
 
 /**
@@ -197,9 +195,9 @@ export class AuthorizationError extends Error {
     message: string,
     public readonly userId: string,
     public readonly action: string,
-    public readonly resource?: string
+    public readonly resource?: string,
   ) {
     super(message);
-    this.name = 'AuthorizationError';
+    this.name = "AuthorizationError";
   }
 }

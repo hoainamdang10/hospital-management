@@ -256,5 +256,57 @@ export function createAdminRoutes(deps: RouteDependencies): Router {
     },
   );
 
+  // Hard delete account (PROTECTED - super admin only)
+  router.delete("/accounts/:userId", async (req: AuthenticatedRequest, res) => {
+    try {
+      const adminUserId = req.user?.userId || "";
+      const userId = req.params.userId;
+      const { reason, force } = req.body || {};
+
+      if (!reason || reason.trim().length < 5) {
+        return res.status(400).json({
+          success: false,
+          error: "Reason is required và phải tối thiểu 5 ký tự",
+        });
+      }
+
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          error: "User ID is required",
+        });
+      }
+
+      const result = await deps.deleteUserUseCase.execute({
+        userId,
+        deletedBy: adminUserId,
+        reason,
+        force:
+          typeof force === "boolean"
+            ? force
+            : typeof force === "string"
+              ? force.toLowerCase() === "true"
+              : undefined,
+      });
+
+      const status =
+        result.success || !result.error
+          ? 200
+          : result.error === "USER_NOT_FOUND"
+            ? 404
+            : 400;
+      return res.status(status).json(result);
+    } catch (error) {
+      logger.error("Hard delete account endpoint error", {
+        userId: req.params.userId,
+        error: getErrorMessage(error),
+      });
+      return res.status(500).json({
+        success: false,
+        error: "Lỗi hệ thống, vui lòng thử lại sau",
+      });
+    }
+  });
+
   return router;
 }

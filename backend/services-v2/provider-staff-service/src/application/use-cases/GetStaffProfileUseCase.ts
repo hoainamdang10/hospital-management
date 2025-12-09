@@ -70,12 +70,6 @@ export interface GetStaffProfileResponse {
         timeZone: string;
         isFlexible: boolean;
       };
-      specializations: Array<{
-        code: string;
-        name: string;
-        description?: string;
-        isActive: boolean;
-      }>;
       credentials?: Array<{
         credentialNumber?: string; // Masked
         credentialType: string;
@@ -362,12 +356,6 @@ export class GetStaffProfileUseCase extends BaseHealthcareUseCase<
         languages: staff.professionalInfo.languages,
         bio: staff.professionalInfo.bio,
       },
-      specializations: staff.getActiveSpecializations().map((spec) => ({
-        code: spec.code,
-        name: spec.name,
-        description: spec.description,
-        isActive: spec.isActive,
-      })),
       employmentInfo: {
         employmentType: staff.employmentType,
         hireDate: staff.hireDate.toISOString(),

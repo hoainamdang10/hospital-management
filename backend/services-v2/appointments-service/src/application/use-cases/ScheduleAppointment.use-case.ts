@@ -31,6 +31,8 @@ import { IReminderService } from "../services/IReminderService";
 import { BillingServiceClient } from "../../infrastructure/clients/BillingServiceClient";
 import { convertClinicLocalToUtc } from "@shared/utils/timezone";
 
+const PATIENT_ID_REGEX = /^PAT-\d{6}-\d{3}$/;
+
 export interface ScheduleAppointmentRequest {
   // Multi-tenancy
   tenantId?: string; // Optional, defaults to 'hospital-1'
@@ -123,11 +125,13 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
     request: ScheduleAppointmentRequest,
   ): Promise<ScheduleAppointmentResponse> {
     try {
+      const patientId = await this.resolvePatientIdentifier(request.patientId);
+
       // 1. Authorization check
       const canSchedule =
         await this.authorizationService.canScheduleAppointment(
           request.createdBy,
-          request.patientId,
+          patientId,
         );
 
       if (!canSchedule) {
@@ -173,7 +177,7 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
       const appointment = Appointment.create(
         appointmentId,
         tenantId,
-        request.patientId,
+        patientId,
         request.doctorId,
         timeSlot,
         request.durationMinutes,
@@ -256,7 +260,7 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
       try {
         await this.reminderService.scheduleReminders(
           appointmentId.value,
-          request.patientId,
+          patientId,
           startTime,
           request.priority,
         );
@@ -285,7 +289,7 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
         // Try to get invoice by searching (since we don't have findByAppointmentId endpoint)
         // This is a workaround - ideally Billing Service should have GET /invoices/by-appointment/:appointmentId
         const searchResponse = await this.billingServiceClient.searchInvoices({
-          patientId: request.patientId,
+          patientId,
           // Note: Cannot filter by appointmentId - will get all patient invoices
           // Frontend will need to match by appointmentId or use polling
         });
@@ -343,7 +347,7 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
         appointment: {
           id: appointment.id,
           appointmentId: appointmentId.value,
-          patientId: request.patientId,
+          patientId,
           doctorId: request.doctorId,
           appointmentDate: request.appointmentDate,
           appointmentTime: request.appointmentTime,
@@ -450,6 +454,27 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
    * Get patient ID
    */
   getPatientId(request: ScheduleAppointmentRequest): string | null {
-    return request.patientId;
+    return PATIENT_ID_REGEX.test(request.patientId) ? request.patientId : null;
+  }
+
+  private async resolvePatientIdentifier(identifier?: string): Promise<string> {
+    if (!identifier) {
+      throw new Error("Patient ID is required");
+    }
+
+    if (PATIENT_ID_REGEX.test(identifier)) {
+      return identifier;
+    }
+
+    const resolvedId =
+      await this.authorizationService.resolvePatientIdForUser(identifier);
+
+    if (!resolvedId) {
+      throw new Error(
+        "Không tìm thấy hồ sơ bệnh nhân tương ứng với tài khoản. Vui lòng hoàn tất đăng ký hồ sơ bệnh nhân trước khi đặt lịch.",
+      );
+    }
+
+    return resolvedId;
   }
 }

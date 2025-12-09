@@ -22,5 +22,6 @@ export declare class SupabaseInvoiceRepository implements IInvoiceRepository {
     private fetchPatientIdByColumn;
     private isUUID;
     private isPatientCode;
+    private resolveDateField;
 }
 //# sourceMappingURL=SupabaseInvoiceRepository.d.ts.map

@@ -64,14 +64,15 @@ class OutboxPublisherWorker {
         const delay = Math.min(max, base * Math.pow(2, attempts - 1));
         return delay;
     }
-    async ensureChannel() {
+    // Confirm channel to ensure broker ack before marking SENT
+    async ensureConfirmChannel() {
         if (this.amqpChannel)
             return this.amqpChannel;
         const url = this.options.rabbitmqUrl ||
             process.env.RABBITMQ_URL ||
             "amqp://admin:admin@rabbitmq-v2:5672";
         this.amqpConn = await amqplib.connect(url);
-        this.amqpChannel = await this.amqpConn.createChannel();
+        this.amqpChannel = await this.amqpConn.createConfirmChannel();
         await this.amqpChannel.assertExchange(this.options.exchange || "hospital.events", "topic", { durable: true });
         return this.amqpChannel;
     }
@@ -93,7 +94,7 @@ class OutboxPublisherWorker {
             else if (eventType.startsWith("appointment") ||
                 eventType.startsWith("appointments.")) {
                 // Generic relay to RabbitMQ for appointment.* events (billing/notifications)
-                const channel = await this.ensureChannel();
+                const channel = await this.ensureConfirmChannel();
                 // Normalize routing key to singular prefix for compatibility with consumers
                 const rawEventType = typeof eventType === "string" ? eventType.trim() : eventType;
                 let routingKey = rawEventType;
@@ -104,11 +105,10 @@ class OutboxPublisherWorker {
                 if (!routingKey.startsWith("appointment.")) {
                     routingKey = `appointment.${routingKey}`;
                 }
-                channel.publish(this.options.exchange || "hospital.events", routingKey, Buffer.from(JSON.stringify(payload)), { persistent: true });
-                console.log("[OutboxWorker] published", {
-                    id: evt.id,
-                    routingKey,
+                await new Promise((resolve, reject) => {
+                    channel.publish(this.options.exchange || "hospital.events", routingKey, Buffer.from(JSON.stringify(payload)), { persistent: true }, (err, ok) => err ? reject(err) : resolve());
                 });
+                console.log("[OutboxWorker] published", { id: evt.id, routingKey });
             }
             else {
                 // Unknown event: mark sent to avoid poison

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
  * Payment Success Page
  * Route: /patient/billing/payment/success
  *
- * Displayed after successful PayOS payment
+ * Displayed after successful VNPay payment
  * Query params: orderCode, status
  */
 function PaymentSuccessPageContent() {
