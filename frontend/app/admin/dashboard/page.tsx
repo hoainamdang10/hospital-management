@@ -104,6 +104,37 @@ const pulseVariants = {
 // Chart colors - Healthcare theme
 const DONUT_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
+// Helper function to map appointment types to Vietnamese
+const mapAppointmentTypeToVietnamese = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    'CONSULTATION': 'Khám bệnh',
+    'FOLLOW_UP': 'Tái khám',
+    'CHECKUP': 'Kiểm tra sức khỏe',
+    'EMERGENCY': 'Cấp cứu',
+    'SURGERY': 'Phẫu thuật',
+    'LAB_TEST': 'Xét nghiệm',
+    'IMAGING': 'Chẩn đoán hình ảnh',
+    'VACCINATION': 'Tiêm chủng',
+    'THERAPY': 'Trị liệu',
+    'OTHER': 'Khác',
+  };
+  return typeMap[type?.toUpperCase()] || type || 'Khám bệnh';
+};
+
+// Helper function to map appointment statuses to Vietnamese
+const mapStatusToVietnamese = (status: string): { text: string; icon: string } => {
+  const statusMap: Record<string, { text: string; icon: string }> = {
+    'SCHEDULED': { text: 'Đã lên lịch', icon: '📅' },
+    'CONFIRMED': { text: 'Đã xác nhận', icon: '✓' },
+    'PENDING': { text: 'Chờ xác nhận', icon: '◷' },
+    'COMPLETED': { text: 'Hoàn thành', icon: '★' },
+    'CANCELLED': { text: 'Đã hủy', icon: '✕' },
+    'NO_SHOW': { text: 'Vắng mặt', icon: '⚠' },
+    'IN_PROGRESS': { text: 'Đang khám', icon: '⏳' },
+  };
+  return statusMap[status?.toUpperCase()] || { text: status, icon: '' };
+};
+
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -232,7 +263,7 @@ export default function AdminDashboardPage() {
       value: formatNumber(stats.totalAppointments),
       change: stats.appointmentsChange,
       trend: 'up' as const,
-      subtitle: 'tổng lịch hẹn',
+      subtitle: 'so với tháng trước',
       icon: Calendar,
       gradient: 'from-emerald-500 to-teal-600',
       bgGlow: 'bg-emerald-500/20',
@@ -243,7 +274,7 @@ export default function AdminDashboardPage() {
       value: formatNumber(stats.totalPatients),
       change: stats.patientsChange,
       trend: 'up' as const,
-      subtitle: 'tổng số bệnh nhân',
+      subtitle: 'trong tháng này',
       icon: HeartPulse,
       gradient: 'from-violet-500 to-purple-600',
       bgGlow: 'bg-violet-500/20',
@@ -342,13 +373,12 @@ export default function AdminDashboardPage() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 + 0.4 }}
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          stat.trend === 'up'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : stat.trend === 'down'
-                              ? 'bg-red-50 text-red-700'
-                              : 'bg-slate-50 text-slate-600'
-                        }`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${stat.trend === 'up'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : stat.trend === 'down'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-slate-50 text-slate-600'
+                          }`}
                       >
                         {stat.trend === 'up' ? (
                           <ArrowUpRight className="h-3 w-3" />
@@ -416,11 +446,10 @@ export default function AdminDashboardPage() {
 
                     <motion.button
                       onClick={() => setHoveredStat(null)}
-                      className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                        hoveredStat !== 'todayRevenue'
-                          ? 'text-slate-900'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
+                      className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${hoveredStat !== 'todayRevenue'
+                        ? 'text-slate-900'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -430,11 +459,10 @@ export default function AdminDashboardPage() {
 
                     <motion.button
                       onClick={() => setHoveredStat('todayRevenue')}
-                      className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                        hoveredStat === 'todayRevenue'
-                          ? 'text-slate-900'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
+                      className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${hoveredStat === 'todayRevenue'
+                        ? 'text-slate-900'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -451,14 +479,18 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="flex items-center gap-1.5 rounded-full border border-cyan-100 bg-cyan-50 px-3 py-1.5 font-medium text-cyan-700">
-                    <div className="h-2 w-2 rounded-full bg-cyan-500"></div>
-                    PayOS
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="flex items-center gap-1.5 rounded-full border border-sky-200 bg-gradient-to-r from-cyan-50 to-sky-50 px-3 py-1.5 font-semibold text-sky-700">
+                    <div className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-sky-500"></div>
+                    Tổng
                   </span>
-                  <span className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50 px-3 py-1.5 text-slate-600">
-                    <div className="h-2 w-2 rounded-full bg-slate-400"></div>
-                    Wallet
+                  <span className="flex items-center gap-1.5 rounded-full border border-cyan-100 bg-cyan-50/50 px-3 py-1.5 text-cyan-600">
+                    <div className="h-0.5 w-4 border-t-2 border-dashed border-cyan-500"></div>
+                    VNPay
+                  </span>
+                  <span className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50/50 px-3 py-1.5 text-slate-500">
+                    <div className="h-0.5 w-4 border-t-2 border-dashed border-slate-400"></div>
+                    Ví
                   </span>
                 </div>
               </div>
@@ -492,15 +524,14 @@ export default function AdminDashboardPage() {
                             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                           >
                             <defs>
-                              <linearGradient id="payosGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.45} />
-                                <stop offset="70%" stopColor="#22D3EE" stopOpacity={0.15} />
-                                <stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
+                              <linearGradient id="totalGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.5} />
+                                <stop offset="50%" stopColor="#0EA5E9" stopOpacity={0.25} />
+                                <stop offset="100%" stopColor="#06B6D4" stopOpacity={0.05} />
                               </linearGradient>
-                              <linearGradient id="walletGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#94A3B8" stopOpacity={0.35} />
-                                <stop offset="80%" stopColor="#CBD5F5" stopOpacity={0.1} />
-                                <stop offset="100%" stopColor="#94A3B8" stopOpacity={0} />
+                              <linearGradient id="payosLineGradient" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#06B6D4" />
+                                <stop offset="100%" stopColor="#0EA5E9" />
                               </linearGradient>
                             </defs>
                             <CartesianGrid
@@ -520,32 +551,47 @@ export default function AdminDashboardPage() {
                               tickLine={false}
                               tick={{ fill: '#94A3B8', fontSize: 12 }}
                               tickFormatter={(value) => {
-                                if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                                if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
+                                if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                                 if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                                 return value;
                               }}
                               dx={-10}
+                              width={60}
                             />
                             <Tooltip content={<CustomTooltip />} />
+                            {/* Main total revenue area */}
                             <Area
                               type="monotone"
-                              dataKey="wallet"
-                              name="Wallet"
-                              stroke="#94a3b8"
+                              dataKey="total"
+                              name="Tổng doanh thu"
+                              stroke="#0ea5e9"
                               strokeWidth={3}
-                              fill="url(#walletGradient)"
-                              stackId="revenue"
+                              fill="url(#totalGradient)"
                               animationDuration={2000}
                               animationEasing="ease-out"
                             />
+                            {/* VNPay line overlay */}
                             <Area
                               type="monotone"
                               dataKey="payos"
-                              name="PayOS"
-                              stroke="#0ea5e9"
-                              strokeWidth={3}
-                              fill="url(#payosGradient)"
-                              stackId="revenue"
+                              name="VNPay"
+                              stroke="#06B6D4"
+                              strokeWidth={2}
+                              strokeDasharray="5 5"
+                              fill="none"
+                              animationDuration={2000}
+                              animationEasing="ease-out"
+                            />
+                            {/* Ví line overlay */}
+                            <Area
+                              type="monotone"
+                              dataKey="wallet"
+                              name="Ví"
+                              stroke="#94A3B8"
+                              strokeWidth={2}
+                              strokeDasharray="3 3"
+                              fill="none"
                               animationDuration={2000}
                               animationEasing="ease-out"
                             />
@@ -595,7 +641,7 @@ export default function AdminDashboardPage() {
                               transition={{ delay: 0.2 }}
                               className="rounded-xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-blue-50 p-4"
                             >
-                              <p className="mb-1 text-xs font-medium text-cyan-600">PayOS</p>
+                              <p className="mb-1 text-xs font-medium text-cyan-600">VNPay</p>
                               <p className="text-xl font-bold text-cyan-900">
                                 {formatCurrency(todayRevenue.payos)}
                               </p>
@@ -606,7 +652,7 @@ export default function AdminDashboardPage() {
                               transition={{ delay: 0.3 }}
                               className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-gray-50 p-4"
                             >
-                              <p className="mb-1 text-xs font-medium text-slate-600">Wallet</p>
+                              <p className="mb-1 text-xs font-medium text-slate-600">Ví</p>
                               <p className="text-xl font-bold text-slate-900">
                                 {formatCurrency(todayRevenue.wallet)}
                               </p>
@@ -618,8 +664,8 @@ export default function AdminDashboardPage() {
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart
                                 data={[
-                                  { method: 'PayOS', amount: todayRevenue.payos },
-                                  { method: 'Wallet', amount: todayRevenue.wallet },
+                                  { method: 'VNPay', amount: todayRevenue.payos },
+                                  { method: 'Ví', amount: todayRevenue.wallet },
                                 ]}
                                 layout="vertical"
                                 margin={{ top: 0, right: 30, left: 20, bottom: 0 }}
@@ -843,11 +889,10 @@ export default function AdminDashboardPage() {
 
                   <motion.button
                     onClick={() => setHoveredStat(null)}
-                    className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                      hoveredStat !== 'payments'
-                        ? 'text-slate-900'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
+                    className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${hoveredStat !== 'payments'
+                      ? 'text-slate-900'
+                      : 'text-slate-500 hover:text-slate-700'
+                      }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -864,11 +909,10 @@ export default function AdminDashboardPage() {
 
                   <motion.button
                     onClick={() => setHoveredStat('payments')}
-                    className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                      hoveredStat === 'payments'
-                        ? 'text-slate-900'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
+                    className={`relative z-10 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${hoveredStat === 'payments'
+                      ? 'text-slate-900'
+                      : 'text-slate-500 hover:text-slate-700'
+                      }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -961,7 +1005,7 @@ export default function AdminDashboardPage() {
                                   })}
                                 </div>
                                 <span className="rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-600">
-                                  {apt.appointmentType}
+                                  {mapAppointmentTypeToVietnamese(apt.appointmentType)}
                                 </span>
                               </div>
                             </div>
@@ -969,23 +1013,18 @@ export default function AdminDashboardPage() {
                           <div className="flex items-center gap-3">
                             <motion.span
                               whileHover={{ scale: 1.05 }}
-                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all ${
-                                apt.status === 'CONFIRMED'
-                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-emerald-100'
-                                  : apt.status === 'PENDING'
-                                    ? 'border-amber-200 bg-amber-50 text-amber-700 shadow-amber-100'
-                                    : apt.status === 'COMPLETED'
-                                      ? 'border-blue-200 bg-blue-50 text-blue-700 shadow-blue-100'
-                                      : 'border-slate-200 bg-slate-50 text-slate-600'
-                              }`}
-                            >
-                              {apt.status === 'CONFIRMED'
-                                ? '✓ Đã xác nhận'
+                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all ${apt.status === 'CONFIRMED'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-emerald-100'
                                 : apt.status === 'PENDING'
-                                  ? '◷ Chờ xác nhận'
+                                  ? 'border-amber-200 bg-amber-50 text-amber-700 shadow-amber-100'
                                   : apt.status === 'COMPLETED'
-                                    ? '★ Hoàn thành'
-                                    : apt.status}
+                                    ? 'border-blue-200 bg-blue-50 text-blue-700 shadow-blue-100'
+                                    : apt.status === 'CANCELLED'
+                                      ? 'border-red-200 bg-red-50 text-red-700 shadow-red-100'
+                                      : 'border-slate-200 bg-slate-50 text-slate-600'
+                                }`}
+                            >
+                              {mapStatusToVietnamese(apt.status).icon} {mapStatusToVietnamese(apt.status).text}
                             </motion.span>
                             <motion.button
                               initial={{ opacity: 0, scale: 0.8 }}
@@ -1048,13 +1087,12 @@ export default function AdminDashboardPage() {
                           <div className="flex items-center gap-4">
                             <motion.div
                               whileHover={{ scale: 1.1, rotate: 5 }}
-                              className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-lg ${
-                                p.status === 'PAID'
-                                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'
-                                  : p.status === 'PENDING'
-                                    ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30'
-                                    : 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/30'
-                              }`}
+                              className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-lg ${p.status === 'PAID'
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'
+                                : p.status === 'PENDING'
+                                  ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30'
+                                  : 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/30'
+                                }`}
                             >
                               {p.status === 'PAID' ? (
                                 <CheckCircle2 className="h-6 w-6 text-white" />
@@ -1089,9 +1127,8 @@ export default function AdminDashboardPage() {
                               </motion.p>
                               <p className="flex items-center justify-end gap-1 text-xs text-slate-500">
                                 <span
-                                  className={`inline-block h-1.5 w-1.5 rounded-full ${
-                                    p.method === 'PayOS' ? 'bg-violet-500' : 'bg-slate-400'
-                                  }`}
+                                  className={`inline-block h-1.5 w-1.5 rounded-full ${p.method === 'PayOS' ? 'bg-violet-500' : 'bg-slate-400'
+                                    }`}
                                 />
                                 {p.method}
                               </p>

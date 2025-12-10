@@ -22,6 +22,7 @@ export interface InvoiceSummary {
   outstandingAmount: number;
   status: string;
   createdAt: Date;
+  paidAt?: Date;
   finalizedAt?: Date;
 }
 
@@ -76,6 +77,7 @@ export class SearchInvoicesUseCase extends BaseHealthcareUseCase<
         outstandingAmount: invoice.outstandingAmount.amount,
         status: invoice.status.value,
         createdAt: invoice.createdAt,
+        paidAt: invoice.paidAt,
         finalizedAt: undefined, // Will be added when we expose this property
       };
     });

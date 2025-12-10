@@ -462,10 +462,10 @@ export class Invoice extends HealthcareAggregateRoot<InvoiceProps> {
       currency: this.props.totalAmount.currency,
       status: this.props.status.value,
       payments: this.props.payments.map((p) => p.toPersistence()),
-      paidAt: this.props.paidAt,
-      createdAt: this.props.createdAt,
-      updatedAt: this.props.updatedAt,
-      dueDate: this.props.dueDate,
+      paidAt: this.props.paidAt ? this.props.paidAt.toISOString() : null,
+      createdAt: this.props.createdAt.toISOString(),
+      updatedAt: this.props.updatedAt.toISOString(),
+      dueDate: this.props.dueDate.toISOString(),
     };
   }
 

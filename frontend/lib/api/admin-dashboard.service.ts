@@ -101,10 +101,16 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       }),
     ]);
 
-    // 1. Appointments (Count only)
+    // 1. Appointments - Count TODAY's appointments
     const appointments = appointmentsResp.data?.data?.appointments || [];
-    const totalAppointments = appointmentsResp.data?.data?.total || appointments.length;
 
+    // Get today's date range
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    let todayAppointments = 0;
     let thisMonthApts = 0;
     let lastMonthApts = 0;
 
@@ -120,6 +126,11 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
         }
       } else {
         return;
+      }
+
+      // Count today's appointments
+      if (date >= todayStart && date <= todayEnd) {
+        todayAppointments++;
       }
 
       if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
@@ -206,9 +217,9 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     return {
       totalRevenue: thisMonthRevenue,
       revenueChange: calculateChange(thisMonthRevenue, lastMonthRevenue),
-      totalAppointments: totalAppointments, // Total all time
+      totalAppointments: todayAppointments, // Today's appointments only
       appointmentsChange: calculateChange(thisMonthApts, lastMonthApts),
-      totalPatients: totalPatients,
+      totalPatients: thisMonthPatients, // This month's new patients
       patientsChange: calculateChange(thisMonthPatients, lastMonthPatients),
       totalStaff: totalStaff,
       staffChange: calculateChange(thisMonthStaff, lastMonthStaff),
@@ -431,13 +442,17 @@ export async function getRevenueTrend(
   days: number = 14
 ): Promise<{ date: string; payos: number; wallet: number }[]> {
   try {
+    // Calculate date range - include today fully
     const end = new Date();
-    end.setHours(0, 0, 0, 0);
-    const start = new Date(end);
-    start.setDate(start.getDate() - (days - 1));
+    end.setHours(23, 59, 59, 999); // End of today
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1)); // Start of first day
 
-    const toDate = formatLocalDate(end);
-    const fromDate = formatLocalDate(start);
+    const toDate = formatLocalDate(end) + 'T23:59:59'; // Include full day
+    const fromDate = formatLocalDate(start) + 'T00:00:00'; // Start of first day
+
+    console.log('[getRevenueTrend] Fetching invoices:', { fromDate, toDate, days });
 
     const invoices = await sharedBillingService.searchInvoices({
       status: 'paid',
@@ -447,6 +462,9 @@ export async function getRevenueTrend(
       dateField: 'paid_at',
     });
 
+    console.log('[getRevenueTrend] Found invoices:', invoices.length);
+
+    // Initialize trend map with all days
     const trendMap: Record<string, { payos: number; wallet: number }> = {};
     for (let i = 0; i < days; i++) {
       const date = new Date(start);
@@ -454,19 +472,26 @@ export async function getRevenueTrend(
       trendMap[formatLocalDate(date)] = { payos: 0, wallet: 0 };
     }
 
+    // Process each invoice
     invoices.forEach((invoice: SharedInvoice) => {
       const invoiceDate = new Date(invoice.paidAt || invoice.updatedAt || invoice.createdAt);
       const dateKey = formatLocalDate(invoiceDate);
-      if (!trendMap[dateKey]) return;
+
+      if (!trendMap[dateKey]) {
+        console.log('[getRevenueTrend] Invoice date out of range:', dateKey, invoice.invoiceId);
+        return;
+      }
 
       const payments = invoice.payments || [];
+      const totalAmount = Number(invoice.totalAmount || 0);
+
       if (payments.length === 0) {
-        trendMap[dateKey].payos += Number(invoice.totalAmount || 0);
+        trendMap[dateKey].payos += totalAmount;
         return;
       }
 
       payments.forEach((payment) => {
-        const amount = Number(payment.amount || invoice.totalAmount || 0);
+        const amount = Number(payment.amount || totalAmount);
         const method = String(payment.method || '').toLowerCase();
         if (method.includes('wallet')) {
           trendMap[dateKey].wallet += amount;
@@ -476,13 +501,16 @@ export async function getRevenueTrend(
       });
     });
 
-    return Object.entries(trendMap)
+    const result = Object.entries(trendMap)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, totals]) => ({
         date,
         payos: totals.payos,
         wallet: totals.wallet,
       }));
+
+    console.log('[getRevenueTrend] Result:', result);
+    return result;
   } catch (error) {
     console.error('[AdminDashboardService] Failed to fetch revenue trend:', error);
     const end = new Date();

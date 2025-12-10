@@ -464,11 +464,6 @@ function getMenuItemsByRole(role: string): MenuItem[] {
             { label: 'Hóa đơn', href: ROUTES.ADMIN_INVOICES, icon: FileText },
           ],
         },
-        {
-          label: 'Nhật ký hoạt động',
-          href: ROUTES.ADMIN_AUDIT_LOGS,
-          icon: ClipboardList,
-        },
       ];
 
     default:
