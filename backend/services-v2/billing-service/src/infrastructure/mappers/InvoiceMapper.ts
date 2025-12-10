@@ -114,10 +114,10 @@ export class InvoiceMapper {
     // Map insurance from database fields
     const insurance = record.insurance_type
       ? Insurance.create(
-        record.insurance_issued_by || "Unknown",
-        record.insurance_number || "",
-        record.insurance_coverage_level || 0,
-      )
+          record.insurance_issued_by || "Unknown",
+          record.insurance_number || "",
+          record.insurance_coverage_level || 0,
+        )
       : undefined;
 
     // Map payment records from separate table
@@ -258,18 +258,31 @@ export class InvoiceMapper {
   } {
     const persistence = invoice.toPersistence();
 
+    const normalizeToDate = (value: unknown): Date | null => {
+      if (!value) {
+        return null;
+      }
+      if (value instanceof Date) {
+        return value;
+      }
+
+      const parsed = new Date(value as string | number);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
     // Main invoice record
-    const issuedAtIso = persistence.createdAt.toISOString();
+    const createdAtSource =
+      normalizeToDate(persistence.createdAt) ?? new Date();
+    const issuedAtIso = createdAtSource.toISOString();
+    const updatedAtSource =
+      normalizeToDate(persistence.updatedAt) ?? createdAtSource;
+    const paidAtSource = normalizeToDate(persistence.paidAt);
+    const finalizedAtSource = normalizeToDate(persistence.finalizedAt);
+
     const dueDateSource =
-      persistence.dueDate instanceof Date
-        ? persistence.dueDate
-        : new Date(
-          (persistence.dueDate as Date | string | undefined) ||
-          persistence.createdAt,
-        );
-    const dueDateIso = Number.isNaN(dueDateSource.getTime())
-      ? new Date(persistence.createdAt.getTime() + 30 * 60 * 1000).toISOString()
-      : dueDateSource.toISOString();
+      normalizeToDate(persistence.dueDate) ??
+      new Date(createdAtSource.getTime() + 30 * 60 * 1000);
+    const dueDateIso = dueDateSource.toISOString();
 
     const patientLiability = Math.max(
       (persistence.totalAmount ?? 0) - (persistence.insuranceCoverage ?? 0),
@@ -300,7 +313,9 @@ export class InvoiceMapper {
       outstanding_currency: persistence.currency,
       // Insurance info - re-enabled
       // Map provider name to valid insurance_type enum: BHYT, BHTN, Private, Self-pay
-      insurance_type: this.mapProviderToInsuranceType(persistence.insurance?.provider),
+      insurance_type: this.mapProviderToInsuranceType(
+        persistence.insurance?.provider,
+      ),
       insurance_number: persistence.insurance?.policyNumber,
       insurance_coverage_level: persistence.insurance?.coveragePercentage,
       insurance_issued_by: persistence.insurance?.provider,
@@ -310,10 +325,10 @@ export class InvoiceMapper {
       issued_by: "00000000-0000-0000-0000-000000000000", // System-generated invoice
       issued_at: issuedAtIso,
       due_date: dueDateIso,
-      paid_at: persistence.paidAt?.toISOString(),
+      paid_at: paidAtSource?.toISOString(),
       created_at: issuedAtIso,
-      updated_at: persistence.updatedAt.toISOString(),
-      finalized_at: persistence.finalizedAt?.toISOString(),
+      updated_at: updatedAtSource.toISOString(),
+      finalized_at: finalizedAtSource?.toISOString(),
       version: 1,
       contains_phi: true,
     };
@@ -368,12 +383,12 @@ export class InvoiceMapper {
         vnpay_transaction_no: p.vnpayData?.vnpTransactionNo,
         vnpay_pay_date: p.vnpayData?.vnpPayDate
           ? new Date(
-            // Parse VNPAY date format: yyyyMMddHHmmss
-            p.vnpayData.vnpPayDate.replace(
-              /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
-              "$1-$2-$3T$4:$5:$6Z",
-            ),
-          ).toISOString()
+              // Parse VNPAY date format: yyyyMMddHHmmss
+              p.vnpayData.vnpPayDate.replace(
+                /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
+                "$1-$2-$3T$4:$5:$6Z",
+              ),
+            ).toISOString()
           : undefined,
       }));
 
@@ -497,7 +512,9 @@ export class InvoiceMapper {
    * Map insurance provider name to valid insurance_type enum
    * Valid enum values: BHYT, BHTN, Private, Self-pay
    */
-  private static mapProviderToInsuranceType(provider?: string): string | undefined {
+  private static mapProviderToInsuranceType(
+    provider?: string,
+  ): string | undefined {
     if (!provider) {
       return undefined;
     }
@@ -505,27 +522,41 @@ export class InvoiceMapper {
     const normalizedProvider = provider.toUpperCase().trim();
 
     // Direct match for known enum values
-    if (normalizedProvider === 'BHYT' || normalizedProvider.includes('BHYT') ||
-      normalizedProvider.includes('BẢO HIỂM Y TẾ') || normalizedProvider.includes('BAO HIEM Y TE')) {
-      return 'BHYT';
+    if (
+      normalizedProvider === "BHYT" ||
+      normalizedProvider.includes("BHYT") ||
+      normalizedProvider.includes("BẢO HIỂM Y TẾ") ||
+      normalizedProvider.includes("BAO HIEM Y TE")
+    ) {
+      return "BHYT";
     }
 
-    if (normalizedProvider === 'BHTN' || normalizedProvider.includes('BHTN') ||
-      normalizedProvider.includes('TAI NẠN') || normalizedProvider.includes('TAI NAN')) {
-      return 'BHTN';
+    if (
+      normalizedProvider === "BHTN" ||
+      normalizedProvider.includes("BHTN") ||
+      normalizedProvider.includes("TAI NẠN") ||
+      normalizedProvider.includes("TAI NAN")
+    ) {
+      return "BHTN";
     }
 
-    if (normalizedProvider.includes('PRIVATE') || normalizedProvider.includes('TƯ NHÂN') ||
-      normalizedProvider.includes('TU NHAN')) {
-      return 'Private';
+    if (
+      normalizedProvider.includes("PRIVATE") ||
+      normalizedProvider.includes("TƯ NHÂN") ||
+      normalizedProvider.includes("TU NHAN")
+    ) {
+      return "Private";
     }
 
-    if (normalizedProvider.includes('SELF') || normalizedProvider.includes('TỰ') ||
-      normalizedProvider.includes('TU TRA')) {
-      return 'Self-pay';
+    if (
+      normalizedProvider.includes("SELF") ||
+      normalizedProvider.includes("TỰ") ||
+      normalizedProvider.includes("TU TRA")
+    ) {
+      return "Self-pay";
     }
 
     // Default fallback - if provider exists but doesn't match, assume it's private insurance
-    return 'Private';
+    return "Private";
   }
 }
