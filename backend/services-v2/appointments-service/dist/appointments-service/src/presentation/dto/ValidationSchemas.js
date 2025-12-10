@@ -92,9 +92,8 @@ exports.scheduleAppointmentSchema = joi_1.default.object({
             .optional(),
     }).required(),
     provider: joi_1.default.object({
-        providerId: joi_1.default.alternatives()
-            .try(joi_1.default.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
-        joi_1.default.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/))
+        providerId: joi_1.default.string()
+            .pattern(/^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-[A-Z]{3,4}-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/) // Accept dept-first, DOC-first, and legacy DOC-GEN
             .required(),
         fullName: vietnameseHealthcareRules.vietnameseName.optional(),
         specialization: joi_1.default.string().max(100).optional(),

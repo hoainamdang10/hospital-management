@@ -49,6 +49,94 @@ const statusOptions: { value: StatusFilter; label: string; color: string }[] = [
   { value: 'suspended', label: 'Tạm ngưng', color: 'bg-orange-100 text-orange-700' },
 ];
 
+// Mapping specialization codes to Vietnamese names
+const SPECIALIZATION_MAP: Record<string, string> = {
+  // Common codes
+  'General': 'Đa khoa',
+  'GENERAL': 'Đa khoa',
+  'GENMED': 'Đa khoa',
+  'General Medicine': 'Đa khoa',
+  // Cardiology
+  'CARD': 'Tim mạch',
+  'Cardiology': 'Tim mạch',
+  'CARDIOLOGY': 'Tim mạch',
+  // Dermatology
+  'DERM': 'Da liễu',
+  'Dermatology': 'Da liễu',
+  'DERMATOLOGY': 'Da liễu',
+  // Neurology
+  'NEUR': 'Thần kinh',
+  'Neurology': 'Thần kinh',
+  'NEUROLOGY': 'Thần kinh',
+  // Pediatrics
+  'PEDI': 'Nhi khoa',
+  'Pediatrics': 'Nhi khoa',
+  'PEDIATRICS': 'Nhi khoa',
+  // Orthopedics
+  'ORTH': 'Chấn thương chỉnh hình',
+  'Orthopedics': 'Chấn thương chỉnh hình',
+  'ORTHOPEDICS': 'Chấn thương chỉnh hình',
+  // Surgery
+  'SURG': 'Ngoại khoa',
+  'Surgery': 'Ngoại khoa',
+  'SURGERY': 'Ngoại khoa',
+  // Internal Medicine
+  'INTE': 'Nội khoa',
+  'Internal Medicine': 'Nội khoa',
+  'INTERNAL': 'Nội khoa',
+  // Obstetrics & Gynecology
+  'OBGY': 'Sản phụ khoa',
+  'Obstetrics': 'Sản phụ khoa',
+  'OBSTETRICS': 'Sản phụ khoa',
+  'Gynecology': 'Phụ khoa',
+  // Ophthalmology
+  'OPHT': 'Nhãn khoa',
+  'Ophthalmology': 'Nhãn khoa',
+  'OPHTHALMOLOGY': 'Nhãn khoa',
+  // ENT
+  'ENT': 'Tai mũi họng',
+  'Otolaryngology': 'Tai mũi họng',
+  // Radiology
+  'RADI': 'Chẩn đoán hình ảnh',
+  'Radiology': 'Chẩn đoán hình ảnh',
+  // Oncology
+  'ONCO': 'Ung bướu',
+  'Oncology': 'Ung bướu',
+  // Gastroenterology
+  'GAST': 'Tiêu hóa',
+  'Gastroenterology': 'Tiêu hóa',
+  // Psychiatry
+  'PSYC': 'Tâm thần',
+  'Psychiatry': 'Tâm thần',
+  // Endocrinology
+  'ENDO': 'Nội tiết',
+  'Endocrinology': 'Nội tiết',
+  // Dentistry
+  'DENT': 'Răng hàm mặt',
+  'Dentistry': 'Răng hàm mặt',
+  // Emergency
+  'EMER': 'Cấp cứu',
+  'Emergency': 'Cấp cứu',
+  // Urology
+  'UROL': 'Tiết niệu',
+  'Urology': 'Tiết niệu',
+  // Pulmonology
+  'PULM': 'Hô hấp',
+  'Pulmonology': 'Hô hấp',
+  // Nephrology
+  'NEPH': 'Thận',
+  'Nephrology': 'Thận',
+  // Rheumatology
+  'RHEU': 'Cơ xương khớp',
+  'Rheumatology': 'Cơ xương khớp',
+};
+
+// Helper function to translate specialization
+const getVietnameseSpecialization = (code: string | undefined): string => {
+  if (!code) return 'Chưa cập nhật';
+  return SPECIALIZATION_MAP[code] || SPECIALIZATION_MAP[code.toUpperCase()] || code;
+};
+
 // Healthcare-themed avatar gradients - consistent with system colors
 const avatarGradients = [
   'from-cyan-500 to-teal-600',      // Primary healthcare cyan
@@ -570,7 +658,7 @@ export default function DoctorsListPage() {
                               <span
                                 className="inline-flex items-center rounded-lg border border-cyan-200/80 bg-gradient-to-r from-cyan-50 to-teal-50 px-2.5 py-1 text-xs font-medium text-cyan-700 transition-all duration-200 group-hover:shadow-sm"
                               >
-                                {doctor.professionalInfo.department}
+                                {getVietnameseSpecialization(doctor.professionalInfo.department)}
                               </span>
                             ) : (
                               <span className="text-xs text-slate-400 italic">Chưa cập nhật</span>

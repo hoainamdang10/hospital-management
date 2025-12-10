@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   CheckCircle,
   CreditCard,
@@ -65,6 +65,8 @@ import {
 } from '@/modules/billing/services/wallet.service';
 import { cn, formatCurrency } from '@/lib/utils';
 import { showErrorToast } from '@/lib/utils/error-toast';
+import { SmartSuggestions } from '@/components/ChatBot/SmartSuggestions';
+import ChatBot, { type ChatBotHandle } from '@/components/ChatBot';
 
 type SummaryTone = 'primary' | 'warning' | 'success' | 'info';
 type StatusFilterValue = 'all' | 'pending' | 'paid' | 'overdue' | 'refunded' | 'cancelled';
@@ -109,6 +111,9 @@ export default function PatientBillingPage() {
   const [topUpAmount, setTopUpAmount] = useState('');
   const [topUpDescription, setTopUpDescription] = useState('');
   const [isCreatingTopUpLink, setIsCreatingTopUpLink] = useState(false);
+
+  // ChatBot ref for SmartSuggestions integration
+  const chatBotRef = useRef<ChatBotHandle>(null);
 
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
@@ -195,7 +200,7 @@ export default function PatientBillingPage() {
     const pendingCount =
       eligibleInvoices.length > 0
         ? eligibleInvoices.filter((inv) => isPendingStatus(inv.status) || inv.status === 'draft')
-            .length
+          .length
         : (summary?.pendingInvoiceCount ?? 0);
 
     const paidCount =
@@ -654,7 +659,52 @@ export default function PatientBillingPage() {
             currency={walletAccount?.currency || 'VND'}
           />
         )}
+
+        {/* Smart Suggestions - AI Powered */}
+        <SmartSuggestions
+          pagePath="/patient/billing"
+          contextData={{
+            unpaidCount: resolvedSummary.pendingCount,
+            paidCount: resolvedSummary.paidCount,
+            totalOutstanding: resolvedSummary.totalOutstanding,
+            walletBalance,
+            totalInvoices: invoices.length,
+          }}
+          onOpenChat={(message: string) => {
+            chatBotRef.current?.openWithMessage(message);
+          }}
+          onCallFunction={(functionName: string) => {
+            if (functionName === 'payFirstUnpaid') {
+              const firstUnpaid = invoices.find(
+                (inv) => isPendingStatus(inv.status) && getOutstandingAmount(inv) > 0
+              );
+              if (firstUnpaid) {
+                handlePayment(firstUnpaid);
+              } else {
+                toast.info('Không có hóa đơn nào cần thanh toán');
+              }
+            }
+          }}
+          title="AI hỗ trợ thanh toán"
+        />
       </motion.div>
+
+      {/* ChatBot with Billing Context */}
+      <ChatBot
+        ref={chatBotRef}
+        context={{
+          page: '/patient/billing',
+          data: {
+            totalAmount: resolvedSummary.totalAmount,
+            totalPaid: resolvedSummary.totalPaid,
+            totalOutstanding: resolvedSummary.totalOutstanding,
+            pendingInvoiceCount: resolvedSummary.pendingCount,
+            paidInvoiceCount: resolvedSummary.paidCount,
+            walletBalance,
+            patientId: canonicalPatientId || '',
+          },
+        }}
+      />
     </DashboardLayout>
   );
 }

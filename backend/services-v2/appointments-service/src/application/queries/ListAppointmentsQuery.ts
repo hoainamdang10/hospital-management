@@ -28,7 +28,7 @@ export interface ListAppointmentsQueryParams {
 }
 
 export class ListAppointmentsQuery {
-  constructor(private readModelRepo: IAppointmentReadModelRepository) { }
+  constructor(private readModelRepo: IAppointmentReadModelRepository) {}
 
   /**
    * Execute query to list appointments
@@ -72,6 +72,7 @@ export class ListAppointmentsQuery {
         priority: readModel.priority,
         status: readModel.status,
         payment_status: readModel.paymentStatus,
+        department_id: readModel.departmentId,
 
         patient_id: readModel.patientId,
         patient_full_name: readModel.patientFullName,
@@ -84,6 +85,7 @@ export class ListAppointmentsQuery {
         doctor_id: readModel.doctorId,
         doctor_full_name: readModel.doctorFullName,
         doctor_specialization: readModel.doctorSpecialization,
+        doctor_department: readModel.doctorDepartment,
 
         consultation_fee: readModel.consultationFee, // Billing reference only
 

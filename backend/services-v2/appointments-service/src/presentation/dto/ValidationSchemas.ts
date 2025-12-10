@@ -112,11 +112,10 @@ export const scheduleAppointmentSchema = Joi.object({
   }).required(),
 
   provider: Joi.object({
-    providerId: Joi.alternatives()
-      .try(
-        Joi.string().pattern(/^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/), // e.g., PEDI-DOC-202502-010
-        Joi.string().pattern(/^DOC-GEN-\d{6}-\d{3}$/), // e.g., DOC-GEN-202511-955
-      )
+    providerId: Joi.string()
+      .pattern(
+        /^(?:[A-Z]{3,4}-DOC-\d{6}-\d{3}|DOC-[A-Z]{3,4}-\d{6}-\d{3}|DOC-GEN-\d{6}-\d{3})$/,
+      ) // Accept dept-first, DOC-first, and legacy DOC-GEN
       .required(),
 
     fullName: vietnameseHealthcareRules.vietnameseName.optional(),

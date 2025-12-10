@@ -16,7 +16,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
@@ -45,7 +45,12 @@ import { appointmentsService } from '@/lib/api/appointments.service';
 import { doctorsService } from '@/lib/api/doctors.service';
 import { patientsService } from '@/lib/api/patients.service';
 import { departmentsService } from '@/lib/api/departments.service';
-import { getAvailableSlots, getProviderSchedule, TimeSlot, ProviderSchedule } from '@/lib/api/availability.service';
+import {
+  getAvailableSlots,
+  getProviderSchedule,
+  TimeSlot,
+  ProviderSchedule,
+} from '@/lib/api/availability.service';
 
 interface Doctor {
   id: string;
@@ -57,12 +62,17 @@ interface Doctor {
 
 interface Patient {
   id: string;
-  fullName: string;
-  phone: string;
-  email: string;
-  dateOfBirth: string;
-  gender: string;
   patientId: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  nationalId?: string | null;
+  address?: string | null;
+  insuranceNumber?: string | null;
+  insuranceType?: string | null;
+  emergencyContact?: string | null;
 }
 
 interface Department {
@@ -252,8 +262,12 @@ export default function AddAppointmentPage() {
   // Helper function to generate default slots based on schedule
   const generateDefaultSlots = (schedule: ProviderSchedule | null): TimeSlot[] => {
     const slots: TimeSlot[] = [];
-    const startHour = schedule?.workingHours?.start ? parseInt(schedule.workingHours.start.split(':')[0]) : 8;
-    const endHour = schedule?.workingHours?.end ? parseInt(schedule.workingHours.end.split(':')[0]) : 17;
+    const startHour = schedule?.workingHours?.start
+      ? parseInt(schedule.workingHours.start.split(':')[0])
+      : 8;
+    const endHour = schedule?.workingHours?.end
+      ? parseInt(schedule.workingHours.end.split(':')[0])
+      : 17;
 
     for (let hour = startHour; hour < endHour; hour++) {
       slots.push({
@@ -270,13 +284,137 @@ export default function AddAppointmentPage() {
     return slots;
   };
 
+  const normalizedWorkingDays = useMemo(() => {
+    if (!providerSchedule?.workingDays) return null;
+    return providerSchedule.workingDays.map((day) => day.trim().toUpperCase());
+  }, [providerSchedule?.workingDays]);
+
+  const normalizePhoneNumber = (input?: string | null): string | null => {
+    if (!input) return null;
+    const digits = input.replace(/\D/g, '');
+    if (digits.length === 10 && digits.startsWith('0')) return digits;
+    if (digits.length === 11 && digits.startsWith('84')) return `0${digits.slice(2)}`;
+    if (digits.length === 9) return `0${digits}`;
+    return null;
+  };
+
+  const formatDateOnly = (value?: string | null): string | null => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString().split('T')[0];
+  };
+
+  const buildAddressString = (address?: any): string | null => {
+    if (!address) return null;
+    if (typeof address === 'string') return address;
+    const parts = [
+      address.street,
+      address.ward,
+      address.district,
+      address.city || address.province,
+      address.country,
+    ]
+      .filter((part) => typeof part === 'string' && part.trim().length > 0)
+      .map((part) => part.trim());
+    return parts.length > 0 ? parts.join(', ') : null;
+  };
+
+  const mapPatientDetails = (data: any): Partial<Patient> => {
+    const personal = data?.personalInfo ?? data;
+    const contact = data?.contactInfo ?? data;
+    const insurance = data?.insuranceInfo ?? data?.insurance;
+    const emergency = (data?.emergencyContacts || data?.emergencyContact || [])[0] || {};
+
+    return {
+      fullName: personal?.fullName || data?.fullName || null,
+      phone:
+        contact?.primaryPhone ||
+        contact?.phoneNumber ||
+        data?.phoneNumber ||
+        data?.primaryPhone ||
+        data?.phone ||
+        '',
+      email: contact?.email || data?.email || '',
+      dateOfBirth: personal?.dateOfBirth || data?.dateOfBirth || null,
+      gender: personal?.gender || data?.gender || null,
+      nationalId: personal?.nationalId || data?.nationalId || null,
+      address: buildAddressString(contact?.address) || buildAddressString(data?.address) || null,
+      insuranceNumber:
+        insurance?.bhytNumber || insurance?.policyNumber || data?.insuranceNumber || null,
+      insuranceType: insurance?.coverageType || data?.insuranceType || null,
+      emergencyContact: emergency?.primaryPhone || data?.emergencyContact || null,
+    };
+  };
+
+  const formatPatientDob = (value?: string | null): string => {
+    if (!value) return 'Chưa cập nhật';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return format(parsed, 'dd/MM/yyyy');
+  };
+
+  const normalizeProviderId = (id?: string | null): string => {
+    if (!id) return '';
+    const normalized = id.trim().toUpperCase();
+
+    // Accept both CARD-DOC-######-### and DOC-CARD-######-###
+    if (
+      /^[A-Z]{3,4}-DOC-\d{6}-\d{3}$/.test(normalized) ||
+      /^DOC-[A-Z]{3,4}-\d{6}-\d{3}$/.test(normalized) ||
+      /^DOC-GEN-\d{6}-\d{3}$/.test(normalized)
+    ) {
+      return normalized;
+    }
+
+    return normalized;
+  };
+
+  const formatSlotTime = (value?: string | null): string => {
+    if (!value) return '--:--';
+    let dateObj: Date | null = null;
+    if (value.includes('T')) {
+      const parsed = new Date(value);
+      dateObj = Number.isNaN(parsed.getTime()) ? null : parsed;
+    } else {
+      const sanitized = value.length >= 5 ? value.substring(0, 5) : value;
+      const parsed = parse(sanitized, 'HH:mm', new Date());
+      dateObj = Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return dateObj ? format(dateObj, 'HH:mm', { locale: vi }) : value;
+  };
+
+  const getSlotValue = (slot: TimeSlot): string => {
+    if (!slot?.startTime) return '';
+    if (slot.startTime.includes('T')) {
+      const parsed = new Date(slot.startTime);
+      if (!Number.isNaN(parsed.getTime())) {
+        return format(parsed, 'HH:mm');
+      }
+    }
+    const sanitized = slot.startTime.length >= 5 ? slot.startTime.substring(0, 5) : slot.startTime;
+    return sanitized;
+  };
+
+  const formatSlotRange = (slot: TimeSlot): string => {
+    return `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`;
+  };
+
+  const selectedSlotLabel = useMemo(() => {
+    if (!time) return '';
+    const slot = availableSlots.find((s) => getSlotValue(s) === time);
+    return slot ? formatSlotRange(slot) : time;
+  }, [time, availableSlots]);
+
   // Check if a date is a working day for the selected doctor
   const isWorkingDay = (dateToCheck: Date): boolean => {
-    if (!providerSchedule?.workingDays) return true; // Allow all days if no schedule
+    if (!normalizedWorkingDays) return true; // Allow all days if no schedule
 
     const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const dayName = dayNames[dateToCheck.getDay()];
-    return providerSchedule.workingDays.includes(dayName);
+    return normalizedWorkingDays.includes(dayName);
   };
 
   const fetchPatients = async (keyword: string, options?: { allowEmpty?: boolean }) => {
@@ -293,15 +431,15 @@ export default function AddAppointmentPage() {
       });
       if (res && res.data) {
         const normalized = [...res.data]
-          .map((p: any) => ({
-            id: p.id,
-            patientId: p.patientId,
-            fullName: p.fullName,
-            phone: p.phoneNumber,
-            email: p.email,
-            dateOfBirth: p.dateOfBirth,
-            gender: p.gender,
-          }))
+          .map((p: any) => {
+            const mapped = mapPatientDetails(p);
+            return {
+              id: p.id || p.patientId,
+              patientId: p.patientId,
+              fullName: p.fullName || p.personalInfo?.fullName || mapped.fullName || 'Không rõ tên',
+              ...mapped,
+            };
+          })
           .sort((a, b) => nameCollator.compare(a.fullName || '', b.fullName || ''));
 
         setPatients(normalized);
@@ -350,12 +488,30 @@ export default function AddAppointmentPage() {
     };
   }, [patientSearch]);
 
-  const handleSelectPatient = (patient: Patient) => {
+  const handleSelectPatient = async (patient: Patient) => {
     setSelectedPatient(patient);
     setPatients([]);
     setPatientSearch('');
     setShowPatientDropdown(false);
-    setTimeout(() => setCurrentStep(1), 200);
+
+    try {
+      const detail = await patientsService.getById(patient.patientId);
+      if (detail?.data) {
+        const mapped = mapPatientDetails(detail.data);
+        setSelectedPatient((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ...mapped,
+            fullName: prev.fullName || mapped.fullName || prev.fullName,
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load patient detail', error);
+    } finally {
+      setTimeout(() => setCurrentStep(1), 200);
+    }
   };
 
   const handlePatientSearchChange = (value: string) => {
@@ -374,10 +530,31 @@ export default function AddAppointmentPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedPatient || !date) return;
+    if (!selectedPatient || !date || !selectedDoctor || !selectedDepartment || !time) return;
 
     setIsLoading(true);
     try {
+      const normalizedPhone = normalizePhoneNumber(selectedPatient.phone);
+      if (!normalizedPhone) {
+        toast.error('Số điện thoại bệnh nhân không hợp lệ (cần 10 số bắt đầu bằng 0)');
+        setIsLoading(false);
+        return;
+      }
+      const nationalIdDigitsRaw = (selectedPatient.nationalId || '').replace(/\D/g, '');
+      const hasValidNationalId = /^\d{9}(\d{3})?$/.test(nationalIdDigitsRaw);
+      if (!hasValidNationalId) {
+        toast.warning?.('Chưa có số CMND/CCCD hợp lệ, sẽ dùng mã tạm thời') ??
+          toast('Chưa có số CMND/CCCD hợp lệ, sẽ dùng mã tạm thời');
+      }
+      const normalizedNationalId = hasValidNationalId ? nationalIdDigitsRaw : null;
+      const safeNationalId = normalizedNationalId ?? '000000000';
+      const dob = formatDateOnly(selectedPatient.dateOfBirth);
+      if (!dob) {
+        toast.error('Ngày sinh bệnh nhân không hợp lệ');
+        setIsLoading(false);
+        return;
+      }
+
       const formattedDate = format(date, 'yyyy-MM-dd');
       const startTime = `${formattedDate}T${time}:00`;
 
@@ -386,31 +563,66 @@ export default function AddAppointmentPage() {
       endDateObj.setHours(hours, minutes + 30);
       const endTime = format(endDateObj, "yyyy-MM-dd'T'HH:mm:ss");
 
-      const payload = {
+      const appointmentTypeValue = (type || 'CONSULTATION').toLowerCase();
+      const reasonValue = reason.trim() || 'Khám bệnh tổng quát';
+      const notesValue = notes.trim();
+      const durationMinutes = 30;
+      const selectedDoctorInfo = doctors.find((d) => d.id === selectedDoctor);
+
+      const insuranceType = (selectedPatient.insuranceType || 'NONE').toUpperCase();
+      const normalizedProviderId = normalizeProviderId(selectedDoctor);
+      const normalizedDepartmentCode = (selectedDepartment || '').toUpperCase();
+      const normalizedEmergencyContact = normalizePhoneNumber(
+        selectedPatient.emergencyContact || null
+      );
+      const normalizedInsuranceNumber =
+        selectedPatient.insuranceNumber && /^[A-Z]{2}\d{13}$/i.test(selectedPatient.insuranceNumber)
+          ? selectedPatient.insuranceNumber.toUpperCase()
+          : undefined;
+
+      const patientAddress = selectedPatient.address?.trim()
+        ? selectedPatient.address.trim()
+        : undefined;
+
+      const appointmentPayload = {
         patient: {
           patientId: selectedPatient.patientId,
           fullName: selectedPatient.fullName,
-          phoneNumber: selectedPatient.phone,
+          phone: normalizedPhone,
           email: selectedPatient.email,
-          dateOfBirth: selectedPatient.dateOfBirth,
+          dateOfBirth: dob,
           gender: selectedPatient.gender,
+          nationalId: safeNationalId,
+          ...(patientAddress ? { address: patientAddress } : {}),
+          ...(normalizedEmergencyContact ? { emergencyContact: normalizedEmergencyContact } : {}),
+          ...(normalizedInsuranceNumber ? { insuranceNumber: normalizedInsuranceNumber } : {}),
+          insuranceType,
         },
         provider: {
-          providerId: selectedDoctor,
-          providerName: doctors.find((d) => d.id === selectedDoctor)?.fullName || '',
+          providerId: normalizedProviderId,
+          fullName: selectedDoctorInfo?.fullName,
+          specialization: selectedDoctorInfo?.specialization,
+          department: normalizedDepartmentCode,
         },
-        departmentCode: selectedDepartment,
+        departmentCode: normalizedDepartmentCode,
         appointment: {
-          startTime: startTime,
-          endTime: endTime,
-          appointmentType: type,
-          reason: reason,
-          priority: 'NORMAL',
-          notes: notes,
+          startTime,
+          endTime,
+          appointmentType: appointmentTypeValue,
+          priority: 'normal',
+          reason: reasonValue,
+          estimatedDuration: durationMinutes,
+          reasonCode: appointmentTypeValue,
+          consultationFee: 500000,
+          requiresPreparation: false,
         },
       };
+      if (notesValue.length > 0) {
+        (appointmentPayload.appointment as any).notes = notesValue;
+      }
 
-      const res = await appointmentsService.createAppointment(payload);
+      console.debug('[AdminAppointments] Creating appointment with payload:', appointmentPayload);
+      const res = await appointmentsService.createAppointment(appointmentPayload);
 
       if (res.success) {
         toast.success('Tạo lịch hẹn thành công');
@@ -419,8 +631,17 @@ export default function AddAppointmentPage() {
         throw new Error(res.message || 'Có lỗi xảy ra');
       }
     } catch (error: any) {
-      console.error('Create appointment error:', error);
-      toast.error(error.message || 'Không thể tạo lịch hẹn');
+      console.error('Create appointment error:', error?.response?.data || error);
+      const validationErrors: Array<{ field?: string; message?: string }> =
+        error?.response?.data?.validationErrors || [];
+      const apiMessage =
+        validationErrors.length > 0
+          ? validationErrors
+              .map((err) => (err.field ? `${err.field}: ${err.message}` : err.message))
+              .filter(Boolean)
+              .join('\n')
+          : error?.response?.data?.message || error.message;
+      toast.error(apiMessage || 'Không thể tạo lịch hẹn');
     } finally {
       setIsLoading(false);
     }
@@ -816,21 +1037,21 @@ export default function AddAppointmentPage() {
                             <Phone className="h-4 w-4 text-cyan-500" />
                             <span className="text-slate-500">SĐT:</span>
                             <span className="font-medium text-slate-900">
-                              {selectedPatient.phone}
+                              {selectedPatient.phone || 'Chưa cập nhật'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-slate-600">
                             <Mail className="h-4 w-4 text-cyan-500" />
                             <span className="text-slate-500">Email:</span>
                             <span className="max-w-[150px] truncate font-medium text-slate-900">
-                              {selectedPatient.email}
+                              {selectedPatient.email || 'Chưa cập nhật'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-slate-600">
                             <Cake className="h-4 w-4 text-cyan-500" />
                             <span className="text-slate-500">Ngày sinh:</span>
                             <span className="font-medium text-slate-900">
-                              {format(new Date(selectedPatient.dateOfBirth), 'dd/MM/yyyy')}
+                              {formatPatientDob(selectedPatient.dateOfBirth)}
                             </span>
                           </div>
                         </div>
@@ -934,7 +1155,12 @@ export default function AddAppointmentPage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
 
@@ -1020,7 +1246,12 @@ export default function AddAppointmentPage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
 
@@ -1163,7 +1394,10 @@ export default function AddAppointmentPage() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto rounded-xl border-slate-200 bg-white p-0 shadow-xl" align="start">
+                  <PopoverContent
+                    className="w-auto rounded-xl border-slate-200 bg-white p-0 shadow-xl"
+                    align="start"
+                  >
                     <Calendar
                       mode="single"
                       selected={date}
@@ -1184,20 +1418,23 @@ export default function AddAppointmentPage() {
                   </PopoverContent>
                 </Popover>
                 {/* Working days hint */}
-                {selectedDoctor && providerSchedule?.workingDays && (
+                {selectedDoctor && normalizedWorkingDays && (
                   <p className="mt-1 text-xs text-slate-500">
-                    Bác sĩ làm việc: {providerSchedule.workingDays.map(d => {
-                      const dayMap: Record<string, string> = {
-                        'MONDAY': 'T2',
-                        'TUESDAY': 'T3',
-                        'WEDNESDAY': 'T4',
-                        'THURSDAY': 'T5',
-                        'FRIDAY': 'T6',
-                        'SATURDAY': 'T7',
-                        'SUNDAY': 'CN'
-                      };
-                      return dayMap[d] || d;
-                    }).join(', ')}
+                    Bác sĩ làm việc:{' '}
+                    {normalizedWorkingDays
+                      .map((d) => {
+                        const dayMap: Record<string, string> = {
+                          MONDAY: 'T2',
+                          TUESDAY: 'T3',
+                          WEDNESDAY: 'T4',
+                          THURSDAY: 'T5',
+                          FRIDAY: 'T6',
+                          SATURDAY: 'T7',
+                          SUNDAY: 'CN',
+                        };
+                        return dayMap[d] || d;
+                      })
+                      .join(', ')}
                   </p>
                 )}
               </div>
@@ -1207,40 +1444,49 @@ export default function AddAppointmentPage() {
                 <Label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   <Clock className="h-4 w-4 text-teal-500" />
                   Giờ khám
-                  {isLoadingSlots && (
-                    <Loader2 className="h-3 w-3 animate-spin text-cyan-500" />
-                  )}
+                  {isLoadingSlots && <Loader2 className="h-3 w-3 animate-spin text-cyan-500" />}
                 </Label>
-                <Select
-                  value={time}
-                  onValueChange={setTime}
-                  disabled={!date || isLoadingSlots}
-                >
-                  <SelectTrigger className={cn(
-                    "h-12 rounded-xl border-slate-200 bg-slate-50 transition-all focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-500/20",
-                    (!date || isLoadingSlots) && "opacity-60 cursor-not-allowed"
-                  )}>
-                    <SelectValue placeholder={!date ? "Vui lòng chọn ngày trước" : isLoadingSlots ? "Đang tải..." : "Chọn giờ"} />
+                <Select value={time} onValueChange={setTime} disabled={!date || isLoadingSlots}>
+                  <SelectTrigger
+                    className={cn(
+                      'h-12 rounded-xl border-slate-200 bg-slate-50 transition-all focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-500/20',
+                      (!date || isLoadingSlots) && 'cursor-not-allowed opacity-60'
+                    )}
+                  >
+                    <SelectValue
+                      placeholder={
+                        !date
+                          ? 'Vui lòng chọn ngày trước'
+                          : isLoadingSlots
+                            ? 'Đang tải...'
+                            : 'Chọn giờ'
+                      }
+                    >
+                      {selectedSlotLabel}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="max-h-60 rounded-xl border-slate-200 bg-white shadow-xl">
                     {availableSlots.length > 0 ? (
                       availableSlots
-                        .filter(slot => slot.isAvailable)
-                        .map((slot) => (
-                          <SelectItem
-                            key={slot.startTime}
-                            value={slot.startTime}
-                            className="rounded-lg transition-colors focus:bg-cyan-50 focus:text-cyan-900"
-                          >
-                            <span className="flex items-center gap-2">
-                              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                              {slot.startTime} - {slot.endTime}
-                            </span>
-                          </SelectItem>
-                        ))
+                        .filter((slot) => slot.isAvailable)
+                        .map((slot) => {
+                          const slotValue = getSlotValue(slot);
+                          return (
+                            <SelectItem
+                              key={`${slot.startTime}-${slot.endTime}`}
+                              value={slotValue}
+                              className="rounded-lg transition-colors focus:bg-cyan-50 focus:text-cyan-900"
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                                {formatSlotRange(slot)}
+                              </span>
+                            </SelectItem>
+                          );
+                        })
                     ) : (
                       <div className="px-3 py-2 text-sm text-slate-500">
-                        {!date ? "Vui lòng chọn ngày" : "Không có khung giờ trống"}
+                        {!date ? 'Vui lòng chọn ngày' : 'Không có khung giờ trống'}
                       </div>
                     )}
                   </SelectContent>
@@ -1248,7 +1494,7 @@ export default function AddAppointmentPage() {
                 {/* Slots count hint */}
                 {date && availableSlots.length > 0 && (
                   <p className="text-xs text-slate-500">
-                    Còn {availableSlots.filter(s => s.isAvailable).length} khung giờ trống
+                    Còn {availableSlots.filter((s) => s.isAvailable).length} khung giờ trống
                   </p>
                 )}
               </div>
@@ -1356,7 +1602,9 @@ export default function AddAppointmentPage() {
                 Thời gian
               </span>
               <span className="font-semibold text-cyan-600">
-                {date && time ? `${format(date, 'dd/MM/yyyy')} • ${time}` : '--'}
+                {date && time
+                  ? `${format(date, 'dd/MM/yyyy')} • ${selectedSlotLabel || time}`
+                  : '--'}
               </span>
             </div>
 

@@ -157,20 +157,34 @@ class AuthorizationService {
      * - NURSE/PATIENT: Cannot start appointments
      */
     async canStartAppointment(userId, appointmentId, appointment) {
+        console.log("[AuthorizationService] canStartAppointment called:", {
+            userId,
+            appointmentId,
+            appointmentDoctorId: appointment.doctorId,
+        });
         const role = await this.getUserRole(userId);
+        console.log("[AuthorizationService] User role:", role);
         if (!role) {
             throw new IAuthorizationService_1.AuthorizationError("User not found or has no role", userId, "start_appointment", appointmentId);
         }
         // Admins can start any appointment (override)
         if (role === IAuthorizationService_1.UserRole.SUPER_ADMIN || role === IAuthorizationService_1.UserRole.ADMIN) {
+            console.log("[AuthorizationService] Admin - authorized");
             return true;
         }
         // Doctors can only start their own appointments
         if (role === IAuthorizationService_1.UserRole.DOCTOR) {
             const userDoctorId = await this.resolveUserIdToDoctorId(userId);
+            console.log("[AuthorizationService] Doctor check:", {
+                userId,
+                userDoctorId,
+                appointmentDoctorId: appointment.doctorId,
+                match: userDoctorId === appointment.doctorId,
+            });
             return userDoctorId === appointment.doctorId;
         }
         // Nurses and patients cannot start appointments
+        console.log("[AuthorizationService] Role not authorized to start:", role);
         return false;
     }
     /**

@@ -27,6 +27,15 @@ export const appointmentsService = {
   },
 
   /**
+   * Create appointment (admin flow with nested payload)
+   * POST /api/v1/appointments
+   */
+  async createAppointment(data: any): Promise<ScheduleAppointmentResponse> {
+    const response = await apiClient.post<ScheduleAppointmentResponse>('/v1/appointments', data);
+    return response.data;
+  },
+
+  /**
    * List appointments with denormalized data (CQRS Read Model)
    * GET /api/v2/appointments
    */

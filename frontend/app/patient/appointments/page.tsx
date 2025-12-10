@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   CalendarPlus,
   Clock,
@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SmartSuggestions } from '@/components/ChatBot/SmartSuggestions';
+import ChatBot, { type ChatBotHandle } from '@/components/ChatBot';
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 type AppointmentStatus =
@@ -55,6 +57,9 @@ export default function MyAppointmentsPage() {
   // Filters
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus | 'all'>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+
+  // ChatBot ref for SmartSuggestions integration
+  const chatBotRef = useRef<ChatBotHandle>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -439,7 +444,45 @@ export default function MyAppointmentsPage() {
             </div>
           )}
         </div>
+
+        {/* Smart Suggestions - AI Powered */}
+        <SmartSuggestions
+          pagePath="/patient/appointments"
+          contextData={{
+            upcomingCount,
+            completedCount,
+            cancelledCount,
+            activeTab,
+            totalAppointments: appointments.length,
+          }}
+          onOpenChat={(message: string) => {
+            chatBotRef.current?.openWithMessage(message);
+          }}
+          onCallFunction={(functionName: string) => {
+            if (functionName === 'filterUpcoming') {
+              setActiveTab('upcoming');
+            } else if (functionName === 'filterHistory') {
+              setActiveTab('completed');
+            }
+          }}
+          title="AI gợi ý"
+        />
       </motion.div>
+
+      {/* ChatBot with Appointments Context */}
+      <ChatBot
+        ref={chatBotRef}
+        context={{
+          page: '/patient/appointments',
+          data: {
+            upcomingAppointments: upcomingCount,
+            completedAppointments: completedCount,
+            cancelledAppointments: cancelledCount,
+            totalAppointments: appointments.length,
+            currentFilter: activeTab,
+          },
+        }}
+      />
     </DashboardLayout>
   );
 }

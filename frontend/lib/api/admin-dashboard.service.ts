@@ -256,8 +256,14 @@ export async function getRecentAppointments(limit: number = 10): Promise<RecentA
 
       return {
         id: apt.appointmentId,
-        patientName: apt.patientName || 'Bệnh nhân',
-        appointmentType: apt.appointmentType || 'Khám bệnh',
+        patientName:
+          apt.patient_full_name ||
+          apt.patientName ||
+          apt.patientFullName ||
+          apt.patient?.fullName ||
+          apt.patient?.full_name ||
+          'Bệnh nhân',
+        appointmentType: apt.appointmentType || apt.type || 'Khám bệnh',
         appointmentDateTime: dateTime || new Date().toISOString(),
         status: apt.status,
       };

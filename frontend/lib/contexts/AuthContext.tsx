@@ -333,7 +333,7 @@ function getProfilePath(role: string): string {
     case 'DOCTOR':
       return '/doctor/profile'; // Assuming this route exists, otherwise fallback to dashboard
     case 'ADMIN':
-      return '/admin/settings'; // Admins usually update profile in settings
+      return '/admin/dashboard'; // Redirect admins to dashboard instead of settings
     default:
       return '/profile';
   }

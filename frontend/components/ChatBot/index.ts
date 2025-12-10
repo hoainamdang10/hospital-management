@@ -21,6 +21,7 @@ export type {
     AppointmentsListContext,
     AppointmentDetailContext,
     BillingContext,
+    DashboardContext,
     GenericContext,
 } from './types';
 

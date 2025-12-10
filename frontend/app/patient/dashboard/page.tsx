@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Calendar, FileText, CreditCard, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout';
@@ -12,6 +12,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePatient } from '@/hooks/usePatient';
 import { getPatientDashboardStats, type DashboardStats } from '@/lib/api/dashboard.service';
 import { patientService } from '@/lib/api/patient.service';
+import { SmartSuggestions } from '@/components/ChatBot/SmartSuggestions';
+import ChatBot, { type ChatBotHandle } from '@/components/ChatBot';
 
 /**
  * Patient Dashboard Page
@@ -23,6 +25,9 @@ export default function PatientDashboardPage() {
   const billingPatientId = internalId || patient?.id || patientId || null;
   const [hasInsurance, setHasInsurance] = useState<boolean>(false);
   const [hasEmergencyContact, setHasEmergencyContact] = useState<boolean>(false);
+
+  // ChatBot ref for SmartSuggestions integration
+  const chatBotRef = useRef<ChatBotHandle>(null);
 
   // Debug log only - middleware handles auth redirect
   useEffect(() => {
@@ -177,9 +182,42 @@ export default function PatientDashboardPage() {
             <div className="rounded-3xl border border-slate-100 bg-white/80 p-1 shadow-xl backdrop-blur-xl">
               <RecentActivity patientId={patientId || undefined} />
             </div>
+
+            {/* Smart Suggestions - AI Powered */}
+            <SmartSuggestions
+              pagePath="/patient/dashboard"
+              contextData={{
+                upcomingAppointments: stats.upcomingConfirmed7DaysCount,
+                pendingPayments: stats.pendingPaymentsCount,
+                profileCompletion: stats.profileCompletion,
+                hasInsurance,
+                hasEmergencyContact,
+              }}
+              onOpenChat={(message: string) => {
+                chatBotRef.current?.openWithMessage(message);
+              }}
+              title="AI hỗ trợ nhanh"
+            />
           </motion.div>
         </div>
       </motion.div>
+
+      {/* ChatBot with Dashboard Context */}
+      <ChatBot
+        ref={chatBotRef}
+        context={{
+          page: '/patient/dashboard',
+          data: {
+            upcomingAppointments: stats.upcomingConfirmed7DaysCount,
+            pendingPayments: stats.pendingPaymentsCount,
+            recentCompleted: stats.recentCompletedOrCancelledCount,
+            profileCompletion: stats.profileCompletion,
+            hasInsurance,
+            hasEmergencyContact,
+            patientId: patientId || '',
+          },
+        }}
+      />
     </DashboardLayout>
   );
 }

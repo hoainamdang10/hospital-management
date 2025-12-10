@@ -51,7 +51,7 @@ type FormState = {
 };
 
 export default function DoctorProfilePage() {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading: isAuthLoading, updateUser } = useAuth();
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -307,6 +307,13 @@ export default function DoctorProfilePage() {
               `${fresh.personalInfo?.fullName || 'Bác sĩ'} với ${years || 0
               } năm kinh nghiệm tại khoa ${fresh.professionalInfo?.department || 'Chưa cập nhật'}.`,
           });
+          // Update AuthContext user to refresh header
+          if (updateUser && user && fresh.personalInfo?.fullName) {
+            updateUser({
+              ...user,
+              fullName: fresh.personalInfo.fullName,
+            });
+          }
         }
       }
       setIsEditing(false);

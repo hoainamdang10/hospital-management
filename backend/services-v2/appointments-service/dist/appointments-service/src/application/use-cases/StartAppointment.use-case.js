@@ -100,10 +100,10 @@ class StartAppointmentUseCase extends use_case_interface_1.BaseHealthcareUseCase
         if (appointment.startedAt) {
             return 'Lịch hẹn đã được bắt đầu trước đó';
         }
-        // Check if doctor is authorized
-        if (request.startedBy !== appointment.doctorId) {
-            return 'Chỉ bác sĩ được phân công mới có thể bắt đầu khám';
-        }
+        // Note: Doctor authorization is already handled by authorizationService.canStartAppointment()
+        // which correctly resolves userId to doctorId (staff_id) before comparison.
+        // Do NOT compare request.startedBy (userId) directly with appointment.doctorId (staff_id) here
+        // as they are different ID formats.
         return null;
     }
     async authorize(request, userId) {

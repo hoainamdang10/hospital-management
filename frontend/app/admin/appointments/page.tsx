@@ -52,6 +52,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { DashboardLayout } from '@/components/layout';
 import { appointmentsService } from '@/lib/api/appointments.service';
+import { departmentsService } from '@/lib/api/departments.service';
 import type { AppointmentReadModel } from '@/lib/types/appointments';
 import { showErrorToast } from '@/lib/utils/error-toast';
 import { toast } from 'sonner';
@@ -62,6 +63,7 @@ interface Appointment {
   patientName: string;
   patientId: string;
   doctorName: string;
+  departmentCode?: string;
   departmentName: string;
   appointmentDate: string;
   appointmentTime: string;
@@ -103,12 +105,38 @@ export default function AppointmentsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [departmentMap, setDepartmentMap] = useState<Record<string, string>>({});
 
   // Get today's date in local timezone
   const today = useMemo(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }, []);
+
+  useEffect(() => {
+    const fetchDepartments = async (): Promise<void> => {
+      try {
+        const departments = await departmentsService.getDepartments();
+        const map: Record<string, string> = {};
+        departments.forEach((dept) => {
+          if (dept.code) {
+            map[dept.code.toUpperCase()] = dept.nameVi || dept.nameEn || dept.code;
+          }
+        });
+        setDepartmentMap(map);
+      } catch (error) {
+        console.error('Failed to fetch departments:', error);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  const resolveDepartmentName = (code?: string | null): string => {
+    if (!code) return 'General';
+    const normalized = code.toUpperCase();
+    return departmentMap[normalized] || code;
+  };
 
   const fetchAppointments = async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setIsRefreshing(true);
@@ -118,19 +146,33 @@ export default function AppointmentsPage() {
       const res = await appointmentsService.list({ pageSize: 100 });
 
       if (res.appointments) {
-        const mappedAppointments = res.appointments.map((apt: AppointmentReadModel) => ({
-          id: apt.id || apt.appointmentId,
-          appointmentId: apt.appointmentId,
-          patientName: apt.patientName || apt.patientFullName || apt.patient?.fullName || 'N/A',
-          patientId: apt.patientId,
-          doctorName: apt.doctorName || apt.doctorFullName || apt.doctor?.fullName || 'N/A',
-          departmentName: apt.departmentId || apt.doctorDepartment || 'General',
-          appointmentDate: apt.appointmentDate,
-          appointmentTime: apt.appointmentTime,
-          status: apt.status,
-          type: apt.type,
-          reason: apt.reason || '',
-        }));
+        const mappedAppointments = res.appointments.map((apt: AppointmentReadModel) => {
+          const rawDepartmentCode =
+            apt.departmentId ||
+            apt.departmentCode ||
+            apt.doctorDepartment ||
+            (apt as any).providerDepartment ||
+            (apt as any).department ||
+            undefined;
+          const normalizedDepartmentCode = rawDepartmentCode
+            ? rawDepartmentCode.toUpperCase()
+            : undefined;
+
+          return {
+            id: apt.id || apt.appointmentId,
+            appointmentId: apt.appointmentId,
+            patientName: apt.patientName || apt.patientFullName || apt.patient?.fullName || 'N/A',
+            patientId: apt.patientId,
+            doctorName: apt.doctorName || apt.doctorFullName || apt.doctor?.fullName || 'N/A',
+            departmentCode: normalizedDepartmentCode,
+            departmentName: resolveDepartmentName(rawDepartmentCode),
+            appointmentDate: apt.appointmentDate,
+            appointmentTime: apt.appointmentTime,
+            status: apt.status,
+            type: apt.type,
+            reason: apt.reason || '',
+          };
+        });
         setAppointments(mappedAppointments);
       }
     } catch (error) {
@@ -149,6 +191,18 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetchAppointments();
   }, []);
+
+  useEffect(() => {
+    if (Object.keys(departmentMap).length === 0) return;
+    setAppointments((prev) =>
+      prev.map((apt) => {
+        if (!apt.departmentCode) return apt;
+        const newName = resolveDepartmentName(apt.departmentCode);
+        if (newName === apt.departmentName) return apt;
+        return { ...apt, departmentName: newName };
+      })
+    );
+  }, [departmentMap]);
 
   // Filter appointments
   const filteredAppointments = appointments.filter((apt) => {

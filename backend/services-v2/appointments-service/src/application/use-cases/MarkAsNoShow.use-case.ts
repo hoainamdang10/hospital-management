@@ -7,10 +7,15 @@
  * @compliance Clean Architecture, DDD, HIPAA, Vietnamese Healthcare Standards
  */
 
-import { BaseHealthcareUseCase } from '@shared/application/use-cases/base/use-case.interface';
-import { IAppointmentRepository } from '../../domain/repositories/IAppointmentRepository';
-import { AppointmentNoShowEvent } from '../../domain/events/AppointmentNoShowEvent';
-import { IAuthorizationService, AuthorizationError, UserRole } from '../services/IAuthorizationService';
+import { BaseHealthcareUseCase } from "@shared/application/use-cases/base/use-case.interface";
+import { convertClinicLocalToUtc } from "@shared/utils/timezone";
+import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
+import { AppointmentNoShowEvent } from "../../domain/events/AppointmentNoShowEvent";
+import {
+  IAuthorizationService,
+  AuthorizationError,
+  UserRole,
+} from "../services/IAuthorizationService";
 
 export interface MarkAsNoShowRequest {
   appointmentId: string;
@@ -38,7 +43,7 @@ export interface MarkAsNoShowResponse {
 
 /**
  * Mark As No-Show Use Case
- * 
+ *
  * Business Rules:
  * 1. Only SCHEDULED or CONFIRMED appointments can be marked as no-show
  * 2. Can only mark as no-show after appointment time has passed
@@ -58,40 +63,40 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
 
   constructor(
     private readonly appointmentRepository: IAppointmentRepository,
-    private readonly authorizationService: IAuthorizationService
+    private readonly authorizationService: IAuthorizationService,
   ) {
     super();
   }
 
   protected async executeInternal(
-    request: MarkAsNoShowRequest
+    request: MarkAsNoShowRequest,
   ): Promise<MarkAsNoShowResponse> {
     try {
       // 1. Authorization check - only staff can mark as no-show
       const hasRole = await this.authorizationService.hasAnyRole(
         request.markedBy,
-        [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE]
+        [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE],
       );
 
       if (!hasRole) {
         throw new AuthorizationError(
-          'You are not authorized to mark appointments as no-show',
+          "You are not authorized to mark appointments as no-show",
           request.markedBy,
-          'mark_no_show',
-          request.appointmentId
+          "mark_no_show",
+          request.appointmentId,
         );
       }
 
       // 2. Find appointment
       const appointment = await this.appointmentRepository.findByAppointmentId(
-        request.appointmentId
+        request.appointmentId,
       );
 
       if (!appointment) {
         return {
           success: false,
-          message: 'Không tìm thấy lịch hẹn',
-          errors: ['Appointment not found']
+          message: "Không tìm thấy lịch hẹn",
+          errors: ["Appointment not found"],
         };
       }
 
@@ -101,7 +106,7 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
         return {
           success: false,
           message: validationError,
-          errors: [validationError]
+          errors: [validationError],
         };
       }
 
@@ -113,7 +118,7 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
       if (request.applyPenalty !== false) {
         penalty = {
           amount: this.NO_SHOW_PENALTY_FEE,
-          description: 'Phí phạt không đến khám'
+          description: "Phí phạt không đến khám",
         };
 
         // Penalty integration with billing service:
@@ -129,20 +134,20 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
       // 6. Return success response
       return {
         success: true,
-        message: 'Đã đánh dấu bệnh nhân không đến khám',
+        message: "Đã đánh dấu bệnh nhân không đến khám",
         appointment: {
           appointmentId: appointment.appointmentId.value,
           patientId: appointment.patientId,
           doctorId: appointment.doctorId,
           status: appointment.status,
-          noShowPenalty: penalty
-        }
+          noShowPenalty: penalty,
+        },
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Đánh dấu no-show thất bại',
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        message: "Đánh dấu no-show thất bại",
+        errors: [error instanceof Error ? error.message : "Unknown error"],
       };
     }
   }
@@ -153,19 +158,47 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
    */
   private validateNoShow(appointment: any): string | null {
     // Check status - only CONFIRMED or SCHEDULED can be marked as no-show
-    if (appointment.status !== 'scheduled' && appointment.status !== 'confirmed') {
+    if (
+      appointment.status !== "scheduled" &&
+      appointment.status !== "confirmed"
+    ) {
       return `Không thể đánh dấu no-show cho lịch hẹn với trạng thái ${appointment.status}`;
     }
 
-    // Check if appointment time has passed
-    const appointmentDateTime = new Date(
-      `${appointment.timeSlot.appointmentDate}T${appointment.timeSlot.appointmentTime}`
-    );
+    // Demo mode: skip time validation if ALLOW_EARLY_NO_SHOW is enabled
+    const allowEarlyNoShow = process.env.ALLOW_EARLY_NO_SHOW === "true";
+    if (allowEarlyNoShow) {
+      return null; // Bypass time checks for demo
+    }
+
+    const timeSlot =
+      typeof appointment.getTimeSlot === "function"
+        ? appointment.getTimeSlot()
+        : appointment.timeSlot;
+
+    if (!timeSlot?.appointmentDate || !timeSlot?.appointmentTime) {
+      return "Không thể xác định thời gian lịch hẹn để đánh dấu no-show";
+    }
+
+    const appointmentStart =
+      timeSlot.startAtUtc ??
+      convertClinicLocalToUtc(
+        timeSlot.appointmentDate,
+        typeof timeSlot.appointmentTime === "string"
+          ? timeSlot.appointmentTime
+          : timeSlot.appointmentTime.toString(),
+      );
+
+    if (Number.isNaN(appointmentStart.getTime())) {
+      return "Không thể xác định thời gian lịch hẹn để đánh dấu no-show";
+    }
+
     const now = new Date();
-    const minutesSinceAppointment = (now.getTime() - appointmentDateTime.getTime()) / (1000 * 60);
+    const minutesSinceAppointment =
+      (now.getTime() - appointmentStart.getTime()) / (1000 * 60);
 
     if (minutesSinceAppointment < 0) {
-      return 'Chưa đến giờ hẹn, không thể đánh dấu no-show';
+      return "Chưa đến giờ hẹn, không thể đánh dấu no-show";
     }
 
     if (minutesSinceAppointment < this.MIN_MINUTES_AFTER_APPOINTMENT) {
@@ -175,7 +208,10 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
     return null;
   }
 
-  async authorize(request: MarkAsNoShowRequest, userId: string): Promise<boolean> {
+  async authorize(
+    request: MarkAsNoShowRequest,
+    userId: string,
+  ): Promise<boolean> {
     // Authorization enforced in executeInternal() via authorizationService.hasAnyRole()
     return !!userId;
   }
@@ -189,4 +225,3 @@ export class MarkAsNoShowUseCase extends BaseHealthcareUseCase<
     return null;
   }
 }
-

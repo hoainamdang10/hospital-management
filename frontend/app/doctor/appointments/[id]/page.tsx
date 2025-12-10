@@ -67,12 +67,42 @@ type AppointmentLegacyFields = AppointmentReadModel & {
 
 // Status configuration with updated colors
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  IN_PROGRESS: { label: 'Đang khám', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: Activity },
-  COMPLETED: { label: 'Hoàn thành', color: 'text-slate-700', bg: 'bg-slate-100 border-slate-200', icon: CheckCircle },
-  CONFIRMED: { label: 'Chờ khám', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: Clock },
-  SCHEDULED: { label: 'Đã đặt', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Calendar },
-  CANCELLED: { label: 'Đã hủy', color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', icon: AlertCircle },
-  NO_SHOW: { label: 'Vắng mặt', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', icon: UserX },
+  IN_PROGRESS: {
+    label: 'Đang khám',
+    color: 'text-blue-700',
+    bg: 'bg-blue-50 border-blue-200',
+    icon: Activity,
+  },
+  COMPLETED: {
+    label: 'Hoàn thành',
+    color: 'text-slate-700',
+    bg: 'bg-slate-100 border-slate-200',
+    icon: CheckCircle,
+  },
+  CONFIRMED: {
+    label: 'Chờ khám',
+    color: 'text-emerald-700',
+    bg: 'bg-emerald-50 border-emerald-200',
+    icon: Clock,
+  },
+  SCHEDULED: {
+    label: 'Đã đặt',
+    color: 'text-amber-700',
+    bg: 'bg-amber-50 border-amber-200',
+    icon: Calendar,
+  },
+  CANCELLED: {
+    label: 'Đã hủy',
+    color: 'text-rose-700',
+    bg: 'bg-rose-50 border-rose-200',
+    icon: AlertCircle,
+  },
+  NO_SHOW: {
+    label: 'Vắng mặt',
+    color: 'text-orange-700',
+    bg: 'bg-orange-50 border-orange-200',
+    icon: UserX,
+  },
 };
 
 const containerVariants = {
@@ -111,6 +141,15 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showNoShowDialog, setShowNoShowDialog] = useState(false);
   const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
+  const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now());
+
+  const allowEarlyStart = process.env.NEXT_PUBLIC_ALLOW_EARLY_START === 'true';
+  const allowEarlyNoShow = process.env.NEXT_PUBLIC_ALLOW_EARLY_NO_SHOW === 'true';
+
+  useEffect(() => {
+    const intervalId = setInterval(() => setCurrentTimeMs(Date.now()), 60000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     params.then(({ id }) => setAppointmentId(id));
@@ -219,6 +258,28 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
   const status = (appointment?.status || '').toUpperCase();
   const statusInfo = STATUS_CONFIG[status] || STATUS_CONFIG.SCHEDULED;
   const StatusIcon = statusInfo.icon;
+  const appointmentStartDate = useMemo(() => {
+    if (!appointment?.appointmentDate) return null;
+    const parsed = new Date(appointment.appointmentDate);
+    if (appointment?.appointmentTime) {
+      const [hoursString, minutesString] = appointment.appointmentTime.split(':');
+      const hours = Number(hoursString);
+      const minutes = Number(minutesString);
+      if (!Number.isNaN(hours)) {
+        parsed.setHours(hours, Number.isNaN(minutes) ? 0 : minutes, 0, 0);
+      }
+    }
+    return parsed;
+  }, [appointment?.appointmentDate, appointment?.appointmentTime]);
+
+  const hasReachedStartTime = appointmentStartDate
+    ? currentTimeMs >= appointmentStartDate.getTime()
+    : false;
+  const hasPassedNoShowThreshold = appointmentStartDate
+    ? currentTimeMs >= appointmentStartDate.getTime() + 15 * 60 * 1000
+    : false;
+  const canStartExam = allowEarlyStart || hasReachedStartTime;
+  const canMarkNoShow = allowEarlyNoShow || hasPassedNoShowThreshold;
 
   async function initChat(aptId: string, aptData?: AppointmentReadModel | null) {
     try {
@@ -259,7 +320,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
         },
         (payload: { new: ChatMessage }) => {
           setMessages((prev) => {
-            if (prev.some(m => m.id === payload.new.id)) return prev;
+            if (prev.some((m) => m.id === payload.new.id)) return prev;
             return [...prev, payload.new];
           });
         }
@@ -281,7 +342,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
       setChatInput('');
       if (response?.message) {
         setMessages((prev) => {
-          if (prev.some(m => m.id === response.message.id)) return prev;
+          if (prev.some((m) => m.id === response.message.id)) return prev;
           return [...prev, response.message];
         });
       } else if (!isSupabaseConfigured()) {
@@ -318,24 +379,36 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
   const translateAppointmentType = (type?: string): string => {
     const t = (type || '').toUpperCase();
     switch (t) {
-      case 'CONSULTATION': return 'Khám tư vấn';
-      case 'FOLLOW_UP': return 'Tái khám';
-      case 'EMERGENCY': return 'Cấp cứu';
-      case 'ROUTINE': return 'Khám định kỳ';
-      case 'TELEMEDICINE': return 'Khám từ xa';
-      default: return type || 'Khám thường';
+      case 'CONSULTATION':
+        return 'Khám tư vấn';
+      case 'FOLLOW_UP':
+        return 'Tái khám';
+      case 'EMERGENCY':
+        return 'Cấp cứu';
+      case 'ROUTINE':
+        return 'Khám định kỳ';
+      case 'TELEMEDICINE':
+        return 'Khám từ xa';
+      default:
+        return type || 'Khám thường';
     }
   };
 
   const translatePaymentStatus = (status?: string): string => {
     const s = (status || '').toUpperCase();
     switch (s) {
-      case 'PAID': return 'Đã thanh toán';
-      case 'PENDING': return 'Chờ thanh toán';
-      case 'UNPAID': return 'Chưa thanh toán';
-      case 'REFUNDED': return 'Đã hoàn tiền';
-      case 'FAILED': return 'Thanh toán lỗi';
-      default: return status || 'Chưa thanh toán';
+      case 'PAID':
+        return 'Đã thanh toán';
+      case 'PENDING':
+        return 'Chờ thanh toán';
+      case 'UNPAID':
+        return 'Chưa thanh toán';
+      case 'REFUNDED':
+        return 'Đã hoàn tiền';
+      case 'FAILED':
+        return 'Thanh toán lỗi';
+      default:
+        return status || 'Chưa thanh toán';
     }
   };
 
@@ -347,7 +420,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
 
       if (isSystem) {
         return (
-          <div key={`${msg.id}-${index}`} className="flex justify-center my-3">
+          <div key={`${msg.id}-${index}`} className="my-3 flex justify-center">
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
               {msg.content}
             </span>
@@ -360,13 +433,15 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           key={`${msg.id}-${index}`}
-          className={cn(
-            'flex w-full gap-2.5',
-            isDoctor ? 'flex-row-reverse' : 'flex-row'
-          )}
+          className={cn('flex w-full gap-2.5', isDoctor ? 'flex-row-reverse' : 'flex-row')}
         >
           <Avatar className="h-8 w-8 border border-slate-200 shadow-sm">
-            <AvatarFallback className={cn("text-xs font-bold", isDoctor ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-600')}>
+            <AvatarFallback
+              className={cn(
+                'text-xs font-bold',
+                isDoctor ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-600'
+              )}
+            >
               {isDoctor ? 'BS' : 'BN'}
             </AvatarFallback>
           </Avatar>
@@ -377,7 +452,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                 'relative rounded-2xl px-4 py-2.5 text-sm shadow-sm',
                 isDoctor
                   ? 'rounded-tr-none bg-gradient-to-br from-cyan-600 to-teal-600 text-white'
-                  : 'rounded-tl-none bg-white text-slate-800 border border-slate-100'
+                  : 'rounded-tl-none border border-slate-100 bg-white text-slate-800'
               )}
             >
               <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -431,11 +506,14 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-600 p-6 text-white shadow-xl">
               {/* Background decoration */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
                 <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
                 <div
                   className="absolute inset-0 opacity-10"
-                  style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}
+                  style={{
+                    backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                    backgroundSize: '24px 24px',
+                  }}
                 />
               </div>
 
@@ -458,7 +536,13 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge className={cn('border px-3 py-1.5 text-sm font-semibold', statusInfo.bg, statusInfo.color)}>
+                  <Badge
+                    className={cn(
+                      'border px-3 py-1.5 text-sm font-semibold',
+                      statusInfo.bg,
+                      statusInfo.color
+                    )}
+                  >
                     <StatusIcon className="mr-1.5 h-4 w-4" />
                     {statusInfo.label}
                   </Badge>
@@ -466,8 +550,13 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   {/* Bắt đầu khám - Hiện cho CONFIRMED/SCHEDULED */}
                   {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
                     <Button
-                      className="bg-white text-cyan-700 hover:bg-cyan-50 shadow-lg transition-all hover:scale-105"
-                      disabled={actionLoading}
+                      className="bg-white text-cyan-700 shadow-lg transition-all hover:scale-105 hover:bg-cyan-50"
+                      disabled={actionLoading || !canStartExam}
+                      title={
+                        !canStartExam && !allowEarlyStart
+                          ? 'Chỉ bắt đầu khám khi đến giờ hẹn'
+                          : undefined
+                      }
                       onClick={() => doAction('start')}
                     >
                       <PlayCircle className="mr-2 h-4 w-4" />
@@ -476,7 +565,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   )}
                   {status === 'IN_PROGRESS' && (
                     <Button
-                      className="bg-white text-slate-900 hover:bg-slate-50 shadow-lg transition-all hover:scale-105"
+                      className="bg-white text-slate-900 shadow-lg transition-all hover:scale-105 hover:bg-slate-50"
                       disabled={actionLoading}
                       onClick={() => doAction('complete')}
                     >
@@ -489,7 +578,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
                     <Button
                       variant="outline"
-                      className="border-rose-300 text-rose-700 hover:bg-rose-50 shadow-lg transition-all hover:scale-105"
+                      className="border-rose-300 text-rose-700 shadow-lg transition-all hover:scale-105 hover:bg-rose-50"
                       disabled={actionLoading || isCancelling}
                       onClick={() => setShowCancelDialog(true)}
                     >
@@ -502,8 +591,13 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   {(status === 'CONFIRMED' || status === 'SCHEDULED') && (
                     <Button
                       variant="outline"
-                      className="border-orange-300 text-orange-700 hover:bg-orange-50 shadow-lg transition-all hover:scale-105"
-                      disabled={actionLoading || isMarkingNoShow}
+                      className="border-orange-300 text-orange-700 shadow-lg transition-all hover:scale-105 hover:bg-orange-50"
+                      disabled={actionLoading || isMarkingNoShow || !canMarkNoShow}
+                      title={
+                        !canMarkNoShow && !allowEarlyNoShow
+                          ? 'Chỉ đánh dấu vắng mặt sau 15 phút kể từ giờ khám'
+                          : undefined
+                      }
                       onClick={() => setShowNoShowDialog(true)}
                     >
                       <UserX className="mr-2 h-4 w-4" />
@@ -519,7 +613,6 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             {/* Left Column */}
             <motion.div variants={itemVariants} className="space-y-5 lg:col-span-8">
-
               {/* Patient Card */}
               <Card className="overflow-hidden border-slate-200 shadow-sm">
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
@@ -527,20 +620,25 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-16 w-16 border-3 border-white shadow-lg ring-2 ring-cyan-100">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`} />
-                        <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white text-lg font-bold">
+                        <AvatarImage
+                          src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`}
+                        />
+                        <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-lg font-bold text-white">
                           {appointment?.patient?.fullName?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h2 className="text-xl font-bold text-slate-900">{appointment?.patient?.fullName}</h2>
+                        <h2 className="text-xl font-bold text-slate-900">
+                          {appointment?.patient?.fullName}
+                        </h2>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                           <span className="font-medium text-slate-700">
                             {translateGender(appointment?.patient?.gender)}
                           </span>
                           <span className="h-1 w-1 rounded-full bg-slate-300" />
                           <span>
-                            {appointment?.patient?.dateOfBirth && calculateAge(appointment?.patient?.dateOfBirth)}
+                            {appointment?.patient?.dateOfBirth &&
+                              calculateAge(appointment?.patient?.dateOfBirth)}
                           </span>
                           <span className="h-1 w-1 rounded-full bg-slate-300" />
                           <Badge variant="outline" className="font-mono text-xs text-slate-500">
@@ -562,7 +660,9 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
                             <Mail className="h-4 w-4 text-slate-500" />
                           </div>
-                          <span className="truncate max-w-[200px]">{appointment?.patient?.email}</span>
+                          <span className="max-w-[200px] truncate">
+                            {appointment?.patient?.email}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -577,20 +677,24 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100">
                       <Heart className="h-5 w-5 text-cyan-600" />
                     </div>
-                    <span className="text-sm font-bold uppercase tracking-wider text-cyan-700">
+                    <span className="text-sm font-bold tracking-wider text-cyan-700 uppercase">
                       Thông tin lâm sàng
                     </span>
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Lý do khám</label>
-                    <p className="text-base font-semibold leading-relaxed text-slate-900">
+                    <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                      Lý do khám
+                    </label>
+                    <p className="text-base leading-relaxed font-semibold text-slate-900">
                       {appointment?.reason || 'Không có lý do cụ thể'}
                     </p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Ghi chú thêm</label>
+                    <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                      Ghi chú thêm
+                    </label>
                     <p className="text-sm leading-relaxed text-slate-600">
                       {appointment?.notes || 'Không có ghi chú'}
                     </p>
@@ -606,18 +710,23 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   <CardContent className="p-5">
                     <div className="mb-3 flex items-center gap-2 text-slate-500">
                       <Calendar className="h-4 w-4" />
-                      <span className="text-xs font-bold uppercase tracking-wide">Thời gian & Loại</span>
+                      <span className="text-xs font-bold tracking-wide uppercase">
+                        Thời gian & Loại
+                      </span>
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-slate-900">
                         {appointment?.appointmentTime?.substring(0, 5)}
                       </span>
                       <span className="text-sm font-medium text-slate-500">
-                        {appointment?.appointmentDate && format(new Date(appointment.appointmentDate), 'dd/MM/yyyy', { locale: vi })}
+                        {appointment?.appointmentDate &&
+                          format(new Date(appointment.appointmentDate), 'dd/MM/yyyy', {
+                            locale: vi,
+                          })}
                       </span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100">
+                      <Badge className="border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
                         <Globe className="mr-1 h-3 w-3" />
                         Đặt trực tuyến
                       </Badge>
@@ -634,20 +743,23 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                   <CardContent className="p-5">
                     <div className="mb-3 flex items-center gap-2 text-slate-500">
                       <Banknote className="h-4 w-4" />
-                      <span className="text-xs font-bold uppercase tracking-wide">Thanh toán</span>
+                      <span className="text-xs font-bold tracking-wide uppercase">Thanh toán</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-mono font-bold text-emerald-600">
+                      <span className="font-mono text-2xl font-bold text-emerald-600">
                         {new Intl.NumberFormat('vi-VN').format(appointment?.consultationFee || 0)}
                         <span className="ml-1 text-lg">₫</span>
                       </span>
                       {(appointment?.paymentStatus || '').toUpperCase() === 'PAID' ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200">
+                        <Badge className="border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-200">
                           <CheckCircle className="mr-1 h-3 w-3" />
                           Đã thanh toán
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                        <Badge
+                          variant="outline"
+                          className="border-amber-200 bg-amber-50 text-amber-700"
+                        >
                           <Clock className="mr-1 h-3 w-3" />
                           {translatePaymentStatus(appointment?.paymentStatus)}
                         </Badge>
@@ -668,14 +780,18 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <Avatar className="h-10 w-10 border-2 border-white/30">
-                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`} />
-                          <AvatarFallback className="bg-white/20 text-white font-bold">BN</AvatarFallback>
+                          <AvatarImage
+                            src={`https://api.dicebear.com/7.x/initials/svg?seed=${appointment?.patient?.fullName}`}
+                          />
+                          <AvatarFallback className="bg-white/20 font-bold text-white">
+                            BN
+                          </AvatarFallback>
                         </Avatar>
                         <span className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-cyan-600 bg-emerald-400" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white text-sm">Trao đổi trực tiếp</h3>
-                        <p className="text-[11px] text-cyan-100 font-medium flex items-center gap-1">
+                        <h3 className="text-sm font-bold text-white">Trao đổi trực tiếp</h3>
+                        <p className="flex items-center gap-1 text-[11px] font-medium text-cyan-100">
                           <span className="relative flex h-1.5 w-1.5">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
                             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -684,14 +800,18 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-white/70 hover:bg-white/10 hover:text-white"
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
 
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 space-y-4">
+                <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50/50 p-4">
                   {chatLoading ? (
                     <div className="flex h-full flex-col items-center justify-center gap-3">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent" />
@@ -704,7 +824,9 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-slate-900">Chưa có tin nhắn</p>
-                        <p className="mt-1 text-xs text-slate-500">Bắt đầu trao đổi với bệnh nhân</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Bắt đầu trao đổi với bệnh nhân
+                        </p>
                       </div>
                     </div>
                   ) : (
@@ -719,7 +841,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                 <div className="border-t border-slate-100 bg-white p-3">
                   <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                     <Input
-                      className="flex-1 rounded-full border-slate-200 bg-slate-50 px-4 h-10 text-sm transition-all focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                      className="h-10 flex-1 rounded-full border-slate-200 bg-slate-50 px-4 text-sm transition-all focus:bg-white focus:ring-2 focus:ring-cyan-100"
                       placeholder="Nhập tin nhắn..."
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
@@ -731,7 +853,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
                       className={cn(
                         'h-10 w-10 shrink-0 rounded-full shadow-sm transition-all',
                         chatInput.trim()
-                          ? 'bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white'
+                          ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white hover:from-cyan-700 hover:to-teal-700'
                           : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                       )}
                       disabled={!conversationId || chatSending || !chatInput.trim()}
@@ -807,13 +929,14 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
               Đánh dấu vắng mặt
             </DialogTitle>
             <DialogDescription>
-              Bệnh nhân đã check-in nhưng không đến khám. Lịch hẹn sẽ được đánh dấu là No-show và <strong>không được hoàn tiền</strong>.
+              Bệnh nhân đã check-in nhưng không đến khám. Lịch hẹn sẽ được đánh dấu là No-show và{' '}
+              <strong>không được hoàn tiền</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="rounded-lg bg-orange-50 p-4 text-sm text-orange-800">
               <p className="font-medium">Lưu ý:</p>
-              <ul className="mt-2 list-disc pl-5 space-y-1">
+              <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Phí khám sẽ không được hoàn trả cho bệnh nhân</li>
                 <li>Hành động này không thể hoàn tác</li>
               </ul>
@@ -828,7 +951,7 @@ export default function DoctorAppointmentDetailPage({ params }: Props) {
               Đóng
             </Button>
             <Button
-              className="bg-orange-600 hover:bg-orange-700 text-white"
+              className="bg-orange-600 text-white hover:bg-orange-700"
               onClick={handleMarkNoShow}
               disabled={isMarkingNoShow}
             >

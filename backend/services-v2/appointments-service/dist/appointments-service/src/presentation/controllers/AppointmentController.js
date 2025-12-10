@@ -572,16 +572,6 @@ class AppointmentController {
                 res.status(401).json({ success: false, message: "Unauthorized" });
                 return;
             }
-            // Doctor can only start own appointments
-            if (userRole === "doctor" &&
-                req.body?.doctorId &&
-                req.body.doctorId !== userId) {
-                res.status(403).json({
-                    success: false,
-                    message: "Forbidden: doctor can only start own appointments",
-                });
-                return;
-            }
             const result = await this.startAppointmentUseCase.execute({
                 appointmentId: req.params.id,
                 startedBy: userId,

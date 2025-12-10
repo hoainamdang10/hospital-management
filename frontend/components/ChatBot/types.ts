@@ -64,7 +64,27 @@ export interface BillingContext {
     totalInvoices: number;
     unpaidCount: number;
     totalUnpaidAmount: number;
+    totalAmount?: number;
+    totalPaid?: number;
+    totalOutstanding?: number;
+    pendingInvoiceCount?: number;
+    paidInvoiceCount?: number;
+    walletBalance?: number;
+    patientId?: string;
     currency?: string;
+}
+
+/**
+ * Context cho trang Dashboard
+ */
+export interface DashboardContext {
+    upcomingAppointments: number;
+    pendingPayments: number;
+    recentCompleted?: number;
+    profileCompletion: number;
+    hasInsurance: boolean;
+    hasEmergencyContact: boolean;
+    patientId?: string;
 }
 
 /**
@@ -73,8 +93,6 @@ export interface BillingContext {
 export interface GenericContext {
     [key: string]: any;
 }
-
-// ==================== UNION TYPE ====================
 
 /**
  * ChatContext union type
@@ -85,6 +103,7 @@ export type ChatContext =
     | { page: '/patient/appointments'; data: AppointmentsListContext }
     | { page: '/patient/appointments/[id]'; data: AppointmentDetailContext }
     | { page: '/patient/billing'; data: BillingContext }
+    | { page: '/patient/dashboard'; data: DashboardContext }
     | { page: string; data?: GenericContext };
 
 // ==================== PROPS ====================

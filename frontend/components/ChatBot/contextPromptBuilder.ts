@@ -11,7 +11,8 @@ import type {
     PaymentPendingContext,
     AppointmentsListContext,
     AppointmentDetailContext,
-    BillingContext
+    BillingContext,
+    DashboardContext
 } from './types';
 
 /**
@@ -174,10 +175,14 @@ function buildBillingContext(data: BillingContext): string {
     if (data.unpaidCount > 0) {
         lines.push(
             `- ⚠️ Chưa thanh toán: ${data.unpaidCount}`,
-            `- Tổng số tiền chưa thanh toán: ${formatCurrency(data.totalUnpaidAmount, data.currency)}`
+            `- Tổng số tiền chưa thanh toán: ${formatCurrency(data.totalUnpaidAmount || data.totalOutstanding || 0, data.currency)}`
         );
     } else {
         lines.push(`- ✅ Tất cả hóa đơn đã thanh toán`);
+    }
+
+    if (data.walletBalance !== undefined && data.walletBalance > 0) {
+        lines.push(`- Số dư ví: ${formatCurrency(data.walletBalance, data.currency)}`);
     }
 
     lines.push(
@@ -186,7 +191,46 @@ function buildBillingContext(data: BillingContext): string {
         `- Hướng dẫn thanh toán hóa đơn`,
         `- Giải thích chi tiết hóa đơn`,
         `- Thông tin về bảo hiểm y tế`,
+        `- Hướng dẫn nạp tiền vào ví`,
         `- Chính sách hoàn tiền`
+    );
+
+    return lines.join('\n');
+}
+
+/**
+ * Build context summary cho trang Dashboard
+ */
+function buildDashboardContext(data: DashboardContext): string {
+    const lines: string[] = [
+        `**Trang hiện tại:** Trang chủ bệnh nhân`,
+        ``,
+        `**Thống kê nhanh:**`,
+        `- Lịch hẹn sắp tới (7 ngày): ${data.upcomingAppointments}`,
+        `- Thanh toán đang chờ: ${data.pendingPayments}`,
+    ];
+
+    if (data.recentCompleted !== undefined) {
+        lines.push(`- Lịch đã hoàn tất/hủy (30 ngày): ${data.recentCompleted}`);
+    }
+
+    lines.push(`- Hoàn thiện hồ sơ: ${data.profileCompletion}%`);
+
+    const badges: string[] = [];
+    if (data.hasInsurance) badges.push('🛡️ Có bảo hiểm');
+    if (data.hasEmergencyContact) badges.push('📞 Có liên lạc khẩn cấp');
+    if (badges.length > 0) {
+        lines.push(`- Trạng thái: ${badges.join(', ')}`);
+    }
+
+    lines.push(
+        ``,
+        `**Bạn có thể hỗ trợ người dùng:**`,
+        `- Đặt lịch khám mới`,
+        `- Tìm bác sĩ theo chuyên khoa`,
+        `- Xem lịch hẹn sắp tới`,
+        `- Hướng dẫn thanh toán`,
+        `- Giải đáp thắc mắc về dịch vụ`
     );
 
     return lines.join('\n');
@@ -258,6 +302,9 @@ export function buildDynamicSystemPrompt(context?: ChatContext): string {
         case '/patient/billing':
             return buildBillingContext(data as BillingContext);
 
+        case '/patient/dashboard':
+            return buildDashboardContext(data as DashboardContext);
+
         default:
             return buildGenericContext(page);
     }
@@ -294,10 +341,23 @@ export function getContextualWelcomeMessage(context?: ChatContext): string {
         case '/patient/billing': {
             const data = context.data as BillingContext;
             if (data.unpaidCount > 0) {
-                const amount = new Intl.NumberFormat('vi-VN').format(data.totalUnpaidAmount);
+                const amount = new Intl.NumberFormat('vi-VN').format(data.totalUnpaidAmount || data.totalOutstanding || 0);
                 return `Xin chào! Bạn có ${data.unpaidCount} hóa đơn chưa thanh toán với tổng ${amount} VND. Tôi có thể giúp bạn:\n• Thanh toán hóa đơn\n• Giải thích chi tiết\n• Thông tin bảo hiểm\n\nBạn cần hỗ trợ gì?`;
             }
             return `Xin chào! Tất cả hóa đơn của bạn đã được thanh toán. Tôi có thể giúp bạn xem lịch sử thanh toán hoặc giải đáp thắc mắc về hóa đơn. Bạn cần hỗ trợ gì?`;
+        }
+
+        case '/patient/dashboard': {
+            const data = context.data as DashboardContext;
+            const messages: string[] = [`Xin chào! Chào mừng bạn quay lại.`];
+            if (data.upcomingAppointments > 0) {
+                messages.push(`Bạn có ${data.upcomingAppointments} lịch hẹn trong 7 ngày tới.`);
+            }
+            if (data.pendingPayments > 0) {
+                messages.push(`Có ${data.pendingPayments} giao dịch đang chờ xử lý.`);
+            }
+            messages.push(`Tôi có thể giúp bạn đặt lịch khám, tìm bác sĩ, hoặc xem lịch hẹn. Bạn cần hỗ trợ gì?`);
+            return messages.join(' ');
         }
 
         default:

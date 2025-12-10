@@ -21,9 +21,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   MoreHorizontal,
-  Banknote,
   Smartphone,
-  Building2,
   Mail,
   Printer,
   Undo2,
@@ -48,7 +46,7 @@ import { cn } from '@/lib/utils';
 // TYPES
 // ============================================================================
 type InvoiceStatus = 'ALL' | 'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'REFUNDED';
-type PaymentMethod = 'PayOS' | 'VNPay' | 'MoMo' | 'Cash' | 'Card' | 'BankTransfer';
+type PaymentMethod = 'PayOS' | 'VNPay';
 
 interface ExtendedInvoice extends Invoice {
   paymentMethod?: PaymentMethod;
@@ -66,60 +64,71 @@ interface ExtendedInvoice extends Invoice {
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-const STATUS_TABS: { value: InvoiceStatus; label: string; icon: React.ElementType; color: string }[] = [
-  { value: 'ALL', label: 'Tất cả', icon: FileText, color: 'slate' },
-  { value: 'PAID', label: 'Đã thanh toán', icon: CheckCircle2, color: 'emerald' },
-  { value: 'PENDING', label: 'Chờ thanh toán', icon: Clock, color: 'amber' },
-  { value: 'REFUNDED', label: 'Đã hoàn tiền', icon: Undo2, color: 'purple' },
-  { value: 'CANCELLED', label: 'Đã hủy', icon: XCircle, color: 'slate' },
-];
+const STATUS_TABS: {
+  value: InvoiceStatus;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+}[] = [
+    { value: 'ALL', label: 'Tất cả', icon: FileText, color: 'slate' },
+    { value: 'PAID', label: 'Đã thanh toán', icon: CheckCircle2, color: 'emerald' },
+    { value: 'PENDING', label: 'Chờ thanh toán', icon: Clock, color: 'amber' },
+    { value: 'REFUNDED', label: 'Đã hoàn tiền', icon: Undo2, color: 'purple' },
+    { value: 'CANCELLED', label: 'Đã hủy', icon: XCircle, color: 'slate' },
+  ];
 
-const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; colors: string; bgColor: string }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; icon: React.ElementType; colors: string; bgColor: string }
+> = {
   PAID: {
     label: 'Đã thanh toán',
     icon: CheckCircle2,
     colors: 'text-emerald-600 border-emerald-200',
-    bgColor: 'bg-emerald-50'
+    bgColor: 'bg-emerald-50',
   },
   PENDING: {
     label: 'Chờ thanh toán',
     icon: Clock,
     colors: 'text-amber-600 border-amber-200',
-    bgColor: 'bg-amber-50'
+    bgColor: 'bg-amber-50',
   },
   OVERDUE: {
     label: 'Quá hạn',
     icon: AlertCircle,
     colors: 'text-red-600 border-red-200',
-    bgColor: 'bg-red-50'
+    bgColor: 'bg-red-50',
   },
   CANCELLED: {
     label: 'Đã hủy',
     icon: XCircle,
     colors: 'text-slate-600 border-slate-200',
-    bgColor: 'bg-slate-50'
+    bgColor: 'bg-slate-50',
   },
   REFUNDED: {
     label: 'Đã hoàn tiền',
     icon: Undo2,
     colors: 'text-purple-600 border-purple-200',
-    bgColor: 'bg-purple-50'
+    bgColor: 'bg-purple-50',
   },
   FAILED: {
     label: 'Thất bại',
     icon: AlertTriangle,
     colors: 'text-red-600 border-red-200',
-    bgColor: 'bg-red-50'
+    bgColor: 'bg-red-50',
   },
 };
 
-const PAYMENT_METHOD_CONFIG: Record<string, { label: string; icon: React.ElementType; colors: string }> = {
-  PayOS: { label: 'PayOS', icon: Smartphone, colors: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+const PAYMENT_METHOD_CONFIG: Record<
+  string,
+  { label: string; icon: React.ElementType; colors: string }
+> = {
+  PayOS: {
+    label: 'Ví điện tử',
+    icon: Smartphone,
+    colors: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  },
   VNPay: { label: 'VNPay', icon: CreditCard, colors: 'bg-blue-100 text-blue-700 border-blue-200' },
-  MoMo: { label: 'MoMo', icon: Smartphone, colors: 'bg-pink-100 text-pink-700 border-pink-200' },
-  Cash: { label: 'Tiền mặt', icon: Banknote, colors: 'bg-green-100 text-green-700 border-green-200' },
-  Card: { label: 'Thẻ', icon: CreditCard, colors: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
-  BankTransfer: { label: 'Chuyển khoản', icon: Building2, colors: 'bg-slate-100 text-slate-700 border-slate-200' },
 };
 
 // ============================================================================
@@ -161,33 +170,37 @@ function AdminInvoicesContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-
   // Calculate stats
   const stats = useMemo(() => {
     const all = invoices.length;
-    const paid = invoices.filter(i => i.status === 'PAID').length;
-    const pending = invoices.filter(i => i.status === 'PENDING').length;
-    const refunded = invoices.filter(i => i.status === 'REFUNDED' || i.status === 'CANCELLED').length;
+    const paid = invoices.filter((i) => i.status === 'PAID').length;
+    const pending = invoices.filter((i) => i.status === 'PENDING').length;
+    const refunded = invoices.filter(
+      (i) => i.status === 'REFUNDED' || i.status === 'CANCELLED'
+    ).length;
     const totalRevenue = invoices
-      .filter(i => i.status === 'PAID')
+      .filter((i) => i.status === 'PAID')
       .reduce((sum, i) => sum + (i.amount || 0), 0);
 
     return { all, paid, pending, refunded, totalRevenue };
   }, [invoices]);
 
   // Tab counts
-  const tabCounts = useMemo(() => ({
-    ALL: invoices.length,
-    PAID: invoices.filter(i => i.status === 'PAID').length,
-    PENDING: invoices.filter(i => i.status === 'PENDING').length,
-    REFUNDED: invoices.filter(i => i.status === 'REFUNDED').length,
-    CANCELLED: invoices.filter(i => i.status === 'CANCELLED').length,
-    OVERDUE: invoices.filter(i => i.status === 'OVERDUE').length,
-  }), [invoices]);
+  const tabCounts = useMemo(
+    () => ({
+      ALL: invoices.length,
+      PAID: invoices.filter((i) => i.status === 'PAID').length,
+      PENDING: invoices.filter((i) => i.status === 'PENDING').length,
+      REFUNDED: invoices.filter((i) => i.status === 'REFUNDED').length,
+      CANCELLED: invoices.filter((i) => i.status === 'CANCELLED').length,
+      OVERDUE: invoices.filter((i) => i.status === 'OVERDUE').length,
+    }),
+    [invoices]
+  );
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
-    return invoices.filter(invoice => {
+    return invoices.filter((invoice) => {
       // Status filter
       if (activeTab !== 'ALL' && invoice.status !== activeTab) {
         return false;
@@ -236,16 +249,18 @@ function AdminInvoicesContent() {
       });
 
       if (res && res.data) {
-        // Enrich with mock payment method for demo
-        const enrichedInvoices = res.data.map((inv: Invoice) => ({
-          ...inv,
-          paymentMethod: getRandomPaymentMethod(),
-          transactionId: `TXN${Date.now().toString().slice(-8)}${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-          doctorName: 'BS. Nguyễn Văn A',
-          departmentName: 'Khoa Tim mạch',
-          appointmentDate: inv.createdAt,
-          appointmentTime: '09:00',
-        }));
+        const enrichedInvoices = res.data.map((inv: Invoice) => {
+          const paymentDetails = derivePaymentDetails(inv);
+          return {
+            ...inv,
+            paymentMethod: paymentDetails.method,
+            transactionId: paymentDetails.transactionId,
+            doctorName: inv.doctorName || 'Chưa cập nhật',
+            departmentName: inv.doctorDepartment || inv.metadata?.departmentName || 'Chưa cập nhật',
+            appointmentDate: inv.metadata?.appointmentDate || inv.createdAt,
+            appointmentTime: inv.metadata?.appointmentTime || '',
+          };
+        });
         setInvoices(enrichedInvoices);
       }
 
@@ -266,7 +281,11 @@ function AdminInvoicesContent() {
   }, [timeFilter]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   const handleExportReport = () => {
@@ -282,7 +301,9 @@ function AdminInvoicesContent() {
   };
 
   const handleRefund = (invoice: ExtendedInvoice) => {
-    toast.info('Yêu cầu hoàn tiền', { description: `Đang xử lý hoàn tiền cho ${invoice.invoiceNumber}` });
+    toast.info('Yêu cầu hoàn tiền', {
+      description: `Đang xử lý hoàn tiền cho ${invoice.invoiceNumber}`,
+    });
   };
 
   return (
@@ -314,9 +335,7 @@ function AdminInvoicesContent() {
                 </motion.div>
                 <div>
                   <h1 className="text-2xl font-bold sm:text-3xl">Quản lý Hóa đơn</h1>
-                  <p className="mt-1 text-indigo-100">
-                    Theo dõi và quản lý thanh toán Prepaid
-                  </p>
+                  <p className="mt-1 text-indigo-100">Theo dõi và quản lý thanh toán Prepaid</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -405,10 +424,12 @@ function AdminInvoicesContent() {
                   >
                     <TabIcon className="h-4 w-4" />
                     {tab.label}
-                    <span className={cn(
-                      'rounded-full px-2 py-0.5 text-xs font-bold',
-                      isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
-                    )}>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-xs font-bold',
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                      )}
+                    >
                       {count}
                     </span>
                   </button>
@@ -426,20 +447,20 @@ function AdminInvoicesContent() {
           >
             {/* Search */}
             <div className="relative min-w-[300px] flex-1">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm theo mã hóa đơn, tên bệnh nhân, mã giao dịch..."
-                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 pr-4 pl-12 text-sm transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
               />
             </div>
 
             {/* Time Filter */}
             <div className="relative">
               <select
-                className="h-12 cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="h-12 cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value)}
               >
@@ -448,7 +469,7 @@ function AdminInvoicesContent() {
                 <option value="LAST_MONTH">Tháng trước</option>
                 <option value="LAST_3_MONTHS">3 tháng gần nhất</option>
               </select>
-              <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Calendar className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
           </motion.div>
 
@@ -463,25 +484,25 @@ function AdminInvoicesContent() {
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100/50">
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Hóa đơn
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Bệnh nhân
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Thanh toán
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Số tiền
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Bảo hiểm
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Trạng thái
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-slate-500 uppercase">
                       Thao tác
                     </th>
                   </tr>
@@ -508,7 +529,9 @@ function AdminInvoicesContent() {
                               <FileText className="h-8 w-8 text-slate-400" />
                             </div>
                             <p className="font-medium text-slate-600">Không tìm thấy hóa đơn</p>
-                            <p className="mt-1 text-sm text-slate-400">Thử thay đổi bộ lọc hoặc tìm kiếm</p>
+                            <p className="mt-1 text-sm text-slate-400">
+                              Thử thay đổi bộ lọc hoặc tìm kiếm
+                            </p>
                           </div>
                         </td>
                       </tr>
@@ -535,7 +558,9 @@ function AdminInvoicesContent() {
             {!isLoading && filteredInvoices.length > 0 && (
               <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-4">
                 <p className="text-sm text-slate-600">
-                  Hiển thị <span className="font-semibold text-slate-900">{filteredInvoices.length}</span> hóa đơn
+                  Hiển thị{' '}
+                  <span className="font-semibold text-slate-900">{filteredInvoices.length}</span>{' '}
+                  hóa đơn
                   {activeTab !== 'ALL' && (
                     <span className="text-slate-400"> (lọc từ {invoices.length} tổng)</span>
                   )}
@@ -560,9 +585,38 @@ function AdminInvoicesContent() {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-function getRandomPaymentMethod(): PaymentMethod {
-  const methods: PaymentMethod[] = ['PayOS', 'VNPay', 'MoMo', 'Cash', 'Card', 'BankTransfer'];
-  return methods[Math.floor(Math.random() * methods.length)];
+function derivePaymentDetails(invoice: Invoice): { method: PaymentMethod; transactionId?: string } {
+  const payments = invoice.payments || [];
+  const preferredPayment =
+    payments.find((payment) => (payment.status || '').toLowerCase() === 'paid') || payments[0];
+
+  const methodSource =
+    preferredPayment?.method ||
+    (preferredPayment as any)?.paymentMethod ||
+    (invoice as any).paymentMethod ||
+    invoice.metadata?.paymentMethod ||
+    invoice.metadata?.payment_method ||
+    '';
+  const method = normalizePaymentMethod(methodSource);
+
+  const transactionId =
+    preferredPayment?.transactionId ||
+    (preferredPayment as any)?.transaction_id ||
+    (preferredPayment as any)?.referenceId ||
+    (preferredPayment as any)?.reference?.id ||
+    preferredPayment?.id ||
+    invoice.metadata?.transactionId ||
+    invoice.invoiceNumber;
+
+  return { method, transactionId };
+}
+
+function normalizePaymentMethod(value?: string): PaymentMethod {
+  const methodText = (value || '').toString().toLowerCase();
+  if (methodText.includes('vnpay')) {
+    return 'VNPay';
+  }
+  return 'PayOS';
 }
 
 // ============================================================================
@@ -586,7 +640,9 @@ function StatCard({ title, value, subtitle, icon: Icon, gradient, delay = 0 }: S
       transition={{ delay }}
       className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200/50 bg-white p-5 shadow-lg transition-all hover:shadow-xl"
     >
-      <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition-all group-hover:opacity-20 group-hover:scale-150`} />
+      <div
+        className={`absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-2xl transition-all group-hover:scale-150 group-hover:opacity-20`}
+      />
 
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
@@ -594,7 +650,9 @@ function StatCard({ title, value, subtitle, icon: Icon, gradient, delay = 0 }: S
           <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
           <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}>
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}
+        >
           <Icon className="h-6 w-6" />
         </div>
       </div>
@@ -617,7 +675,15 @@ interface InvoiceRowProps {
   onRefund: () => void;
 }
 
-function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, onRefund }: InvoiceRowProps) {
+function InvoiceRow({
+  invoice,
+  index,
+  formatCurrency,
+  onView,
+  onPrint,
+  onEmail,
+  onRefund,
+}: InvoiceRowProps) {
   const [showActions, setShowActions] = useState(false);
   const statusConfig = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.PENDING;
   const StatusIcon = statusConfig.icon;
@@ -633,7 +699,7 @@ function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, 
       onClick={onView}
     >
       {/* Invoice Info */}
-      <td className="whitespace-nowrap px-6 py-4">
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md">
             <Receipt className="h-5 w-5" />
@@ -649,7 +715,7 @@ function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, 
       </td>
 
       {/* Patient Info */}
-      <td className="whitespace-nowrap px-6 py-4">
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300">
             <User className="h-4 w-4 text-slate-600" />
@@ -665,12 +731,14 @@ function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, 
       </td>
 
       {/* Payment Method */}
-      <td className="whitespace-nowrap px-6 py-4">
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <span className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium',
-            paymentConfig?.colors || 'bg-slate-100 text-slate-600'
-          )}>
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium',
+              paymentConfig?.colors || 'bg-slate-100 text-slate-600'
+            )}
+          >
             <PaymentIcon className="h-3.5 w-3.5" />
             {paymentConfig?.label || invoice.paymentMethod}
           </span>
@@ -678,21 +746,19 @@ function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, 
       </td>
 
       {/* Amount */}
-      <td className="whitespace-nowrap px-6 py-4">
+      <td className="px-6 py-4 whitespace-nowrap">
         <div>
           <p className="text-lg font-bold text-slate-900">
             {formatCurrency(invoice.outstandingAmount || invoice.amount)}
           </p>
           {invoice.insuranceCoverage && invoice.insuranceCoverage > 0 && (
-            <p className="text-xs text-slate-500 line-through">
-              {formatCurrency(invoice.amount)}
-            </p>
+            <p className="text-xs text-slate-500 line-through">{formatCurrency(invoice.amount)}</p>
           )}
         </div>
       </td>
 
       {/* Insurance Coverage */}
-      <td className="whitespace-nowrap px-6 py-4">
+      <td className="px-6 py-4 whitespace-nowrap">
         {invoice.insuranceCoverage && invoice.insuranceCoverage > 0 ? (
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
             🛡️ -{formatCurrency(invoice.insuranceCoverage)}
@@ -703,68 +769,107 @@ function InvoiceRow({ invoice, index, formatCurrency, onView, onPrint, onEmail, 
       </td>
 
       {/* Status */}
-      <td className="whitespace-nowrap px-6 py-4">
-        <span className={cn(
-          'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium',
-          statusConfig.colors,
-          statusConfig.bgColor
-        )}>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium',
+            statusConfig.colors,
+            statusConfig.bgColor
+          )}
+        >
           <StatusIcon className="h-3.5 w-3.5" />
           {statusConfig.label}
         </span>
       </td>
 
-      {/* Actions */}
-      <td className="whitespace-nowrap px-6 py-4 text-right">
-        <div className="relative flex items-center justify-end gap-2">
+      {/* Actions - Dropdown Menu */}
+      <td className="px-6 py-4 text-right whitespace-nowrap">
+        <div className="relative flex items-center justify-end">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onView();
+              setShowActions(!showActions);
             }}
+            onBlur={() => setTimeout(() => setShowActions(false), 150)}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
-            title="Xem chi tiết"
+            title="Thao tác"
           >
-            <Eye className="h-4 w-4" />
+            <MoreHorizontal className="h-4 w-4" />
           </button>
 
-          {invoice.status === 'PAID' && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPrint();
-                }}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-600"
-                title="In hóa đơn"
+          {/* Dropdown Menu */}
+          <AnimatePresence>
+            {showActions && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
               >
-                <Printer className="h-4 w-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEmail();
-                }}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
-                title="Gửi email"
-              >
-                <Mail className="h-4 w-4" />
-              </button>
-            </>
-          )}
+                <div className="py-1">
+                  {/* View Detail */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowActions(false);
+                      onView();
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Xem chi tiết
+                  </button>
 
-          {invoice.status === 'PAID' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRefund();
-              }}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600"
-              title="Hoàn tiền"
-            >
-              <Undo2 className="h-4 w-4" />
-            </button>
-          )}
+                  {invoice.status === 'PAID' && (
+                    <>
+                      {/* Print */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowActions(false);
+                          onPrint();
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-cyan-50 hover:text-cyan-600 transition-colors"
+                      >
+                        <Printer className="h-4 w-4" />
+                        In hóa đơn
+                      </button>
+
+                      {/* Send Email */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowActions(false);
+                          onEmail();
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Gửi email
+                      </button>
+
+                      {/* Divider */}
+                      <div className="my-1 border-t border-slate-100" />
+
+                      {/* Refund */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowActions(false);
+                          onRefund();
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-purple-600 hover:bg-purple-50 transition-colors"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                        Hoàn tiền
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </td>
     </motion.tr>

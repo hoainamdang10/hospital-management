@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, LogOut, Settings, ChevronDown, Menu, Wallet, Heart, Stethoscope, UserCircle } from 'lucide-react';
+import { User, LogOut, ChevronDown, Menu, Wallet, Heart, Stethoscope, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/lib/constants';
@@ -232,17 +232,6 @@ export function Navbar() {
                       </div>
 
                       <div className="py-1.5">
-                        <Link
-                          href="/settings"
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-                            <Settings className="h-4 w-4 text-slate-600" />
-                          </div>
-                          <span className="font-medium">Cài đặt</span>
-                        </Link>
-
                         <button
                           onClick={handleLogoutClick}
                           className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-rose-50"

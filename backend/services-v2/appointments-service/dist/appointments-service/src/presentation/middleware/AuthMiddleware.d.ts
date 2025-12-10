@@ -38,6 +38,11 @@ export declare class AuthMiddleware {
      * Attaches user if token is valid, but doesn't reject if missing
      */
     optionalAuth: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+    /**
+     * Resolve canonical role for user. Falls back to user_profiles when JWT
+     * metadata does not include role info (common for legacy tokens).
+     */
+    private resolveUserRole;
 }
 export declare const authMiddleware: AuthMiddleware;
 /**

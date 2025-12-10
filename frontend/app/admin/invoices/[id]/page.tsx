@@ -33,6 +33,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout';
 import { billingService, Invoice } from '@/lib/api/billing.service';
+import { appointmentsService } from '@/lib/api/appointments.service';
+import { Invoice as SharedInvoice } from '@/modules/billing/services/billing.service';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -42,15 +44,20 @@ import { cn } from '@/lib/utils';
 // TYPES
 // ============================================================================
 interface ExtendedInvoice extends Invoice {
+    // Payment info from payments array
     paymentMethod?: string;
     transactionId?: string;
+    paidAt?: string;
+    // Appointment/Doctor info
     doctorName?: string;
     departmentName?: string;
     appointmentDate?: string;
     appointmentTime?: string;
+    // Patient contact
     patientPhone?: string;
     patientEmail?: string;
-    paidAt?: string;
+    // Raw payments array for display
+    payments?: SharedInvoice['payments'];
 }
 
 // ============================================================================
@@ -102,12 +109,27 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; co
 };
 
 const PAYMENT_METHOD_CONFIG: Record<string, { label: string; icon: React.ElementType; colors: string }> = {
+    // PayOS variants
     PayOS: { label: 'PayOS', icon: Smartphone, colors: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    payos: { label: 'PayOS', icon: Smartphone, colors: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    PAYOS: { label: 'PayOS', icon: Smartphone, colors: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    // VNPay variants
     VNPay: { label: 'VNPay', icon: CreditCard, colors: 'bg-blue-100 text-blue-700 border-blue-200' },
+    vnpay: { label: 'VNPay', icon: CreditCard, colors: 'bg-blue-100 text-blue-700 border-blue-200' },
+    VNPAY: { label: 'VNPay', icon: CreditCard, colors: 'bg-blue-100 text-blue-700 border-blue-200' },
+    // Wallet variants
+    wallet: { label: 'Ví', icon: Banknote, colors: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    Wallet: { label: 'Ví', icon: Banknote, colors: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    WALLET: { label: 'Ví', icon: Banknote, colors: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+    // Other methods
     MoMo: { label: 'MoMo', icon: Smartphone, colors: 'bg-pink-100 text-pink-700 border-pink-200' },
+    momo: { label: 'MoMo', icon: Smartphone, colors: 'bg-pink-100 text-pink-700 border-pink-200' },
     Cash: { label: 'Tiền mặt', icon: Banknote, colors: 'bg-green-100 text-green-700 border-green-200' },
+    cash: { label: 'Tiền mặt', icon: Banknote, colors: 'bg-green-100 text-green-700 border-green-200' },
     Card: { label: 'Thẻ', icon: CreditCard, colors: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+    card: { label: 'Thẻ', icon: CreditCard, colors: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
     BankTransfer: { label: 'Chuyển khoản', icon: Building2, colors: 'bg-slate-100 text-slate-700 border-slate-200' },
+    bank_transfer: { label: 'Chuyển khoản', icon: Building2, colors: 'bg-slate-100 text-slate-700 border-slate-200' },
 };
 
 // ============================================================================
@@ -128,19 +150,69 @@ export default function InvoiceDetailPage() {
             try {
                 const res = await billingService.getInvoice(id);
                 if (res.success && res.data) {
-                    // Enrich with mock data for demo
-                    setInvoice({
+                    const invoiceData = res.data as any; // Access raw data including payments
+
+                    // Extract payment info from payments array (if exists)
+                    const payments = invoiceData.payments || [];
+                    const paidPayment = payments.find((p: any) =>
+                        p.status === 'completed' || p.status === 'COMPLETED' ||
+                        p.method?.toLowerCase() !== 'refund'
+                    );
+
+                    // Determine payment method and transaction ID from actual payments
+                    const paymentMethod = paidPayment?.method ||
+                        (invoiceData.metadata?.paymentMethod) ||
+                        (invoiceData.metadata?.paymentGateway) ||
+                        undefined;
+                    const transactionId = paidPayment?.transactionId ||
+                        paidPayment?.transaction_id ||
+                        (invoiceData.metadata?.transactionId) ||
+                        undefined;
+                    const paidAt = paidPayment?.paidAt ||
+                        paidPayment?.paid_at ||
+                        paidPayment?.processedAt ||
+                        paidPayment?.processed_at ||
+                        invoiceData.paidAt ||
+                        undefined;
+
+                    // Initialize extended invoice with invoice data
+                    let extendedInvoice: ExtendedInvoice = {
                         ...res.data,
-                        paymentMethod: 'PayOS',
-                        transactionId: `TXN${Date.now().toString().slice(-8)}`,
-                        doctorName: 'BS. Nguyễn Văn A',
-                        departmentName: 'Khoa Tim mạch',
-                        appointmentDate: res.data.createdAt,
-                        appointmentTime: '09:00',
-                        patientPhone: '0987654321',
-                        patientEmail: 'patient@email.com',
-                        paidAt: res.data.status === 'PAID' ? res.data.createdAt : undefined,
-                    });
+                        paymentMethod,
+                        transactionId,
+                        paidAt,
+                        payments,
+                        // These will be enriched from appointment if available
+                        doctorName: invoiceData.doctorName || invoiceData.metadata?.doctorName,
+                        departmentName: invoiceData.doctorDepartment || invoiceData.metadata?.departmentName,
+                        appointmentDate: invoiceData.metadata?.appointmentDate,
+                        appointmentTime: invoiceData.metadata?.appointmentTime,
+                        patientPhone: invoiceData.metadata?.patientPhone,
+                        patientEmail: invoiceData.metadata?.patientEmail,
+                    };
+
+                    // If we have appointmentId, fetch appointment details for rich info
+                    if (res.data.appointmentId) {
+                        try {
+                            const appointment = await appointmentsService.getById(res.data.appointmentId);
+                            if (appointment) {
+                                extendedInvoice = {
+                                    ...extendedInvoice,
+                                    doctorName: appointment.doctorName || appointment.doctor?.fullName || extendedInvoice.doctorName,
+                                    departmentName: appointment.doctorDepartment || appointment.doctor?.department || extendedInvoice.departmentName,
+                                    appointmentDate: appointment.appointmentDate || extendedInvoice.appointmentDate,
+                                    appointmentTime: appointment.appointmentTime || extendedInvoice.appointmentTime,
+                                    patientPhone: appointment.patientPhone || appointment.patient?.phone || extendedInvoice.patientPhone,
+                                    patientEmail: appointment.patientEmail || appointment.patient?.email || extendedInvoice.patientEmail,
+                                };
+                            }
+                        } catch (appointmentError) {
+                            console.warn('Could not fetch appointment details:', appointmentError);
+                            // Continue with invoice data only
+                        }
+                    }
+
+                    setInvoice(extendedInvoice);
                 } else {
                     toast.error('Không tìm thấy hóa đơn');
                     router.push('/admin/invoices');
@@ -343,23 +415,33 @@ export default function InvoiceDetailPage() {
                                 >
                                     <div className="flex items-center justify-between py-2">
                                         <span className="text-sm text-slate-500">Phương thức</span>
-                                        <span className={cn(
-                                            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium',
-                                            paymentConfig?.colors || 'bg-slate-100 text-slate-600'
-                                        )}>
-                                            <PaymentIcon className="h-3.5 w-3.5" />
-                                            {paymentConfig?.label || invoice.paymentMethod}
-                                        </span>
+                                        {invoice.paymentMethod ? (
+                                            <span className={cn(
+                                                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium',
+                                                paymentConfig?.colors || 'bg-slate-100 text-slate-600'
+                                            )}>
+                                                <PaymentIcon className="h-3.5 w-3.5" />
+                                                {paymentConfig?.label || invoice.paymentMethod}
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm text-slate-400">Chưa thanh toán</span>
+                                        )}
                                     </div>
                                     <div className="flex items-center justify-between py-2">
                                         <span className="text-sm text-slate-500">Mã giao dịch</span>
-                                        <button
-                                            onClick={handleCopyTransactionId}
-                                            className="flex items-center gap-1 font-mono text-sm font-medium text-slate-900 hover:text-indigo-600"
-                                        >
-                                            {invoice.transactionId?.slice(0, 12)}...
-                                            <Copy className="h-3 w-3" />
-                                        </button>
+                                        {invoice.transactionId ? (
+                                            <button
+                                                onClick={handleCopyTransactionId}
+                                                className="flex items-center gap-1 font-mono text-sm font-medium text-slate-900 hover:text-indigo-600"
+                                            >
+                                                {invoice.transactionId.length > 15
+                                                    ? `${invoice.transactionId.slice(0, 15)}...`
+                                                    : invoice.transactionId}
+                                                <Copy className="h-3 w-3" />
+                                            </button>
+                                        ) : (
+                                            <span className="text-sm text-slate-400">N/A</span>
+                                        )}
                                     </div>
                                     {invoice.paidAt && (
                                         <InfoRow
