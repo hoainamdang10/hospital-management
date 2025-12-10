@@ -2,7 +2,7 @@
  * CreateAppointmentReminderUseCase - Application Layer
  * Handles MANUAL creation of appointment reminders (Alternative approach)
  *
- * ⚠️ ARCHITECTURE NOTE: ALTERNATIVE API ⚠️
+ *  ARCHITECTURE NOTE: ALTERNATIVE API 
  *
  * This use case provides MANUAL reminder creation as an alternative to auto-scheduling.
  *

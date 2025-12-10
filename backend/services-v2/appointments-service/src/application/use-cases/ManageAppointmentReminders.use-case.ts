@@ -131,7 +131,7 @@ export class ManageAppointmentRemindersUseCase extends BaseHealthcareUseCase<
         appointment.patientId,
         appointmentDateTime,
         appointment.priority,
-        windows // ✅ Pass custom windows
+        windows //  Pass custom windows
       );
       console.log(`[ManageReminders] Scheduled reminders for appointment ${appointment.appointmentId.value} with ${windows.length} custom windows`);
     } catch (error) {

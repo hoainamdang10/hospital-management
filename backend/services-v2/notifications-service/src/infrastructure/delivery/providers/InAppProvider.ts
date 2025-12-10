@@ -54,7 +54,7 @@ export class InAppProvider implements ChannelProvider {
         priority: request.metadata?.priority || 'NORMAL',
         category: request.metadata?.category,
         actionUrl: request.metadata?.actionUrl,
-        icon: '🏥',
+        icon: '',
         sound: true
       };
 

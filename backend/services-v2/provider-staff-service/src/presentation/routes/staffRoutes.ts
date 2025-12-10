@@ -48,23 +48,23 @@ export function createStaffRoutes(controller: StaffController): Router {
   const requireAuth = bypassAuth
     ? AuthenticationMiddleware.bypassAuth
     : AuthenticationMiddleware.requireAuth(
-        process.env.SUPABASE_URL || "",
-        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-      );
+      process.env.SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    );
 
   const adminOnly = bypassAuth
     ? AuthenticationMiddleware.bypassAuth
     : AuthenticationMiddleware.adminOnly(
-        process.env.SUPABASE_URL || "",
-        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-      );
+      process.env.SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    );
 
   const healthcareStaffOnly = bypassAuth
     ? AuthenticationMiddleware.bypassAuth
     : AuthenticationMiddleware.healthcareStaffOnly(
-        process.env.SUPABASE_URL || "",
-        process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-      );
+      process.env.SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    );
 
   // Allow internal service-to-service token (Appointments -> Provider) to bypass Supabase auth
   const serviceToken =
@@ -354,6 +354,19 @@ export function createStaffRoutes(controller: StaffController): Router {
     adminOnly,
     validateUpdateEmploymentStatus,
     asyncHandler(controller.updateEmploymentStatus.bind(controller)),
+  );
+
+  /**
+   * Hard delete staff (permanent removal)
+   * DELETE /api/v1/staff/:staffId/permanent
+   * WARNING: This action cannot be undone!
+   */
+  router.delete(
+    "/:staffId/permanent",
+    RateLimitMiddleware.statusChange,
+    adminOnly,
+    validateStaffId,
+    asyncHandler(controller.hardDeleteStaff.bind(controller)),
   );
 
   // ==================== SCHEDULE MANAGEMENT ====================

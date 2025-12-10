@@ -84,17 +84,21 @@ export class DeleteUserUseCase
       this.logger.warn("User not found for hard delete", {
         userId: request.userId,
       });
+
+      // Idempotent cleanup: still publish deletion event so downstream services can remove orphans
+      await this.publishDeletionEvent(
+        userIdVO,
+        request,
+        `${request.userId}@deleted.local`,
+      );
+
       return {
-        success: false,
-        message: "Người dùng không tồn tại",
-        error: "USER_NOT_FOUND",
+        success: true,
+        message: "Người dùng không tồn tại (đã được xem như đã xóa)",
       };
     }
 
-    if (
-      !request.force &&
-      user.accountStatus !== AccountStatus.DEACTIVATED
-    ) {
+    if (!request.force && user.accountStatus !== AccountStatus.DEACTIVATED) {
       return {
         success: false,
         message:

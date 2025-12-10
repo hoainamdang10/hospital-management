@@ -2,7 +2,7 @@
  * Reminder Routes - Presentation Layer
  * Defines HTTP routes for MANUAL appointment reminders (Alternative API)
  *
- * ⚠️ ALTERNATIVE API - Use only for special cases ⚠️
+ *  ALTERNATIVE API - Use only for special cases 
  *
  * These routes provide manual reminder management. For standard appointment reminders,
  * use the existing auto-scheduling system (AppointmentScheduledSchedulerHandler).

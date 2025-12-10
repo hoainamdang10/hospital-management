@@ -174,7 +174,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   /**
    * Publish domain events from aggregate
    *
-   * ✅ ENRICHMENT: Get data from appointment_read_model before publishing
+   *  ENRICHMENT: Get data from appointment_read_model before publishing
    * This provides denormalized names for Notifications Service
    */
   private async publishDomainEvents(appointment: Appointment): Promise<void> {

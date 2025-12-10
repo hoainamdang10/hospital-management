@@ -68,7 +68,7 @@ async function seedDatabase() {
         if (error) {
           // Check if error is due to duplicate (which is OK)
           if (error.message.includes('duplicate') || error.message.includes('already exists')) {
-            console.log(`️  Skipped (already exists): Statement ${i + 1}`);
+            console.log(`  Skipped (already exists): Statement ${i + 1}`);
             skipCount++;
           } else {
             console.error(` Error in statement ${i + 1}:`, error.message);
@@ -86,7 +86,7 @@ async function seedDatabase() {
 
     console.log('\n Seeding Summary:');
     console.log(`    Success: ${successCount}`);
-    console.log(`   ️  Skipped: ${skipCount}`);
+    console.log(`     Skipped: ${skipCount}`);
     console.log(`    Errors: ${errorCount}`);
 
     // Verify seeded data
@@ -199,7 +199,7 @@ async function cleanDatabase() {
         .eq('created_by', 'system');
 
       if (error) {
-        console.warn(`️  Could not clean ${table}:`, error.message);
+        console.warn(`  Could not clean ${table}:`, error.message);
       } else {
         console.log(` Cleaned ${table}`);
       }

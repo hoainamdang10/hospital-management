@@ -380,7 +380,7 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   /**
    * Save patient (create or update)
-   * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
+   *  FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
    */
   async save(patient: Patient): Promise<void> {
     return await this.circuitBreaker.execute(async () => {
@@ -402,7 +402,7 @@ export class SupabasePatientRepository implements IPatientRepository {
         userId: patientRecord.user_id,
       });
 
-      // ✅ Use PostgreSQL function for transaction support
+      //  Use PostgreSQL function for transaction support
       const { data, error } = await this.supabaseClient.rpc(
         "save_patient_transaction",
         {
@@ -603,6 +603,104 @@ export class SupabasePatientRepository implements IPatientRepository {
         patientId: patientId.getValue(),
       });
     });
+  }
+
+  /**
+   * Hard delete patient by linked identity user ID
+   * Used when Identity Service performs a permanent account deletion
+   */
+  async hardDeleteByUserId(
+    userId: string,
+    options?: { deletedBy?: string; reason?: string },
+  ): Promise<{ deleted: boolean; patientId?: string }> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { data: patientRow, error: findError } = await this.supabaseClient
+          .from("patients")
+          .select("patient_id")
+          .eq("user_id", userId)
+          .single();
+
+        if (findError) {
+          if (findError.code === "PGRST116") {
+            this.logger.warn(
+              "No patient found to hard delete for identity user",
+              { userId },
+            );
+            return { deleted: false };
+          }
+
+          throw new Error(
+            `Failed to locate patient for hard delete: ${findError.message}`,
+          );
+        }
+
+        const patientId = patientRow.patient_id as string;
+        const schemaClient = this.supabaseClient;
+
+        // Delete dependent records first to satisfy FK constraints
+        const relatedTables = [
+          "insurance_info",
+          "emergency_contacts",
+          "patient_consents",
+          "patient_links",
+          "patient_profiles",
+        ];
+
+        for (const table of relatedTables) {
+          const { error } = await schemaClient
+            .from(table)
+            .delete()
+            .eq("patient_id", patientId);
+
+          if (error && error.code !== "PGRST116") {
+            throw new Error(
+              `Failed to delete related records from ${table}: ${error.message}`,
+            );
+          }
+        }
+
+        const { error: patientDeleteError } = await schemaClient
+          .from("patients")
+          .delete()
+          .eq("patient_id", patientId);
+
+        if (patientDeleteError) {
+          throw new Error(
+            `Failed to hard delete patient: ${patientDeleteError.message}`,
+          );
+        }
+
+        if (this.patientCache) {
+          try {
+            await this.patientCache.invalidate(PatientId.create(patientId));
+          } catch (cacheError) {
+            this.logger.warn("Failed to invalidate cache after hard delete", {
+              patientId,
+              error:
+                cacheError instanceof Error
+                  ? cacheError.message
+                  : "Unknown error",
+            });
+          }
+        }
+
+        this.logger.info("Patient hard deleted due to identity deletion", {
+          userId,
+          patientId,
+          deletedBy: options?.deletedBy,
+          reason: options?.reason,
+        });
+
+        return { deleted: true, patientId };
+      },
+      async () => {
+        this.logger.warn("Circuit breaker fallback for hardDeleteByUserId", {
+          userId,
+        });
+        return { deleted: false };
+      },
+    );
   }
 
   /**
@@ -817,7 +915,7 @@ export class SupabasePatientRepository implements IPatientRepository {
             );
           }
 
-          // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+          //  FIX N+1 PROBLEM: Batch fetch all related data
           const patientIds = (data || []).map(
             (record: PatientRecord) => record.patient_id,
           );
@@ -930,7 +1028,7 @@ export class SupabasePatientRepository implements IPatientRepository {
             throw new Error(`Failed to search patients: ${error.message}`);
           }
 
-          // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+          //  FIX N+1 PROBLEM: Batch fetch all related data
           const patientIds = (data || []).map(
             (record: PatientRecord) => record.patient_id,
           );
@@ -1027,7 +1125,7 @@ export class SupabasePatientRepository implements IPatientRepository {
           );
         }
 
-        // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+        //  FIX N+1 PROBLEM: Batch fetch all related data
         const patientIds = (data || []).map(
           (record: PatientRecord) => record.patient_id,
         );
@@ -1183,7 +1281,7 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   /**
-   * ✅ FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
+   *  FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
    */
   private async fetchInsuranceBatch(
     patientIds: string[],
@@ -1216,7 +1314,7 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   /**
-   * ✅ FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
+   *  FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
    */
   private async fetchEmergencyContactsBatch(
     patientIds: string[],
@@ -1251,7 +1349,7 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   /**
-   * ✅ FIX N+1 PROBLEM: Batch fetch consents for multiple patients
+   *  FIX N+1 PROBLEM: Batch fetch consents for multiple patients
    */
   private async fetchConsentsBatch(
     patientIds: string[],
@@ -1286,7 +1384,7 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   /**
-   * ✅ FIX N+1 PROBLEM: Batch fetch links for multiple patients
+   *  FIX N+1 PROBLEM: Batch fetch links for multiple patients
    */
   private async fetchLinksBatch(
     patientIds: string[],
@@ -1456,7 +1554,7 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   /**
    * Publish domain events from aggregate
-   * ✅ OUTBOX PATTERN: Save events to outbox table for reliable publishing
+   *  OUTBOX PATTERN: Save events to outbox table for reliable publishing
    */
   private async publishDomainEvents(patient: Patient): Promise<void> {
     const events = patient.getUncommittedEvents();
@@ -1465,7 +1563,7 @@ export class SupabasePatientRepository implements IPatientRepository {
     }
 
     try {
-      // ✅ PRIORITY 1: Use outbox pattern if available (transactional, reliable)
+      //  PRIORITY 1: Use outbox pattern if available (transactional, reliable)
       if (this.outboxRepository) {
         await this.outboxRepository.saveEvents(events);
 
@@ -1480,7 +1578,7 @@ export class SupabasePatientRepository implements IPatientRepository {
         return;
       }
 
-      // ✅ FALLBACK: Direct publishing if outbox not available
+      //  FALLBACK: Direct publishing if outbox not available
       if (!this.eventPublisher) {
         this.logger.debug(
           "Neither outbox nor event publisher configured, skipping event publishing",

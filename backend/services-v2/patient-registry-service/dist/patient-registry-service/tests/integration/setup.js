@@ -104,12 +104,12 @@ async function setupTestSchemas() {
         const requiredSchemas = ['auth_schema', 'patient_schema'];
         const missingSchemas = requiredSchemas.filter(schema => !schemas?.includes(schema));
         if (missingSchemas.length > 0) {
-            console.warn(`️  Missing schemas: ${missingSchemas.join(', ')}`);
+            console.warn(`  Missing schemas: ${missingSchemas.join(', ')}`);
             console.warn('Please run database migrations before running tests');
         }
     }
     catch (error) {
-        console.warn('️  Could not verify schemas:', error);
+        console.warn('  Could not verify schemas:', error);
     }
 }
 /**
@@ -157,7 +157,7 @@ async function createTestUsers() {
                     email_confirm: true
                 });
                 if (error) {
-                    console.warn(`️  Could not create test user ${user.email}:`, error.message);
+                    console.warn(`  Could not create test user ${user.email}:`, error.message);
                 }
                 else if (data.user) {
                     console.log(` Created test user: ${user.email}`);
@@ -166,7 +166,7 @@ async function createTestUsers() {
                 }
             }
             else {
-                console.log(`ℹ️  Test user already exists: ${user.email}`);
+                console.log(`ℹ  Test user already exists: ${user.email}`);
                 // Get user ID and ensure roles are assigned
                 const existingUserData = existingUser?.users.find(u => u.email === user.email);
                 if (existingUserData) {
@@ -175,7 +175,7 @@ async function createTestUsers() {
             }
         }
         catch (error) {
-            console.warn(`️  Error creating test user ${user.email}:`, error);
+            console.warn(`  Error creating test user ${user.email}:`, error);
         }
     }
 }
@@ -190,7 +190,7 @@ async function cleanupTestData() {
             .delete()
             .like('national_id', 'TEST%');
         if (patientsError) {
-            console.warn('️  Could not cleanup test patients:', patientsError.message);
+            console.warn('  Could not cleanup test patients:', patientsError.message);
         }
         // Delete test insurance records
         const { error: insuranceError } = await supabaseClient
@@ -198,12 +198,12 @@ async function cleanupTestData() {
             .delete()
             .like('policy_number', 'TEST%');
         if (insuranceError) {
-            console.warn('️  Could not cleanup test insurance:', insuranceError.message);
+            console.warn('  Could not cleanup test insurance:', insuranceError.message);
         }
         console.log(' Test data cleaned up');
     }
     catch (error) {
-        console.warn('️  Error cleaning up test data:', error);
+        console.warn('  Error cleaning up test data:', error);
     }
 }
 /**
@@ -229,7 +229,7 @@ async function deleteTestUsers() {
                 // Delete user
                 const { error } = await supabaseClient.auth.admin.deleteUser(user.id);
                 if (error) {
-                    console.warn(`️  Could not delete test user ${email}:`, error.message);
+                    console.warn(`  Could not delete test user ${email}:`, error.message);
                 }
                 else {
                     console.log(` Deleted test user: ${email}`);
@@ -237,7 +237,7 @@ async function deleteTestUsers() {
             }
         }
         catch (error) {
-            console.warn(`️  Error deleting test user ${email}:`, error);
+            console.warn(`  Error deleting test user ${email}:`, error);
         }
     }
 }

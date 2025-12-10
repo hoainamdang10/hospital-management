@@ -148,14 +148,14 @@ class TestDatabase {
                 .delete()
                 .like('personal_info->>nationalId', pattern);
             if (error) {
-                console.warn(`️  Could not cleanup test patients: ${error.message}`);
+                console.warn(`  Could not cleanup test patients: ${error.message}`);
             }
             else {
                 console.log(' Test patients cleaned up');
             }
         }
         catch (error) {
-            console.warn('️  Error cleaning up test patients:', error);
+            console.warn('  Error cleaning up test patients:', error);
         }
     }
     /**

@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 import { ILogger } from "@shared/application/services/logger.interface";
 
 // ============================================================================
-// ✅ ESSENTIAL USE CASES - MVP SCOPE (14 use cases)
+//  ESSENTIAL USE CASES - MVP SCOPE (14 use cases)
 // ============================================================================
 import { RegisterPatientUseCase } from "../../application/use-cases/RegisterPatientUseCase";
 import {
@@ -32,7 +32,7 @@ import { VerifyInsuranceUseCase } from "../../application/use-cases/VerifyInsura
 import { GetPatientStatisticsUseCase } from "../../application/use-cases/GetPatientStatisticsUseCase";
 
 // ============================================================================
-// ❌ POST-MVP USE CASES - ARCHIVED FOR GRADUATION PROJECT (20 use cases)
+//  POST-MVP USE CASES - ARCHIVED FOR GRADUATION PROJECT (20 use cases)
 // ============================================================================
 // These use cases have been moved to: src/application/use-cases/_archived_post_mvp/
 // Reason: Beyond graduation project demo flow scope
@@ -151,7 +151,7 @@ function userHasAnyRole(req: Request, allowedRoles: string[]): boolean {
 export class PatientController {
   constructor(
     // ============================================================================
-    // ✅ ESSENTIAL DEPENDENCIES - MVP SCOPE (12 dependencies)
+    //  ESSENTIAL DEPENDENCIES - MVP SCOPE (12 dependencies)
     // ============================================================================
     private logger: ILogger,
 
@@ -175,7 +175,7 @@ export class PatientController {
     private getPatientStatisticsUseCase: GetPatientStatisticsUseCase,
 
     // ============================================================================
-    // ❌ POST-MVP DEPENDENCIES - ARCHIVED FOR GRADUATION PROJECT (20 dependencies)
+    //  POST-MVP DEPENDENCIES - ARCHIVED FOR GRADUATION PROJECT (20 dependencies)
     // ============================================================================
     // These use cases have been moved to: src/application/use-cases/_archived_post_mvp/
     // To restore: Uncomment these lines and update DI container registrations
@@ -832,7 +832,7 @@ export class PatientController {
   }
 
   // ============================================================================
-  // ❌ POST-MVP METHODS - ARCHIVED FOR GRADUATION PROJECT
+  //  POST-MVP METHODS - ARCHIVED FOR GRADUATION PROJECT
   // ============================================================================
   // The following methods have been commented out as part of scope reduction.
   // Use cases moved to: src/application/use-cases/_archived_post_mvp/

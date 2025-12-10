@@ -285,7 +285,7 @@ class SupabasePatientRepository {
     }
     /**
      * Save patient (create or update)
-     * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
+     *  FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
      */
     async save(patient) {
         return await this.circuitBreaker.execute(async () => {
@@ -298,7 +298,7 @@ class SupabasePatientRepository {
                 patientId: patientIdValue,
                 userId: patientRecord.user_id,
             });
-            // ✅ Use PostgreSQL function for transaction support
+            //  Use PostgreSQL function for transaction support
             const { data, error } = await this.supabaseClient.rpc("save_patient_transaction", {
                 p_patient_data: patientRecord,
                 p_insurance_data: insuranceRecord || null,
@@ -447,6 +447,77 @@ class SupabasePatientRepository {
         });
     }
     /**
+     * Hard delete patient by linked identity user ID
+     * Used when Identity Service performs a permanent account deletion
+     */
+    async hardDeleteByUserId(userId, options) {
+        return await this.circuitBreaker.execute(async () => {
+            const { data: patientRow, error: findError } = await this.supabaseClient
+                .from("patients")
+                .select("patient_id")
+                .eq("user_id", userId)
+                .single();
+            if (findError) {
+                if (findError.code === "PGRST116") {
+                    this.logger.warn("No patient found to hard delete for identity user", { userId });
+                    return { deleted: false };
+                }
+                throw new Error(`Failed to locate patient for hard delete: ${findError.message}`);
+            }
+            const patientId = patientRow.patient_id;
+            const schemaClient = this.supabaseClient;
+            // Delete dependent records first to satisfy FK constraints
+            const relatedTables = [
+                "insurance_info",
+                "emergency_contacts",
+                "patient_consents",
+                "patient_links",
+                "patient_profiles",
+            ];
+            for (const table of relatedTables) {
+                const { error } = await schemaClient
+                    .from(table)
+                    .delete()
+                    .eq("patient_id", patientId);
+                if (error && error.code !== "PGRST116") {
+                    throw new Error(`Failed to delete related records from ${table}: ${error.message}`);
+                }
+            }
+            const { error: patientDeleteError } = await schemaClient
+                .from("patients")
+                .delete()
+                .eq("patient_id", patientId);
+            if (patientDeleteError) {
+                throw new Error(`Failed to hard delete patient: ${patientDeleteError.message}`);
+            }
+            if (this.patientCache) {
+                try {
+                    await this.patientCache.invalidate(PatientId_1.PatientId.create(patientId));
+                }
+                catch (cacheError) {
+                    this.logger.warn("Failed to invalidate cache after hard delete", {
+                        patientId,
+                        error: cacheError instanceof Error
+                            ? cacheError.message
+                            : "Unknown error",
+                    });
+                }
+            }
+            this.logger.info("Patient hard deleted due to identity deletion", {
+                userId,
+                patientId,
+                deletedBy: options?.deletedBy,
+                reason: options?.reason,
+            });
+            return { deleted: true, patientId };
+        }, async () => {
+            this.logger.warn("Circuit breaker fallback for hardDeleteByUserId", {
+                userId,
+            });
+            return { deleted: false };
+        });
+    }
+    /**
      * Update patient lifecycle status by user ID
      */
     async updateStatusByUserId(userId, newStatus, options) {
@@ -577,7 +648,7 @@ class SupabasePatientRepository {
                     });
                     throw new Error(`Failed to find patients with filters: ${error.message}`);
                 }
-                // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+                //  FIX N+1 PROBLEM: Batch fetch all related data
                 const patientIds = (data || []).map((record) => record.patient_id);
                 const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
                     this.fetchInsuranceBatch(patientIds),
@@ -650,7 +721,7 @@ class SupabasePatientRepository {
                     });
                     throw new Error(`Failed to search patients: ${error.message}`);
                 }
-                // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+                //  FIX N+1 PROBLEM: Batch fetch all related data
                 const patientIds = (data || []).map((record) => record.patient_id);
                 const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
                     this.fetchInsuranceBatch(patientIds),
@@ -703,7 +774,7 @@ class SupabasePatientRepository {
             if (error) {
                 throw new Error(`Failed to fetch candidate patients: ${error.message}`);
             }
-            // ✅ FIX N+1 PROBLEM: Batch fetch all related data
+            //  FIX N+1 PROBLEM: Batch fetch all related data
             const patientIds = (data || []).map((record) => record.patient_id);
             const [insuranceMap, contactsMap, consentsMap, linksMap] = await Promise.all([
                 this.fetchInsuranceBatch(patientIds),
@@ -818,7 +889,7 @@ class SupabasePatientRepository {
         return (data || []);
     }
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
      */
     async fetchInsuranceBatch(patientIds) {
         if (patientIds.length === 0) {
@@ -844,7 +915,7 @@ class SupabasePatientRepository {
         return insuranceMap;
     }
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
      */
     async fetchEmergencyContactsBatch(patientIds) {
         if (patientIds.length === 0) {
@@ -872,7 +943,7 @@ class SupabasePatientRepository {
         return contactsMap;
     }
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch consents for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch consents for multiple patients
      */
     async fetchConsentsBatch(patientIds) {
         if (patientIds.length === 0) {
@@ -900,7 +971,7 @@ class SupabasePatientRepository {
         return consentsMap;
     }
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch links for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch links for multiple patients
      */
     async fetchLinksBatch(patientIds) {
         if (patientIds.length === 0) {
@@ -1033,7 +1104,7 @@ class SupabasePatientRepository {
     }
     /**
      * Publish domain events from aggregate
-     * ✅ OUTBOX PATTERN: Save events to outbox table for reliable publishing
+     *  OUTBOX PATTERN: Save events to outbox table for reliable publishing
      */
     async publishDomainEvents(patient) {
         const events = patient.getUncommittedEvents();
@@ -1041,7 +1112,7 @@ class SupabasePatientRepository {
             return;
         }
         try {
-            // ✅ PRIORITY 1: Use outbox pattern if available (transactional, reliable)
+            //  PRIORITY 1: Use outbox pattern if available (transactional, reliable)
             if (this.outboxRepository) {
                 await this.outboxRepository.saveEvents(events);
                 // Mark events as committed after saving to outbox
@@ -1053,7 +1124,7 @@ class SupabasePatientRepository {
                 });
                 return;
             }
-            // ✅ FALLBACK: Direct publishing if outbox not available
+            //  FALLBACK: Direct publishing if outbox not available
             if (!this.eventPublisher) {
                 this.logger.debug("Neither outbox nor event publisher configured, skipping event publishing");
                 return;

@@ -602,10 +602,27 @@ class PatientService {
  * Get patient by ID
  */
 export async function getPatientById(patientId: string): Promise<Patient> {
-  const response = await apiClient.get<{ success: boolean; data: Patient }>(
-    `/v1/patients/${patientId}`
-  );
-  return normalizePatient(response.data.data);
+  try {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: Patient;
+      message?: string;
+      error?: string;
+    }>(`/v1/patients/${patientId}`);
+
+    if (!response.data?.success || !response.data?.data) {
+      throw new Error(response.data?.message || response.data?.error || 'Không tìm thấy bệnh nhân');
+    }
+
+    return normalizePatient(response.data.data);
+  } catch (error: any) {
+    const apiMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      'Không thể tải thông tin bệnh nhân';
+    throw new Error(apiMessage);
+  }
 }
 
 /**

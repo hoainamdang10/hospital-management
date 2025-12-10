@@ -57,6 +57,14 @@ export interface IPatientRepository {
   delete(patientId: PatientId): Promise<void>;
 
   /**
+   * Hard delete patient by linked user ID (used when identity account is permanently removed)
+   */
+  hardDeleteByUserId(
+    userId: string,
+    options?: { deletedBy?: string; reason?: string },
+  ): Promise<{ deleted: boolean; patientId?: string }>;
+
+  /**
    * Update patient lifecycle status by user ID
    * Used by cross-service event handlers (e.g., identity-service)
    */

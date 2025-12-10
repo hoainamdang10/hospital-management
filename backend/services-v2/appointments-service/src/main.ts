@@ -296,7 +296,7 @@ app.use("/api/v1", createAppointmentRoutes());
 // Chat routes (lightweight, scoped to appointments)
 app.use("/api/v1", createChatRoutes());
 
-// ✅ FIX: Removed duplicate /api/v2 mount
+//  FIX: Removed duplicate /api/v2 mount
 // Gateway now correctly forwards full path with proper rewriting
 
 // Availability routes (Provider schedule & available slots)
@@ -598,7 +598,7 @@ const server = app.listen(PORT, async () => {
 
   // ==================== AUTO-COMPLETE PAST APPOINTMENTS ====================
   // Setup cron job to auto-complete past appointments
-  // ⚙️ OPTIMIZED FOR ACADEMIC PROJECT:
+  // ⚙ OPTIMIZED FOR ACADEMIC PROJECT:
   //    - Buffer: 30 minutes (realistic for demo/testing)
   //    - Schedule: Every 5 minutes (quick feedback for testing)
   // 🏭 PRODUCTION RECOMMENDATION:

@@ -183,7 +183,7 @@ export class AcceptStaffInvitationUseCase {
         | Record<string, unknown>
         | undefined;
 
-      // ✅ FIX: Use public domain method instead of calling protected addDomainEvent
+      //  FIX: Use public domain method instead of calling protected addDomainEvent
       user.recordStaffActivation(personalInfo, professionalData);
 
       this.logger.info("Staff activation recorded with UserCreatedEvent", {

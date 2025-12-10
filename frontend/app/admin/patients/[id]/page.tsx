@@ -23,6 +23,7 @@ import {
   Droplet,
   UserCheck,
   ClipboardList,
+  RefreshCw,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout';
 import {
@@ -72,6 +73,7 @@ export default function PatientDetailPage() {
   const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
   useEffect(() => {
@@ -141,9 +143,17 @@ export default function PatientDetailPage() {
     } catch (err: any) {
       console.error('Error fetching patient:', err);
       setError(err.message || 'Không thể tải thông tin bệnh nhân');
-      toast.error('Không thể tải thông tin bệnh nhân');
+      const isUserMissing =
+        err?.message?.toUpperCase?.()?.includes?.('USER_NOT_FOUND') ||
+        err?.message?.toLowerCase?.()?.includes?.('không tồn tại');
+      toast.error(
+        isUserMissing
+          ? 'Tài khoản đăng nhập đã bị xóa, hồ sơ không còn truy cập được.'
+          : 'Không thể tải thông tin bệnh nhân'
+      );
     } finally {
       setIsLoading(false);
+      setIsRetrying(false);
     }
   };
 
@@ -192,6 +202,13 @@ export default function PatientDetailPage() {
   }
 
   if (error || !patient) {
+    const isUserMissing =
+      error?.toUpperCase?.()?.includes?.('USER_NOT_FOUND') ||
+      error?.toLowerCase?.()?.includes?.('không tồn tại');
+    const friendlyMessage = isUserMissing
+      ? 'Tài khoản đăng nhập đã bị xóa. Hồ sơ bệnh nhân không còn khả dụng.'
+      : 'Bệnh nhân này không tồn tại hoặc đã bị xóa.';
+
     return (
       <DashboardLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
@@ -199,17 +216,32 @@ export default function PatientDetailPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
               <AlertCircle className="h-8 w-8 text-red-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Không tìm thấy bệnh nhân</h2>
-            <p className="text-slate-500">
-              {error || 'Bệnh nhân này không tồn tại hoặc đã bị xóa.'}
-            </p>
-            <button
-              onClick={() => router.back()}
-              className="mt-4 flex items-center gap-2 rounded-xl bg-cyan-600 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-cyan-700"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Quay lại
-            </button>
+            <h2 className="text-xl font-bold text-slate-900">Không tìm thấy hồ sơ</h2>
+            <p className="text-slate-500">{friendlyMessage}</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => router.push('/admin/patients')}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Về danh sách
+              </button>
+              <button
+                onClick={() => {
+                  setIsRetrying(true);
+                  fetchPatientData();
+                }}
+                className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isRetrying}
+              >
+                {isRetrying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Thử lại
+              </button>
+            </div>
           </div>
         </div>
       </DashboardLayout>

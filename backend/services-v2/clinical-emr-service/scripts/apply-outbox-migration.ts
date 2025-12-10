@@ -45,7 +45,7 @@ async function applyOutboxMigration() {
     console.log(`   Size: ${migrationSQL.length} bytes\n`);
 
     // Execute migration
-    console.log('️  Executing migration...');
+    console.log('  Executing migration...');
     
     const { data, error } = await supabase.rpc('exec_sql', {
       sql: migrationSQL,
@@ -62,7 +62,7 @@ async function applyOutboxMigration() {
 
       if (queryError) {
         console.error(' Migration failed:', error.message);
-        console.error('\n️  Manual steps required:');
+        console.error('\n  Manual steps required:');
         console.error('   1. Go to Supabase Dashboard → SQL Editor');
         console.error('   2. Copy content from migrations/007_create_outbox_pattern.sql');
         console.error('   3. Paste and run in SQL Editor');
@@ -101,7 +101,7 @@ async function applyOutboxMigration() {
       'cleanup_old_published_events',
     ];
 
-    console.log(`   ℹ️  ${functions.length} functions should be created`);
+    console.log(`   ℹ  ${functions.length} functions should be created`);
     functions.forEach(fn => console.log(`      - ${fn}`));
 
     console.log('\n Outbox Pattern Migration Complete!\n');

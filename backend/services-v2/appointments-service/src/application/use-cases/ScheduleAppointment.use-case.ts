@@ -354,7 +354,7 @@ export class ScheduleAppointmentUseCase extends BaseHealthcareUseCase<
           durationMinutes: request.durationMinutes,
           type: request.type,
           priority: request.priority,
-          // ✅ FIX: Return actual status from aggregate (pending_payment)
+          //  FIX: Return actual status from aggregate (pending_payment)
           status: appointment.status,
           consultationFee: request.consultationFee,
           // Payment tracking (Flow 3 - Prepaid Model)

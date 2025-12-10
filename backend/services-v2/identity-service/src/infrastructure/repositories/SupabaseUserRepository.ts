@@ -306,7 +306,7 @@ export class SupabaseUserRepository implements IUserRepository {
           email_confirm: userData.emailConfirm ?? true, // Auto-confirm by default
           user_metadata: {
             full_name: userData.fullName,
-            // ❌ REMOVED: role: userData.roleType
+            //  REMOVED: role: userData.roleType
             // Roles are now managed ONLY in user_roles table (Single Source of Truth)
             // This prevents metadata/database sync issues
             phone_number: userData.phoneNumber,

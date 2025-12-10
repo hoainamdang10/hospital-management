@@ -395,7 +395,7 @@ export class TestSuiteOrchestrator {
     const unavailableServices = results.filter(r => !r.available);
 
     if (unavailableServices.length > 0) {
-      console.warn('️ Some services are unavailable:', unavailableServices.map(s => s.url));
+      console.warn(' Some services are unavailable:', unavailableServices.map(s => s.url));
     }
 
     console.log(' Test environment validation completed');

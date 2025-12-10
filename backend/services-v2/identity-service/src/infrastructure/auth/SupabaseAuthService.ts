@@ -61,13 +61,13 @@ export class SupabaseAuthService implements IAuthenticationService {
   /**
    * @deprecated This method is DISABLED and will be removed in v3.0.0
    *
-   * ❌ DO NOT USE THIS METHOD
+   *  DO NOT USE THIS METHOD
    *
    * REASON: This method relied on database triggers to create user_profiles,
    * which violates Clean Architecture principles. The triggers have been
    * removed from the system.
    *
-   * ✅ USE INSTEAD: RegisterUserUseCase
+   *  USE INSTEAD: RegisterUserUseCase
    *
    * MIGRATION PATH:
    * 1. Use RegisterUserUseCase which explicitly creates both auth.users

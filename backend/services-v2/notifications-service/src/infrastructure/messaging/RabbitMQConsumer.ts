@@ -104,7 +104,7 @@ export class RabbitMQConsumer {
       });
 
       this.connection.on('close', () => {
-        console.warn('️ RabbitMQ connection closed');
+        console.warn(' RabbitMQ connection closed');
         this.isConnected = false;
         this.reconnect();
       });

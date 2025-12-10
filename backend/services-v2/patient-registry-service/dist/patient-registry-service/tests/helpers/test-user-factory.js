@@ -64,7 +64,7 @@ class TestUserFactory {
                 updated_at: new Date().toISOString()
             });
             if (profileError) {
-                console.warn(`️  Failed to create user profile: ${profileError.message}`);
+                console.warn(`  Failed to create user profile: ${profileError.message}`);
                 // Continue anyway, profile might be created by trigger
             }
             else {
@@ -81,7 +81,7 @@ class TestUserFactory {
                 assigned_at: new Date().toISOString() // Use assigned_at instead of created_at
             });
             if (roleError) {
-                console.warn(`️  Failed to assign role: ${roleError.message}`);
+                console.warn(`  Failed to assign role: ${roleError.message}`);
             }
             else {
                 console.log(` Role ${roleType} assigned to ${email}`);
@@ -166,7 +166,7 @@ class TestUserFactory {
                 console.log(` Deleted test user: ${userId}`);
             }
             catch (error) {
-                console.warn(`️  Error deleting test user ${userId}:`, error);
+                console.warn(`  Error deleting test user ${userId}:`, error);
             }
         }
         this.createdUserIds = [];

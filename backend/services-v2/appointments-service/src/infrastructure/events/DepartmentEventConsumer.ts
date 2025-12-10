@@ -305,7 +305,7 @@ export class DepartmentEventConsumer {
     });
 
     try {
-      // ❌ REMOVED: initializeDepartmentAppointmentSettings(data);
+      //  REMOVED: initializeDepartmentAppointmentSettings(data);
       // This functionality belongs to Department Service
       console.log('Department created - Appointment Service notified for conflict detection', {
         departmentId: data.departmentId,
@@ -323,7 +323,7 @@ export class DepartmentEventConsumer {
         await this.checkDepartmentCapacityCompliance(data);
       }
 
-      // ❌ REMOVED: setupDefaultAppointmentTypes(data);
+      //  REMOVED: setupDefaultAppointmentTypes(data);
       // This functionality belongs to Department Service
       console.log('Department appointment types setup delegated to Department Service', {
         departmentId: data.departmentId,
@@ -352,7 +352,7 @@ export class DepartmentEventConsumer {
     });
 
     try {
-      // ❌ REMOVED: updateStaffAppointmentPermissions(data);
+      //  REMOVED: updateStaffAppointmentPermissions(data);
       // This functionality belongs to Provider Staff Service
       console.log('Staff permissions update delegated to Provider Staff Service', {
         staffId: data.staffId,
@@ -511,7 +511,7 @@ export class DepartmentEventConsumer {
   }
 
   /**
-   * ❌ REMOVED: initializeDepartmentAppointmentSettings
+   *  REMOVED: initializeDepartmentAppointmentSettings
    * DEPRECATED: Department settings management is out of scope
    * This functionality belongs to Department Service
    * 
@@ -590,7 +590,7 @@ export class DepartmentEventConsumer {
   }
 
   /**
-   * ❌ REMOVED: setupDefaultAppointmentTypes
+   *  REMOVED: setupDefaultAppointmentTypes
    * DEPRECATED: Department appointment types belong to Department Service
    * 
    * This functionality should be handled by Department Service:
@@ -996,7 +996,7 @@ export class DepartmentEventConsumer {
   }
 
   /**
-   * ❌ REMOVED: updateStaffAppointmentPermissions
+   *  REMOVED: updateStaffAppointmentPermissions
    * DEPRECATED: Staff permissions belong to Provider/Staff Service
    * 
    * This functionality should be handled by Provider Staff Service:

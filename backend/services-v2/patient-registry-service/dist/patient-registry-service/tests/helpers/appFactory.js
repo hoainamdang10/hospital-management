@@ -153,7 +153,7 @@ async function createTestApp(config) {
             await eventPublisher.connect();
         }
         catch (error) {
-            console.warn("️  RabbitMQ not available for tests, continuing without event publishing");
+            console.warn("  RabbitMQ not available for tests, continuing without event publishing");
             eventPublisher = undefined;
         }
     }

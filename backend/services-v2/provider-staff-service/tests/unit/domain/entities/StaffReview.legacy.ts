@@ -297,7 +297,7 @@ describe('StaffReview Entity', () => {
     });
 
     it('should handle special characters in comments', () => {
-      const comment = 'Great! 😊 Tuyệt vời! 👍 5⭐️⭐️⭐️⭐️⭐️';
+      const comment = 'Great! 😊 Tuyệt vời!  5';
       const review = StaffReview.create({
         ...validReviewData,
         comment

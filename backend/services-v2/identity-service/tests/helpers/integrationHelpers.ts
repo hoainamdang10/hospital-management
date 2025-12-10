@@ -65,7 +65,7 @@ export async function createStaffUser(
         .delete()
         .eq('email', email);
     } catch (cleanupError) {
-      console.log(`ℹ️  Cleanup orphaned profile for ${email} (if exists)`);
+      console.log(`ℹ  Cleanup orphaned profile for ${email} (if exists)`);
     }
 
     // 1. Create auth user via Admin API (service_role bypass)
@@ -109,7 +109,7 @@ export async function createStaffUser(
       .insert(profileRecord);
 
     if (insertResult.error && insertResult.error.code === '23505') {
-      console.log(`️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
+      console.log(`  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
       await supabaseClient
         .from('user_profiles')
         .delete()
@@ -219,7 +219,7 @@ export async function createTestUser(
     
     // Warn if creating non-patient user (should use createStaffUser)
     if (normalizedRole !== 'patient') {
-      console.warn(`️  Creating non-patient user '${normalizedRole}' via createTestUser(). Consider using createStaffUser() instead.`);
+      console.warn(`  Creating non-patient user '${normalizedRole}' via createTestUser(). Consider using createStaffUser() instead.`);
     }
 
     // 0. Cleanup orphaned profiles with this email (from previous failed tests)
@@ -230,7 +230,7 @@ export async function createTestUser(
         .eq('email', email);
     } catch (cleanupError) {
       // Ignore cleanup errors - profile might not exist
-      console.log(`ℹ️  Cleanup orphaned profile for ${email} (if exists)`);
+      console.log(`ℹ  Cleanup orphaned profile for ${email} (if exists)`);
     }
 
     // 1. Create auth user via Admin API
@@ -275,7 +275,7 @@ export async function createTestUser(
 
     // Check for duplicate key error
     if (insertResult.error && insertResult.error.code === '23505') {
-      console.log(`️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
+      console.log(`  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
       await supabaseClient
         .from('user_profiles')
         .delete()
@@ -546,15 +546,15 @@ export async function cleanupTestUsers(
           await supabaseClient.auth.admin.deleteUser(userId);
         } catch (authError) {
           // Ignore error if auth user already deleted
-          console.log(`ℹ️  Auth user already deleted: ${email}`);
+          console.log(`ℹ  Auth user already deleted: ${email}`);
         }
 
         console.log(` Cleaned up test user: ${email}`);
       } else {
-        console.log(`ℹ️  User not found: ${email}`);
+        console.log(`ℹ  User not found: ${email}`);
       }
     } catch (error) {
-      console.warn(`️  Failed to cleanup user ${email}:`, error);
+      console.warn(`  Failed to cleanup user ${email}:`, error);
     }
   }
 }
@@ -856,10 +856,10 @@ export async function cleanupAllTestUsers(
 
       console.log(` Cleanup complete`);
     } else {
-      console.log(`ℹ️  No test users to cleanup`);
+      console.log(`ℹ  No test users to cleanup`);
     }
   } catch (error) {
-    console.warn(`️  Failed to cleanup all test users:`, error);
+    console.warn(`  Failed to cleanup all test users:`, error);
   }
 }
 

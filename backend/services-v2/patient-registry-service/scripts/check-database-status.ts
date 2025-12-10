@@ -46,7 +46,7 @@ async function checkSchemas() {
 
     if (error) {
       // Fallback: Try direct query
-      console.log('️  RPC method not available, trying direct query...\n');
+      console.log('  RPC method not available, trying direct query...\n');
       
       const { data: schemas, error: schemaError } = await supabase
         .from('information_schema.schemata')
@@ -83,13 +83,13 @@ function displaySchemas(schemas: SchemaInfo[]) {
   console.log('\n Available Schemas:\n');
 
   if (!schemas || schemas.length === 0) {
-    console.log('   ️  No custom schemas found');
+    console.log('     No custom schemas found');
     console.log('   Only default PostgreSQL schemas exist\n');
     return;
   }
 
   schemas.forEach((schema, index) => {
-    const icon = schema.schema_name === 'patient_schema' ? '✅' : '📁';
+    const icon = schema.schema_name === 'patient_schema' ? '' : '';
     console.log(`   ${icon} ${index + 1}. ${schema.schema_name}`);
   });
 
@@ -121,7 +121,7 @@ function displaySchemas(schemas: SchemaInfo[]) {
   console.log(' Other Service Schemas Status:\n');
   serviceSchemas.forEach(schemaName => {
     const exists = schemas.some(s => s.schema_name === schemaName);
-    const icon = exists ? '✅' : '❌';
+    const icon = exists ? '' : '';
     const status = exists ? 'EXISTS' : 'NOT FOUND';
     console.log(`   ${icon} ${schemaName}: ${status}`);
   });
@@ -250,7 +250,7 @@ function printManualQueries() {
   console.log(' Manual Queries for Supabase SQL Editor:\n');
   console.log('='.repeat(60));
   
-  console.log('\n1️⃣  Check All Schemas:\n');
+  console.log('\n1⃣  Check All Schemas:\n');
   console.log('```sql');
   console.log('SELECT schema_name');
   console.log('FROM information_schema.schemata');
@@ -258,7 +258,7 @@ function printManualQueries() {
   console.log('ORDER BY schema_name;');
   console.log('```\n');
 
-  console.log('2️⃣  Check patient_schema Tables:\n');
+  console.log('2⃣  Check patient_schema Tables:\n');
   console.log('```sql');
   console.log('SELECT table_name, table_type');
   console.log('FROM information_schema.tables');
@@ -266,7 +266,7 @@ function printManualQueries() {
   console.log('ORDER BY table_name;');
   console.log('```\n');
 
-  console.log('3️⃣  Count Records in Each Table:\n');
+  console.log('3⃣  Count Records in Each Table:\n');
   console.log('```sql');
   console.log('SELECT');
   console.log('  (SELECT COUNT(*) FROM patient_schema.patients) as patients,');

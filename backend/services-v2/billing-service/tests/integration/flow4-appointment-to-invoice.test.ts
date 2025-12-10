@@ -120,7 +120,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
           expect(payment.amount).toBeGreaterThan(0);
         }
 
-        // ✅ FLOW 4 VERIFICATION PASSED
+        //  FLOW 4 VERIFICATION PASSED
         console.log('\n FLOW 4 VERIFICATION PASSED');
         console.log('Traceability Chain:');
         console.log(`  Appointment: ${completedAppointment.appointment_id}`);
@@ -131,7 +131,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
           console.log(`  Payment: ${payments[0].payment_id}`);
         }
       } else {
-        console.log('️  No invoices found for this appointment yet');
+        console.log('  No invoices found for this appointment yet');
         console.log('Note: Invoices are created asynchronously when appointment.completed event is consumed');
       }
     });

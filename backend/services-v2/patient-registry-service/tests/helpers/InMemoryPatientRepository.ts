@@ -45,6 +45,18 @@ export class InMemoryPatientRepository implements IPatientRepository {
     }
   }
 
+  async hardDeleteByUserId(
+    userId: string,
+  ): Promise<{ deleted: boolean; patientId?: string }> {
+    for (const [patientId, record] of this.patients.entries()) {
+      if (record.patient.getProps().userId === userId) {
+        this.patients.delete(patientId);
+        return { deleted: true, patientId };
+      }
+    }
+    return { deleted: false };
+  }
+
   async updateStatusByUserId(
     userId: string,
     newStatus: PatientStatus,

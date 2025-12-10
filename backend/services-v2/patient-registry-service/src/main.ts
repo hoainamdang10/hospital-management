@@ -337,10 +337,10 @@ class PatientRegistryServiceApp {
       this.patientRepository = new SupabasePatientRepository(
         this.optimizedSupabase,
         logger,
-        this.matchingService, // ✅ Inject matching service
-        this.eventPublisher, // ✅ Inject event publisher (fallback)
-        this.patientCache, // ✅ Inject patient cache (L1/L2)
-        this.outboxRepository, // ✅ Inject outbox repository (primary)
+        this.matchingService, //  Inject matching service
+        this.eventPublisher, //  Inject event publisher (fallback)
+        this.patientCache, //  Inject patient cache (L1/L2)
+        this.outboxRepository, //  Inject outbox repository (primary)
       );
 
       // Initialize degradation service with real repository (BEFORE health check)
@@ -356,7 +356,7 @@ class PatientRegistryServiceApp {
           supabaseServiceRoleKey: config.supabaseKey,
         },
         logger,
-        this.patientRepository, // ✅ Inject real repository
+        this.patientRepository, //  Inject real repository
       );
       logger.info("Degradation service initialized with real repository", {});
 
@@ -680,7 +680,8 @@ class PatientRegistryServiceApp {
           exchangeName: "hospital.events",
           routingKeys: [
             "user.created.event", // UserCreatedEvent
-            "user.deleted.event", // UserDeletedEvent
+            "user.deleted", // UserDeletedEvent (identity publishes without .event)
+            "user.deleted.event", // Backward compatibility
             "user.updated.event", // UserUpdatedEvent
             "user.activated.event", // UserActivatedEvent (bonus)
             "user.deactivated.event", // UserDeactivatedEvent
@@ -697,7 +698,7 @@ class PatientRegistryServiceApp {
         userUpdatedHandler,
         userActivatedHandler,
         userDeactivatedHandler,
-        this.auditService, // ✅ Inject audit service for idempotent event handling
+        this.auditService, //  Inject audit service for idempotent event handling
       );
 
       // Connect Identity Event Consumer

@@ -61,7 +61,7 @@ async function initializeEventConsumers(container: DIContainer): Promise<void> {
       "   - Billing Event Consumer (payment.completed, invoice.generated, payment.reminder.due)",
     );
     console.log(
-      "🎯 Event-driven architecture enabled - Focused on booking + payment flow!",
+      " Event-driven architecture enabled - Focused on booking + payment flow!",
     );
   } catch (error) {
     console.error(" Failed to initialize event consumers:", error);
@@ -263,7 +263,7 @@ async function bootstrap() {
     });
 
     console.log(
-      "✅ Swagger UI available at http://localhost:" + PORT + "/api-docs",
+      " Swagger UI available at http://localhost:" + PORT + "/api-docs",
     );
 
     // Root endpoint
@@ -356,7 +356,7 @@ async function bootstrap() {
     // Start server
     const server = app.listen(PORT, () => {
       console.log(
-        `✅ Notifications Service HTTP Server listening on port ${PORT}`,
+        ` Notifications Service HTTP Server listening on port ${PORT}`,
       );
       console.log(` Environment: ${NODE_ENV}`);
       console.log(

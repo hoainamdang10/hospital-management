@@ -12,15 +12,15 @@ import { DomainEvent } from '@shared/domain/base/domain-event';
 export interface AppointmentConfirmedEventData {
   appointmentId: string;
   patientId: string;
-  patientName?: string; // ✅ ADDED for notifications
+  patientName?: string; //  ADDED for notifications
   doctorId: string;
-  doctorName?: string; // ✅ ADDED for notifications
-  departmentId?: string; // ✅ ADDED for notifications
-  departmentName?: string; // ✅ ADDED for notifications
+  doctorName?: string; //  ADDED for notifications
+  departmentId?: string; //  ADDED for notifications
+  departmentName?: string; //  ADDED for notifications
   appointmentDate: string;
   appointmentTime: string;
-  durationMinutes?: number; // ✅ ADDED for notifications
-  consultationFee?: number; // ✅ ADDED for notifications
+  durationMinutes?: number; //  ADDED for notifications
+  consultationFee?: number; //  ADDED for notifications
   confirmedAt: Date;
   confirmedBy: string;
   confirmationMethod?: 'sms' | 'email' | 'phone' | 'manual' | 'payment_completed';

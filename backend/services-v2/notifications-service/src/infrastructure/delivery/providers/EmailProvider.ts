@@ -37,7 +37,7 @@ export class EmailProvider implements ChannelProvider {
         this.isSendGridReady = false;
       }
     } else {
-      console.warn('[EmailProvider] ️ SendGrid not configured - email delivery disabled');
+      console.warn('[EmailProvider]  SendGrid not configured - email delivery disabled');
     }
   }
 
@@ -206,7 +206,7 @@ export class EmailProvider implements ChannelProvider {
       <body>
         <div class="container">
           <div class="header">
-            <h2>🏥 Bệnh viện Đa khoa</h2>
+            <h2> Bệnh viện Đa khoa</h2>
           </div>
           <div class="content">
             <p class="greeting">Kính gửi ${recipientName},</p>

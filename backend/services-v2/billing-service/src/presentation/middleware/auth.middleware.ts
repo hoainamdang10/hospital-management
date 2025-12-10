@@ -53,7 +53,7 @@ export const authMiddleware = (options: AuthOptions = { required: true }) => {
       // Extract token from Authorization header
       const authHeader = req.headers.authorization;
 
-      // ✅ TRUST GATEWAY HEADERS FIRST (Gateway already authenticated the user)
+      //  TRUST GATEWAY HEADERS FIRST (Gateway already authenticated the user)
       const gatewayUser = extractGatewayUser(req);
       if (gatewayUser) {
         req.user = gatewayUser;

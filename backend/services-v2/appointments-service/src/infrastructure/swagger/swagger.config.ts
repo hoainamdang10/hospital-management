@@ -20,14 +20,14 @@ const options: swaggerJsdoc.Options = {
 Complete appointment scheduling and management system for Vietnamese healthcare facilities.
 
 ## Features
-- ✅ Appointment Scheduling & Management
-- ✅ Queue Management
-- ✅ Provider Availability Search
-- ✅ Payment Integration
-- ✅ Insurance Validation (BHYT/BHTN)
-- ✅ Reminder System
-- ✅ Event-Driven Architecture
-- ✅ CQRS Read Model
+-  Appointment Scheduling & Management
+-  Queue Management
+-  Provider Availability Search
+-  Payment Integration
+-  Insurance Validation (BHYT/BHTN)
+-  Reminder System
+-  Event-Driven Architecture
+-  CQRS Read Model
 
 ## Authentication
 All endpoints require JWT authentication via Bearer token:

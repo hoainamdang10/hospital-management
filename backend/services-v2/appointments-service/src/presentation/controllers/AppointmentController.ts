@@ -149,7 +149,7 @@ export class AppointmentController {
         appointmentTime,
         appointmentType,
         reason,
-        consultationFee, // ✅ FIX: Read from request body
+        consultationFee, //  FIX: Read from request body
       } = req.body;
 
       // TODO: Lookup real patientId from patient_read_model by userId
@@ -171,7 +171,7 @@ export class AppointmentController {
         priority: AppointmentPriority.NORMAL,
         reason: reason || "Khám bệnh",
         notes: reason || "Khám bệnh",
-        consultationFee: consultationFee || 500000, // ✅ FIX: Use from request, default 500k if missing
+        consultationFee: consultationFee || 500000, //  FIX: Use from request, default 500k if missing
         departmentId: doctorId.split("-")[0],
         createdBy: userId,
       };

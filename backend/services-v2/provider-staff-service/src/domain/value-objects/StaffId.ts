@@ -48,7 +48,7 @@ export class StaffId extends ValueObject<StaffIdProps> {
 
   public static generate(
     staffType: StaffType,
-    departmentCode: string = "INTE", // 🔄 Fixed: Use "INTE" (Internal Medicine) instead of "GEN"
+    departmentCode: string = "INTE", //  Fixed: Use "INTE" (Internal Medicine) instead of "GEN"
   ): StaffId {
     const now = new Date();
     const year = now.getFullYear();

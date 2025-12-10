@@ -528,6 +528,131 @@ export class SupabaseProviderStaffRepository
   }
 
   /**
+   * Hard delete staff (permanent delete from database)
+   * Use with caution - this action cannot be undone
+   */
+  async hardDelete(staffId: StaffId): Promise<void> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        try {
+          this.logger.warn("HARD DELETING staff - permanent action", {
+            staffId: staffId.value,
+            repository: "SupabaseProviderStaffRepository",
+          });
+
+          // First, delete related records in department_assignments
+          // These are stored in the same table as JSONB, so no separate delete needed
+
+          // Delete the staff record permanently
+          const { error } = await this.supabaseClient
+            .from(this.fullTableName)
+            .delete()
+            .eq("staff_id", staffId.value);
+
+          if (error) {
+            throw new Error(`Lỗi xóa vĩnh viễn nhân viên: ${error.message}`);
+          }
+
+          // HIPAA audit logging - critical action
+          await this.auditService.logDataAccess({
+            action: "STAFF_HARD_DELETE",
+            resourceType: "provider_staff",
+            resourceId: staffId.value,
+            userId: "system",
+            timestamp: new Date(),
+            details: {
+              operation: "hard_delete",
+              dataModified: "staff_profile_permanent",
+              complianceLevel: "hipaa",
+              warning: "PERMANENT_DATA_REMOVAL",
+            },
+          });
+
+          this.logger.warn("Staff HARD DELETED permanently", {
+            staffId: staffId.value,
+          });
+        } catch (error) {
+          this.logger.error("Error hard deleting staff", {
+            staffId: staffId.value,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+          throw error;
+        }
+      },
+      async () => {
+        this.logger.error(
+          "Circuit breaker fallback for hardDelete - operation failed",
+          {
+            staffId: staffId.value,
+          },
+        );
+        throw new Error(
+          "Unable to hard delete staff - service temporarily unavailable",
+        );
+      },
+    );
+  }
+
+  /**
+   * Hard delete staff by linked Identity user ID
+   * Used when Identity Service permanently deletes a user account
+   */
+  async hardDeleteByUserId(
+    userId: string,
+    options?: { deletedBy?: string; reason?: string },
+  ): Promise<{ deleted: boolean; staffId?: string }> {
+    return await this.circuitBreaker.execute(
+      async () => {
+        const { data, error } = await this.supabaseClient
+          .from(this.fullTableName)
+          .select("staff_id")
+          .eq("user_id", userId)
+          .single();
+
+        if (error) {
+          if (error.code === "PGRST116") {
+            this.logger.warn(
+              "No staff profile found for identity hard delete",
+              { userId },
+            );
+            return { deleted: false };
+          }
+          throw new Error(
+            `Failed to locate staff for hard delete: ${error.message}`,
+          );
+        }
+
+        const staffIdValue = data?.staff_id as string;
+        if (!staffIdValue) {
+          this.logger.warn(
+            "Staff record missing staff_id when attempting hard delete",
+            { userId },
+          );
+          return { deleted: false };
+        }
+
+        await this.hardDelete(StaffId.fromString(staffIdValue));
+
+        this.logger.warn("Staff hard deleted via identity user deletion", {
+          userId,
+          staffId: staffIdValue,
+          deletedBy: options?.deletedBy,
+          reason: options?.reason,
+        });
+
+        return { deleted: true, staffId: staffIdValue };
+      },
+      async () => {
+        this.logger.error(
+          "Circuit breaker fallback for hardDeleteByUserId - operation failed",
+          { userId },
+        );
+        return { deleted: false };
+      },
+    );
+  }
+
+  /**
    * Find all staff with filters
    */
   async findAll(filters?: any): Promise<ProviderStaff[]> {

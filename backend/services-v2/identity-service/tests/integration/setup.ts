@@ -65,7 +65,7 @@ afterAll(async () => {
   try {
     // Cleanup cached test user pool
     if (testUserPoolCache.isCached()) {
-      console.log('️  Cleaning up cached test user pool...');
+      console.log('  Cleaning up cached test user pool...');
       await testUserPoolCache.cleanup(supabaseClient);
     }
 
@@ -74,7 +74,7 @@ afterAll(async () => {
 
     console.log(' Integration tests cleanup complete\n');
   } catch (error) {
-    console.warn('️  Integration tests cleanup warning:', error);
+    console.warn('  Integration tests cleanup warning:', error);
   }
 });
 
@@ -106,10 +106,10 @@ async function verifySchemas(): Promise<void> {
         .limit(1);
 
       if (error) {
-        console.warn(`️  Table ${table} not accessible: ${error.message}`);
+        console.warn(`  Table ${table} not accessible: ${error.message}`);
       }
     } catch (error) {
-      console.warn(`️  Could not verify table ${table}:`, error);
+      console.warn(`  Could not verify table ${table}:`, error);
     }
   }
 
@@ -142,15 +142,15 @@ async function verifyTestUsers(): Promise<void> {
         foundCount++;
         console.log(`   Found test user: ${email} (${data.role_type})`);
       } else {
-        console.warn(`  ️  Test user not found: ${email}`);
+        console.warn(`    Test user not found: ${email}`);
       }
     } catch (error) {
-      console.warn(`  ️  Could not verify test user ${email}:`, error);
+      console.warn(`    Could not verify test user ${email}:`, error);
     }
   }
 
   if (foundCount === 0) {
-    console.warn('\n️  WARNING: No test users found!');
+    console.warn('\n  WARNING: No test users found!');
     console.warn('Run: npm run seed:test-data');
     console.warn('This will create test users for integration tests\n');
   } else {
@@ -163,7 +163,7 @@ async function verifyTestUsers(): Promise<void> {
  * Pattern: test-*@hospital.vn
  */
 async function cleanupDynamicTestUsers(): Promise<void> {
-  console.log('️  Cleaning up dynamic test users...');
+  console.log('  Cleaning up dynamic test users...');
 
   try {
     // Get all users
@@ -205,13 +205,13 @@ async function cleanupDynamicTestUsers(): Promise<void> {
 
         console.log(`   Cleaned up: ${user.email}`);
       } catch (error) {
-        console.warn(`  ️  Failed to cleanup ${user.email}:`, error);
+        console.warn(`    Failed to cleanup ${user.email}:`, error);
       }
     }
 
     console.log(` Cleaned up ${dynamicTestUsers.length} dynamic test users`);
   } catch (error) {
-    console.warn('️  Error during cleanup:', error);
+    console.warn('  Error during cleanup:', error);
   }
 }
 

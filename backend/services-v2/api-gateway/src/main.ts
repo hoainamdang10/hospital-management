@@ -731,7 +731,7 @@ class ApiGatewayApplication {
     });
 
     logger.info(
-      "✅ Routes setup complete - Using centralized global proxy middleware",
+      " Routes setup complete - Using centralized global proxy middleware",
     );
   }
 
@@ -743,13 +743,13 @@ class ApiGatewayApplication {
   public async start(): Promise<void> {
     try {
       this.app.listen(PORT, () => {
-        logger.info(`🚀 API Gateway started successfully`, {
+        logger.info(` API Gateway started successfully`, {
           port: PORT,
           environment: NODE_ENV,
           timestamp: new Date().toISOString(),
         });
 
-        logger.info("📋 Registered routes:", {
+        logger.info(" Registered routes:", {
           routes: this.serviceRegistry.getAllRoutes().map((r) => ({
             service: r.serviceName,
             path: r.pathPrefix,

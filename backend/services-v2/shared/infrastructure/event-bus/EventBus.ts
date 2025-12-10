@@ -108,7 +108,7 @@ export class RabbitMQEventBus implements IEventBus {
       console.log(` Event Bus connected: ${this.config.serviceName}`);
     } catch (error) {
       console.error(
-        `❌ Failed to connect to Event Bus (attempt ${attempt}):`,
+        ` Failed to connect to Event Bus (attempt ${attempt}):`,
         error,
       );
 
@@ -171,7 +171,7 @@ export class RabbitMQEventBus implements IEventBus {
           console.log(`[EventBus]  Restored subscription: ${eventType}`);
         } catch (error) {
           console.error(
-            `[EventBus] ❌ Failed to restore subscription for ${eventType}:`,
+            `[EventBus]  Failed to restore subscription for ${eventType}:`,
             error,
           );
         }
@@ -231,7 +231,7 @@ export class RabbitMQEventBus implements IEventBus {
 
       if (!published) {
         console.warn(
-          `⚠️ Event not published (buffer full): ${event.eventType}`,
+          ` Event not published (buffer full): ${event.eventType}`,
         );
       } else {
         console.log(
@@ -302,7 +302,7 @@ export class RabbitMQEventBus implements IEventBus {
             this.channel.ack(msg);
 
             console.log(
-              `✅ Event processed: ${event.eventType} (${event.eventId})`,
+              ` Event processed: ${event.eventType} (${event.eventId})`,
             );
           } catch (error) {
             console.error(` Failed to process event:`, error);

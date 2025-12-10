@@ -355,7 +355,7 @@ export class PerformanceTestSuite {
    * Run endurance test
    */
   private async runEnduranceTest(): Promise<LoadTestResult> {
-    console.log('⏱️ Running Endurance Test...');
+    console.log('⏱ Running Endurance Test...');
     
     const testId = `endurance_test_${Date.now()}`;
     const startTime = new Date();

@@ -23,6 +23,7 @@ import { ReactivateStaffUseCase } from "../../application/use-cases/ReactivateSt
 import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaffUseCase";
 import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
 import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
+import { HardDeleteStaffUseCase } from "../../application/use-cases/HardDeleteStaffUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
@@ -63,8 +64,9 @@ export class StaffController {
     private terminateStaffUseCase: TerminateStaffUseCase,
     private updateEmploymentStatusUseCase: UpdateEmploymentStatusUseCase,
     private updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
+    private hardDeleteStaffUseCase: HardDeleteStaffUseCase,
     // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
-  ) { }
+  ) {}
 
   /**
    * Register new staff
@@ -475,9 +477,9 @@ export class StaffController {
           },
           sorting: sortField
             ? {
-              field: sortField,
-              direction: resolvedSortDirection,
-            }
+                field: sortField,
+                direction: resolvedSortDirection,
+              }
             : undefined,
           requestedBy,
           requestedByRole,
@@ -1153,6 +1155,57 @@ export class StaffController {
       );
     } catch (error) {
       this.logger.error("Error updating employment status", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Hard delete staff (permanent removal)
+   * DELETE /api/v1/staff/:staffId/permanent
+   * WARNING: This action cannot be undone!
+   */
+  async hardDeleteStaff(req: Request, res: Response): Promise<void> {
+    try {
+      const { staffId } = req.params;
+      const requestedBy = getUserId(req);
+      const requestedByRole = getUserRole(req);
+      const confirmPhrase = req.body.confirmPhrase;
+
+      this.logger.warn("HARD DELETE REQUEST", {
+        staffId,
+        requestedBy,
+        requestedByRole,
+      });
+
+      // Validate confirmation phrase
+      if (confirmPhrase !== "DELETE") {
+        ResponseHelper.error(
+          res,
+          "Vui lòng nhập 'DELETE' để xác nhận xóa vĩnh viễn",
+          400,
+          "CONFIRMATION_REQUIRED",
+        );
+        return;
+      }
+
+      const result = await this.hardDeleteStaffUseCase.execute({
+        staffId,
+        confirmPhrase,
+        requestedBy,
+        requestedByRole,
+        requestMetadata: {
+          ipAddress: req.ip,
+          userAgent: req.get("user-agent"),
+          sessionId: req.headers["x-session-id"] as string,
+        },
+      });
+
+      ResponseHelper.success(res, result, result.message);
+    } catch (error) {
+      this.logger.error("Error hard deleting staff", {
+        staffId: req.params.staffId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;

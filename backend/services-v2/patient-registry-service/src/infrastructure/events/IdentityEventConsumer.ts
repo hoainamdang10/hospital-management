@@ -92,6 +92,16 @@ export class IdentityEventConsumer {
         ),
       );
       this.idempotentHandlers.set(
+        "user.deleted",
+        new IdempotentEventHandler(
+          "IdentityUserDeletedEventHandler",
+          this.auditService,
+          this.logger,
+          (data: IdentityUserDeletedEventData) =>
+            this.userDeletedHandler.handle(data),
+        ),
+      );
+      this.idempotentHandlers.set(
         "user.updated.event",
         new IdempotentEventHandler(
           "IdentityUserUpdatedEventHandler",
@@ -280,6 +290,7 @@ export class IdentityEventConsumer {
               break;
 
             case "user.deleted.event":
+            case "user.deleted":
               await this.userDeletedHandler.handle(
                 normalizedPayload as IdentityUserDeletedEventData,
               );

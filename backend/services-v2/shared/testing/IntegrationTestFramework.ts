@@ -262,7 +262,7 @@ export class IntegrationTestFramework {
           console.log(` Authenticated test user: ${user.role}`);
         }
       } catch (error) {
-        console.warn(`️ Failed to authenticate test user ${user.role}:`, error);
+        console.warn(` Failed to authenticate test user ${user.role}:`, error);
       }
     }
   }
@@ -280,7 +280,7 @@ export class IntegrationTestFramework {
         if (response.status === 200) {
           console.log(` Service connectivity verified: ${serviceName}`);
         } else {
-          console.warn(`️ Service health check failed: ${serviceName}`);
+          console.warn(` Service health check failed: ${serviceName}`);
         }
       } catch (error) {
         console.error(` Service connectivity failed: ${serviceName}`, error);

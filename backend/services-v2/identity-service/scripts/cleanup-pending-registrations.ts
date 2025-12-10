@@ -150,7 +150,7 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
       });
 
     if (auditError) {
-      console.warn('️  Failed to log audit event:', auditError.message);
+      console.warn('  Failed to log audit event:', auditError.message);
     } else {
       console.log(' Audit event logged\n');
     }

@@ -52,15 +52,15 @@ export interface AppointmentScheduledEventData {
 export interface AppointmentConfirmedEventData {
   appointmentId: string;
   patientId: string;
-  patientName?: string; // ✅ Optional - enriched from read model
+  patientName?: string; //  Optional - enriched from read model
   doctorId: string;
-  doctorName?: string; // ✅ Optional - enriched from read model
-  departmentId?: string; // ✅ ADDED
-  departmentName?: string; // ✅ ADDED - enriched from read model
+  doctorName?: string; //  Optional - enriched from read model
+  departmentId?: string; //  ADDED
+  departmentName?: string; //  ADDED - enriched from read model
   appointmentDate: Date;
   appointmentTime: string;
-  durationMinutes?: number; // ✅ ADDED
-  consultationFee?: number; // ✅ ADDED
+  durationMinutes?: number; //  ADDED
+  consultationFee?: number; //  ADDED
   confirmedBy: string;
   confirmedAt: Date;
   previousStatus: string;
@@ -343,7 +343,7 @@ export class AppointmentEventConsumer {
       let handled = false;
 
       // Route to appropriate handler
-      // ✅ MVP SCOPE: Only handle core booking + payment flow
+      //  MVP SCOPE: Only handle core booking + payment flow
       if (routingKey.startsWith("appointment.reminder")) {
         await this.handleAppointmentReminder(
           payload as AppointmentReminderEventData,
@@ -448,7 +448,7 @@ export class AppointmentEventConsumer {
   /**
    * Handle appointment scheduled event
    *
-   * ⚠️ REFACTORED FOR MVP:
+   *  REFACTORED FOR MVP:
    * - Send "yêu cầu đã nhận, vui lòng thanh toán" notification
    * - DO NOT create reminders yet (waiting for payment confirmation)
    * - Use new template: APPOINTMENT_SCHEDULED
@@ -481,14 +481,14 @@ export class AppointmentEventConsumer {
         });
 
       // Send initial booking notification to patient
-      // ⚠️ UX CLEAR: "Yêu cầu đã nhận, vui lòng thanh toán trong 30 phút"
+      //  UX CLEAR: "Yêu cầu đã nhận, vui lòng thanh toán trong 30 phút"
       await this.dispatchNotification({
         recipientId: data.patientId,
         recipientType: "PATIENT",
         recipientName: data.patientName,
         recipientEmail: patientPreferences?.preferences?.email,
         recipientPhone: patientPreferences?.preferences?.phoneNumber,
-        templateType: "APPOINTMENT_SCHEDULED", // ✅ NEW template
+        templateType: "APPOINTMENT_SCHEDULED", //  NEW template
         channels: ["EMAIL", "SMS"],
         priority: "NORMAL",
         data: {
@@ -519,11 +519,11 @@ export class AppointmentEventConsumer {
         },
       );
 
-      // ❌ DO NOT create reminders here!
+      //  DO NOT create reminders here!
       // Reminders only created after payment confirmed (appointment.confirmed event)
       // See handleAppointmentConfirmed() method
 
-      // ❌ DO NOT send urgent notifications in MVP
+      //  DO NOT send urgent notifications in MVP
       // Focus on core booking + payment flow only
     } catch (error) {
       console.error("Failed to process appointment scheduled", {
@@ -537,7 +537,7 @@ export class AppointmentEventConsumer {
   /**
    * Handle appointment confirmed event (after payment completed)
    *
-   * ✅ REFACTORED FOR MVP:
+   *  REFACTORED FOR MVP:
    * - Send "lịch hẹn đã được xác nhận" notification
    * - Create appointment reminders (24H, 2H, 30M)
    * - Notify both patient AND doctor
@@ -572,7 +572,7 @@ export class AppointmentEventConsumer {
         recipientName: data.patientName,
         recipientEmail: patientPreferences?.preferences?.email,
         recipientPhone: patientPreferences?.preferences?.phoneNumber,
-        templateType: "APPOINTMENT_CONFIRMED", // ✅ NEW template
+        templateType: "APPOINTMENT_CONFIRMED", //  NEW template
         channels: ["EMAIL", "SMS"],
         priority: "HIGH",
         data: {
@@ -639,7 +639,7 @@ export class AppointmentEventConsumer {
 
       // ===== 3. Create appointment reminders (24H, 2H, 30M) =====
       try {
-        // ✅ PROPER FIX: Use typed adapter for compile-time safety
+        //  PROPER FIX: Use typed adapter for compile-time safety
         const { AppointmentEventAdapter } = await import(
           "./adapters/AppointmentEventAdapter"
         );
@@ -661,7 +661,7 @@ export class AppointmentEventConsumer {
             patientPreferences?.preferences,
           );
 
-        // ✅ Runtime validation (optional but recommended)
+        //  Runtime validation (optional but recommended)
         const validation =
           AppointmentEventAdapter.validateRemindersRequest(remindersRequest);
 
@@ -678,7 +678,7 @@ export class AppointmentEventConsumer {
           );
         }
 
-        // ✅ Execute with type-safe request
+        //  Execute with type-safe request
         const result =
           await this.createAppointmentRemindersUseCase.execute(
             remindersRequest,
@@ -740,7 +740,7 @@ export class AppointmentEventConsumer {
   /**
    * Handle appointment cancelled event
    *
-   * ✅ REFACTORED FOR MVP:
+   *  REFACTORED FOR MVP:
    * - Send cancellation notification (payment timeout or user cancellation)
    * - Cancel all pending reminders
    * - Notify both patient AND doctor
@@ -794,7 +794,7 @@ export class AppointmentEventConsumer {
         recipientName: data.patientName,
         recipientEmail: patientPreferences?.preferences?.email,
         recipientPhone: patientPreferences?.preferences?.phoneNumber,
-        templateType: "APPOINTMENT_CANCELLED", // ✅ NEW template
+        templateType: "APPOINTMENT_CANCELLED", //  NEW template
         channels: ["EMAIL", "SMS"],
         priority: "HIGH",
         data: {

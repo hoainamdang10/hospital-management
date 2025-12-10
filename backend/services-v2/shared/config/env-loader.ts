@@ -50,8 +50,8 @@ export function loadEnvFile(): void {
   const envPath = path.resolve(cwd, envFile);
   
   if (!fs.existsSync(envPath)) {
-    console.warn(`️  Warning: ${envFile} not found at ${envPath}`);
-    console.warn('️  Falling back to process environment variables');
+    console.warn(`  Warning: ${envFile} not found at ${envPath}`);
+    console.warn('  Falling back to process environment variables');
     return;
   }
   

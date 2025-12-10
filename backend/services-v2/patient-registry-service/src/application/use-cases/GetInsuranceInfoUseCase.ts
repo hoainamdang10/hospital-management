@@ -63,7 +63,7 @@ export class GetInsuranceInfoUseCase {
         };
       }
 
-      // ✅ FIX: Handle both UUID and PAT-YYYYMM-XXX formats
+      //  FIX: Handle both UUID and PAT-YYYYMM-XXX formats
       let patient: any = null;
       const inputId = command.patientId.trim();
 
@@ -94,7 +94,7 @@ export class GetInsuranceInfoUseCase {
 
       const insuranceInfo = patient.getInsuranceInfo();
 
-      // ✅ ALWAYS return success with structured data (even if no insurance)
+      //  ALWAYS return success with structured data (even if no insurance)
       // This matches the pattern used by Emergency Contacts API
       if (!insuranceInfo) {
         return {

@@ -20,16 +20,16 @@ const options: swaggerJsdoc.Options = {
 Authentication, authorization, and user management service for Vietnamese healthcare facilities.
 
 ## Features
-- ✅ JWT Authentication
-- ✅ Role-Based Access Control (RBAC)
-- ✅ Multi-Factor Authentication (MFA)
-- ✅ Email Verification
-- ✅ Password Recovery
-- ✅ Session Management
-- ✅ User Management
-- ✅ Permission Management
-- ✅ Password Policies
-- ✅ Account Recovery
+-  JWT Authentication
+-  Role-Based Access Control (RBAC)
+-  Multi-Factor Authentication (MFA)
+-  Email Verification
+-  Password Recovery
+-  Session Management
+-  User Management
+-  Permission Management
+-  Password Policies
+-  Account Recovery
 
 ## Authentication
 Most endpoints require JWT authentication via Bearer token:

@@ -2,7 +2,7 @@
  * DeleteAppointmentReminderUseCase - Application Layer
  * Deletes MANUAL appointment reminder (Alternative approach)
  *
- * ⚠️ NOTE: This deletes manual reminders only, not auto-generated reminders
+ *  NOTE: This deletes manual reminders only, not auto-generated reminders
  *
  * To cancel auto-generated reminders, use Scheduler Service API:
  * POST /api/v1/schedules/cancel-by-owner

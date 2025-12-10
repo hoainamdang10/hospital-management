@@ -264,7 +264,7 @@ async function runTests() {
   if (results.test1.success && results.test2.success && !results.test3.success) {
     console.log(' Giả thuyết ĐÚNG: Error 42501 xuất hiện khi có user session override service_role key');
   } else if (!results.test1.success || !results.test2.success) {
-    console.log('️  Có vấn đề với service_role key hoặc RLS policies');
+    console.log('  Có vấn đề với service_role key hoặc RLS policies');
   } else {
     console.log(' Kết quả không như mong đợi, cần điều tra thêm');
   }

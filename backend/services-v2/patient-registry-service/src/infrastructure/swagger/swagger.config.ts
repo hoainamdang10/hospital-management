@@ -20,17 +20,17 @@ const options: swaggerJsdoc.Options = {
 Comprehensive patient management system for Vietnamese healthcare facilities.
 
 ## Features
-- ✅ Patient Registration & Management
-- ✅ Medical History Tracking
-- ✅ Insurance Management (BHYT/BHTN)
-- ✅ Emergency Contacts
-- ✅ Consent Management (HIPAA Compliant)
-- ✅ Photo Management
-- ✅ Communication Preferences
-- ✅ Patient Matching (PMI)
-- ✅ Vietnamese Healthcare Compliance
-- ✅ CCCD/BHYT Validation
-- ✅ Audit Logging
+-  Patient Registration & Management
+-  Medical History Tracking
+-  Insurance Management (BHYT/BHTN)
+-  Emergency Contacts
+-  Consent Management (HIPAA Compliant)
+-  Photo Management
+-  Communication Preferences
+-  Patient Matching (PMI)
+-  Vietnamese Healthcare Compliance
+-  CCCD/BHYT Validation
+-  Audit Logging
 
 ## Authentication
 All endpoints require JWT authentication via Bearer token:

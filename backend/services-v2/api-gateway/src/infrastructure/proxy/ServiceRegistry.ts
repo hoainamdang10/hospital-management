@@ -9,7 +9,7 @@ export class ServiceRegistry implements IServiceRegistry {
   private sortedRoutes: ServiceRoute[] = []; // Sorted by specificity for fast lookup
   private cacheService: CachedResponseService;
 
-  // ✅ FIX: Primary health check cache to avoid checking on every request
+  //  FIX: Primary health check cache to avoid checking on every request
   private healthCheckCache: Map<
     string,
     { isHealthy: boolean; timestamp: number }
@@ -136,7 +136,7 @@ export class ServiceRegistry implements IServiceRegistry {
       return true;
     }
 
-    // ✅ FIX: Check primary cache first to avoid expensive health checks on every request
+    //  FIX: Check primary cache first to avoid expensive health checks on every request
     const cached = this.healthCheckCache.get(serviceName);
 
     if (cached && now - cached.timestamp < this.healthCheckCacheTtlMs) {

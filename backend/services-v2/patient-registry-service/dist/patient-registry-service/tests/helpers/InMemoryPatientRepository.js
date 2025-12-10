@@ -70,6 +70,15 @@ class InMemoryPatientRepository {
             this.patients.set(patientId.getValue(), { patient: existing.patient });
         }
     }
+    async hardDeleteByUserId(userId) {
+        for (const [patientId, record] of this.patients.entries()) {
+            if (record.patient.getProps().userId === userId) {
+                this.patients.delete(patientId);
+                return { deleted: true, patientId };
+            }
+        }
+        return { deleted: false };
+    }
     async updateStatusByUserId(userId, newStatus) {
         const patient = await this.findByUserId(userId);
         if (!patient) {

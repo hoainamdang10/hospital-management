@@ -248,6 +248,7 @@ setupRoutes(
   container.resolve(ServiceTokens.TERMINATE_STAFF_USE_CASE),
   container.resolve(ServiceTokens.UPDATE_EMPLOYMENT_STATUS_USE_CASE),
   container.resolve(ServiceTokens.UPDATE_STAFF_SCHEDULE_USE_CASE),
+  container.resolve(ServiceTokens.HARD_DELETE_STAFF_USE_CASE),
   // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service
 );
 

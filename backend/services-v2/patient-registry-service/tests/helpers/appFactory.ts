@@ -161,7 +161,7 @@ export async function createTestApp(
       await eventPublisher.connect();
     } catch (error) {
       console.warn(
-        "⚠️  RabbitMQ not available for tests, continuing without event publishing",
+        "  RabbitMQ not available for tests, continuing without event publishing",
       );
       eventPublisher = undefined;
     }
@@ -208,7 +208,7 @@ export async function createTestApp(
       matchingService,
       eventPublisher,
       patientCache,
-      outboxRepository, // ✅ Inject outbox repository
+      outboxRepository, //  Inject outbox repository
     );
   }
 

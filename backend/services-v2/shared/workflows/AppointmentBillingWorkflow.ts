@@ -818,7 +818,7 @@ export class AppointmentBillingWorkflow {
     billingContext: BillingContext
   ): Promise<any> {
     console.log(
-      `🏥 Starting Insurance Claim Processing for patient: ${billingContext.patientId}`
+      ` Starting Insurance Claim Processing for patient: ${billingContext.patientId}`
     );
 
     return await this.orchestrator.startWorkflow(
@@ -841,7 +841,7 @@ export class AppointmentBillingWorkflow {
     paymentContext: PaymentContext
   ): Promise<any> {
     console.log(
-      `💳 Starting Payment Processing for invoice: ${paymentContext.invoiceId}`
+      ` Starting Payment Processing for invoice: ${paymentContext.invoiceId}`
     );
 
     return await this.orchestrator.startWorkflow(
@@ -863,7 +863,7 @@ export class AppointmentBillingWorkflow {
     billingContext: BillingContext
   ): Promise<any> {
     console.log(
-      `🏥 Starting Complete Appointment-Billing Workflow for: ${billingContext.appointmentId}`
+      ` Starting Complete Appointment-Billing Workflow for: ${billingContext.appointmentId}`
     );
 
     const results = [];

@@ -20,7 +20,7 @@ jest.setTimeout(120000); // 120 seconds (2 minutes)
 beforeAll(async () => {
   console.log(' Starting test suite...');
   console.log(` Environment: ${process.env.NODE_ENV}`);
-  console.log(`️  Database: ${process.env.SUPABASE_URL}`);
+  console.log(`  Database: ${process.env.SUPABASE_URL}`);
 });
 
 afterAll(async () => {

@@ -73,6 +73,22 @@ export interface IProviderStaffRepository {
   delete(staffId: StaffId): Promise<void>;
 
   /**
+   * Hard delete staff (permanent delete from database)
+   * Use with caution - this action cannot be undone
+   * Will fail if staff has associated appointments
+   */
+  hardDelete(staffId: StaffId): Promise<void>;
+
+  /**
+   * Hard delete staff profile by linked Identity user ID
+   * Used when Identity Service performs a permanent account deletion
+   */
+  hardDeleteByUserId(
+    userId: string,
+    options?: { deletedBy?: string; reason?: string },
+  ): Promise<{ deleted: boolean; staffId?: string }>;
+
+  /**
    * Check if staff exists
    */
   exists(staffId: StaffId): Promise<boolean>;

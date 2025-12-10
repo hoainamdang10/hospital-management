@@ -144,7 +144,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
           address: request.personalInfo.address || currentPersonalInfo.address
         });
 
-        staff.updatePersonalInfo(newPersonalInfo); // ✅ Now actually updates aggregate
+        staff.updatePersonalInfo(newPersonalInfo); //  Now actually updates aggregate
         updatedFields.push('personal_info');
       }
 
@@ -160,7 +160,7 @@ export class UpdateStaffProfileUseCase extends BaseHealthcareUseCase<UpdateStaff
           bio: request.professionalInfo.bio || currentProfessionalInfo.bio
         });
 
-        staff.updateProfessionalInfo(newProfessionalInfo); // ✅ Now actually updates aggregate
+        staff.updateProfessionalInfo(newProfessionalInfo); //  Now actually updates aggregate
         updatedFields.push('professional_info');
       }
 

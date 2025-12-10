@@ -184,10 +184,10 @@ class RabbitMQEventBus {
                 },
             });
             if (!published) {
-                console.warn(`️ Event not published (buffer full): ${event.eventType}`);
+                console.warn(` Event not published (buffer full): ${event.eventType}`);
             }
             else {
-                console.log(` Event published: ${event.eventType} (${event.eventId})`);
+                console.log(`📤 Event published: ${event.eventType} (${event.eventId})`);
             }
         }
         catch (error) {
@@ -225,7 +225,7 @@ class RabbitMQEventBus {
                     return;
                 try {
                     const event = this.deserializeEvent(msg.content.toString());
-                    console.log(` Event received: ${event.eventType} (${event.eventId})`);
+                    console.log(`📥 Event received: ${event.eventType} (${event.eventId})`);
                     // Handle event
                     await handler.handle(event);
                     // Acknowledge message
@@ -242,7 +242,7 @@ class RabbitMQEventBus {
                     }
                     else {
                         // Dead letter after 3 retries
-                        console.error(` Event moved to dead letter queue after ${retryCount} retries`);
+                        console.error(`💀 Event moved to dead letter queue after ${retryCount} retries`);
                         this.channel.nack(msg, false, false);
                     }
                 }

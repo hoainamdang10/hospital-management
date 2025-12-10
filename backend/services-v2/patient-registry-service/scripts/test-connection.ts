@@ -227,7 +227,7 @@ async function runTests() {
   console.log('='.repeat(60));
 
   // Test 1: Environment Variables
-  console.log('\n1️⃣  Testing Environment Variables...');
+  console.log('\n1⃣  Testing Environment Variables...');
   const envTest = testEnvironmentVariables();
   results.push(envTest);
   printResult(envTest);
@@ -239,7 +239,7 @@ async function runTests() {
   }
 
   // Test 2: Supabase Connection
-  console.log('\n2️⃣  Testing Supabase Connection...');
+  console.log('\n2⃣  Testing Supabase Connection...');
   const connectionTest = await testSupabaseConnection();
   results.push(connectionTest);
   printResult(connectionTest);
@@ -250,19 +250,19 @@ async function runTests() {
   }
 
   // Test 3: Schema Verification
-  console.log('\n3️⃣  Verifying patient_schema...');
+  console.log('\n3⃣  Verifying patient_schema...');
   const schemaTest = await testSchemaExists();
   results.push(schemaTest);
   printResult(schemaTest);
 
   // Test 4: Tables Verification
-  console.log('\n4️⃣  Verifying Required Tables...');
+  console.log('\n4⃣  Verifying Required Tables...');
   const tablesTest = await testTablesExist();
   results.push(tablesTest);
   printResult(tablesTest);
 
   // Test 5: Database Data
-  console.log('\n5️⃣  Checking Database Data...');
+  console.log('\n5⃣  Checking Database Data...');
   const dataTest = await testDatabaseData();
   results.push(dataTest);
   printResult(dataTest);
@@ -278,7 +278,7 @@ async function runTests() {
   console.log(` Failed: ${failed}/${results.length}`);
 
   if (failed > 0) {
-    console.log('\n️  Some tests failed. Please follow the setup instructions below:\n');
+    console.log('\n  Some tests failed. Please follow the setup instructions below:\n');
     printSetupInstructions();
     process.exit(1);
   } else {
@@ -291,7 +291,7 @@ async function runTests() {
  * Print test result
  */
 function printResult(result: TestResult) {
-  const icon = result.status === 'PASS' ? '✅' : '❌';
+  const icon = result.status === 'PASS' ? '' : '';
   console.log(`   ${icon} ${result.test}: ${result.message}`);
   
   if (result.details && result.status === 'FAIL') {

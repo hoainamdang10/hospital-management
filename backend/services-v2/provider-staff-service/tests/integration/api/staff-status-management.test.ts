@@ -76,7 +76,7 @@ describe('Staff Status Management Integration Tests', () => {
 
       // Skip test if registration fails
       if (registerResponse.status !== 201) {
-        console.warn('️  Staff registration failed, skipping test');
+        console.warn('  Staff registration failed, skipping test');
         return;
       }
 

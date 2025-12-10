@@ -37,7 +37,7 @@ export class SMSProvider implements ChannelProvider {
         this.twilioClient = null;
       }
     } else {
-      console.warn('[SMSProvider] ️ Twilio not configured - SMS delivery disabled');
+      console.warn('[SMSProvider]  Twilio not configured - SMS delivery disabled');
     }
   }
 

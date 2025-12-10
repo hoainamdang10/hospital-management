@@ -205,9 +205,9 @@ class PatientRegistryServiceApp {
             this.outboxRepository = new SupabaseOutboxRepository_1.SupabaseOutboxRepository(this.optimizedSupabase.getConnection(), logger);
             logger.info("Outbox repository initialized", {});
             // Initialize Infrastructure Layer (inject services + event publisher + outbox)
-            this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(this.optimizedSupabase, logger, this.matchingService, // ✅ Inject matching service
-            this.eventPublisher, // ✅ Inject event publisher (fallback)
-            this.patientCache, // ✅ Inject patient cache (L1/L2)
+            this.patientRepository = new SupabasePatientRepository_1.SupabasePatientRepository(this.optimizedSupabase, logger, this.matchingService, //  Inject matching service
+            this.eventPublisher, //  Inject event publisher (fallback)
+            this.patientCache, //  Inject patient cache (L1/L2)
             this.outboxRepository);
             // Initialize degradation service with real repository (BEFORE health check)
             this.degradationService = new GracefulDegradation_1.PatientRegistryDegradation({

@@ -9,10 +9,10 @@
  *
  * Uses SupabaseUserRepository.createAuthUser() to create both auth user + profile
  * This approach:
- * - ✅ Explicit control over user creation
- * - ✅ No hidden trigger dependencies
- * - ✅ Rollback on failure
- * - ✅ Clean Architecture compliant
+ * -  Explicit control over user creation
+ * -  No hidden trigger dependencies
+ * -  Rollback on failure
+ * -  Clean Architecture compliant
  *
  * Usage:
  *   npm run seed:test-data
@@ -80,7 +80,7 @@ const userRepository = new SupabaseUserRepository(
  * Delete all existing test users
  */
 async function cleanupTestUsers() {
-  console.log('\n️  Cleaning up existing test users...');
+  console.log('\n  Cleaning up existing test users...');
   
   const { data: users } = await supabase.auth.admin.listUsers();
   
@@ -101,10 +101,10 @@ async function cleanupTestUsers() {
 /**
  * Create test users via SupabaseUserRepository
  * This approach:
- * - ✅ Uses application layer (repository)
- * - ✅ Explicit control over user creation
- * - ✅ No hidden trigger dependencies
- * - ✅ Rollback on failure
+ * -  Uses application layer (repository)
+ * -  Explicit control over user creation
+ * -  No hidden trigger dependencies
+ * -  Rollback on failure
  */
 async function createTestUsers() {
   console.log('\n Creating test users via SupabaseUserRepository...');
@@ -194,7 +194,7 @@ async function verifyUsers() {
       if (error || !profile) {
         // Profile should exist (created explicitly by createAuthUser)
         // If not found, there's an issue with the creation process
-        console.log(`   ️  ${testUser.email} - Profile not found`);
+        console.log(`     ${testUser.email} - Profile not found`);
         console.log(`      User ID: ${authUser.id}`);
         console.log(`      Note: Profile should exist in auth_schema.user_profiles (created explicitly)\n`);
         continue;

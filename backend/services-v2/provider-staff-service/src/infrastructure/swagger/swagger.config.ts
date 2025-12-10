@@ -20,14 +20,14 @@ const options: swaggerJsdoc.Options = {
 Complete healthcare provider and staff management system for Vietnamese healthcare facilities.
 
 ## Features
-- ✅ Doctor & Staff Profile Management
-- ✅ Credentials & Certifications Tracking
-- ✅ Department Assignments
-- ✅ Schedule Management
-- ✅ Department-driven search
-- ✅ Availability Tracking
-- ✅ Performance Metrics
-- ✅ Event-Driven Architecture
+-  Doctor & Staff Profile Management
+-  Credentials & Certifications Tracking
+-  Department Assignments
+-  Schedule Management
+-  Department-driven search
+-  Availability Tracking
+-  Performance Metrics
+-  Event-Driven Architecture
 
 ## Authentication
 All endpoints require JWT authentication via Bearer token:

@@ -2,7 +2,7 @@
  * SupabaseAppointmentReminderRepository - Infrastructure Layer
  * Implements MANUAL reminder persistence using Supabase (Alternative approach)
  *
- * ⚠️ IMPORTANT: This repository is for manual reminders only
+ *  IMPORTANT: This repository is for manual reminders only
  *
  * ARCHITECTURE CONTEXT:
  * - Auto-generated reminders: Managed by Scheduler Service (scheduler.schedules)

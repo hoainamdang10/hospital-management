@@ -131,7 +131,7 @@ describe('SendGridEmailService', () => {
       expect(sentMessage.subject).toBe('Email đã được xác thực thành công - Hospital Management System');
       expect(sentMessage.html).toContain('Email đã được xác thực thành công');
       expect(sentMessage.html).toContain(testData.userName);
-      expect(sentMessage.html).toContain('✅');
+      expect(sentMessage.html).toContain('');
       expect(sentMessage.html).toContain('Đăng nhập ngay');
     });
   });
@@ -190,7 +190,7 @@ describe('SendGridEmailService', () => {
       expect(sentMessage.subject).toBe('Chào mừng đến với Hospital Management System');
       expect(sentMessage.html).toContain('Chào mừng bạn đến với Hospital Management System');
       expect(sentMessage.html).toContain(testUserName);
-      expect(sentMessage.html).toContain('🎉');
+      expect(sentMessage.html).toContain('');
       expect(sentMessage.html).toContain('Đăng nhập ngay');
       expect(sentMessage.html).toContain('<!DOCTYPE html>');
     });

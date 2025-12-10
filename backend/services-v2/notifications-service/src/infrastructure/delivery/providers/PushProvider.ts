@@ -28,7 +28,7 @@ export class PushProvider implements ChannelProvider {
     this.isConfigured = !!config.projectId && config.enabled;
     
     if (!this.isConfigured) {
-      console.warn('[PushProvider] ️ Firebase not configured - push notifications disabled');
+      console.warn('[PushProvider]  Firebase not configured - push notifications disabled');
     } else {
       console.log(`[PushProvider]  Firebase configured for project ${this.projectId} (mock mode)`);
     }

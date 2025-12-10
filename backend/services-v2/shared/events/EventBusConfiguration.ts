@@ -250,7 +250,7 @@ export class EventBusConfiguration {
         });
 
         connection.on('close', () => {
-          console.warn('️ RabbitMQ connection closed');
+          console.warn(' RabbitMQ connection closed');
         });
 
         console.log(' Connected to RabbitMQ successfully');
@@ -282,7 +282,7 @@ export class EventBusConfiguration {
     serviceConfig: ServiceEventConfig
   ): Promise<void> {
     try {
-      console.log(`️ Setting up infrastructure for ${serviceConfig.serviceName}`);
+      console.log(` Setting up infrastructure for ${serviceConfig.serviceName}`);
 
       // Declare main exchange
       await channel.assertExchange(this.config.exchangeName, 'topic', {

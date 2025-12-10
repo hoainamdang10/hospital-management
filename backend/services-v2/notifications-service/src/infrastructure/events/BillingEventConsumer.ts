@@ -124,8 +124,8 @@ export interface PaymentProcessedEventData {
   status?: "completed" | "failed" | "refunded" | "partial_refund" | string;
   processedAt?: Date | string;
   processedBy?: string;
-  appointmentId?: string; // ✅ ADDED - link to appointment
-  transactionId?: string; // ✅ ADDED - payment gateway transaction ID
+  appointmentId?: string; //  ADDED - link to appointment
+  transactionId?: string; //  ADDED - payment gateway transaction ID
   dueAmount?: number;
   refundAmount?: number;
 }
@@ -710,7 +710,7 @@ export class BillingEventConsumer {
   /**
    * Handle payment processed event
    *
-   * ✅ REFACTORED FOR MVP:
+   *  REFACTORED FOR MVP:
    * - Send payment receipt when status = 'completed'
    * - Use new template: PAYMENT_COMPLETED
    * - Skip failed/refunded in MVP (future work)
@@ -772,7 +772,7 @@ export class BillingEventConsumer {
         recipientName: resolvedPatientName,
         recipientEmail: patientPreferences?.preferences?.email,
         recipientPhone: patientPreferences?.preferences?.phoneNumber,
-        templateType: "PAYMENT_COMPLETED", // ✅ NEW template
+        templateType: "PAYMENT_COMPLETED", //  NEW template
         channels: ["EMAIL"],
         priority: "NORMAL",
         data: {

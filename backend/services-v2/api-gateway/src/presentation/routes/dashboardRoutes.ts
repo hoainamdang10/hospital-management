@@ -171,7 +171,7 @@ function generateDashboardHTML(
 <body>
   <div class="container">
     <div class="header">
-      <h1>🏥 Hospital Management System</h1>
+      <h1> Hospital Management System</h1>
       <span class="status-badge">${statusText}</span>
       <div class="stats">
         <div class="stat-card">
@@ -191,7 +191,7 @@ function generateDashboardHTML(
           <div class="service-info">
             <div><strong>Endpoint:</strong> ${check.pathPrefix}</div>
             <div><strong>URL:</strong> ${check.url}</div>
-            <div><strong>Trạng thái:</strong> ${check.healthy ? '✅ Hoạt động' : '❌ Lỗi'}</div>
+            <div><strong>Trạng thái:</strong> ${check.healthy ? ' Hoạt động' : ' Lỗi'}</div>
           </div>
         </div>
       `).join('')}
@@ -215,12 +215,12 @@ function generateDashboardHTML(
 function formatServiceName(serviceName: string): string {
   const names: Record<string, string> = {
     'identity-service': '🔐 Identity Service',
-    'patient-registry-service': '👤 Patient Registry',
-    'provider-staff-service': '👨‍⚕️ Provider/Staff',
+    'patient-registry-service': ' Patient Registry',
+    'provider-staff-service': '👨‍⚕ Provider/Staff',
     'appointments-service': '📅 Appointments',
-    'clinical-emr-service': '📋 Clinical EMR',
+    'clinical-emr-service': ' Clinical EMR',
     'billing-service': '💰 Billing',
-    'notifications-service': '🔔 Notifications',
+    'notifications-service': ' Notifications',
     'scheduler-service': '⏰ Scheduler'
   };
   return names[serviceName] || serviceName;

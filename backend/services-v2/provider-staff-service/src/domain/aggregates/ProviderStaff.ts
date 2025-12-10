@@ -105,9 +105,9 @@ export class ProviderStaff extends HealthcareAggregateRoot<ProviderStaffProps> {
     yearsOfExperience: number,
     vietnameseHealthcareLicense?: string,
     mohRegistrationNumber?: string,
-    departmentCode?: string, // 🔄 NEW: Optional department parameter
+    departmentCode?: string, //  NEW: Optional department parameter
   ): ProviderStaff {
-    // 🔄 Default department mapping for proper ID generation
+    //  Default department mapping for proper ID generation
     const defaultDepartmentMap: Record<StaffType, string> = {
       doctor: "INTE", // Internal Medicine (default for doctors)
       receptionist: "ADMI", // Administration (default for receptionists)

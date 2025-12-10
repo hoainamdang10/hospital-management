@@ -296,7 +296,7 @@ export class DIContainer {
       console.log("[DI]  Circuit breaker initialized");
     } catch (error) {
       console.warn(
-        "[DI] ⚠️ Cache service failed to connect - continuing without cache",
+        "[DI]  Cache service failed to connect - continuing without cache",
       );
     }
   }
@@ -313,7 +313,7 @@ export class DIContainer {
       undefined,
     );
     console.log(
-      "[DI] ✅ Health check service initialized (EventSubscriptions will be injected later)",
+      "[DI] Health check service initialized (EventSubscriptions will be injected later)",
     );
   }
 
@@ -325,7 +325,7 @@ export class DIContainer {
     if (this.healthCheckService && this.eventSubscriptions) {
       this.healthCheckService.attachEventSubscriptions(this.eventSubscriptions);
       console.log(
-        "[DI] ✅ Health check service updated with EventSubscriptions",
+        "[DI] Health check service updated with EventSubscriptions",
       );
     }
   }
@@ -403,7 +403,7 @@ export class DIContainer {
     );
 
     console.log(
-      "[DI] ✅ Repositories initialized (7 total, Waitlist archived)",
+      "[DI] Repositories initialized (7 total, Waitlist archived)",
     );
     console.log(
       "[DI]    - Appointment, ReadModel, Queue, ProviderSchedule, Reminder",
@@ -469,13 +469,13 @@ export class DIContainer {
         `[DI]    - Scheduler Service: ${this.config.services.schedulerServiceUrl}`,
       );
       console.log(
-        "[DI]    - Reminder Service: Scheduler integration enabled 🔔",
+        "[DI]    - Reminder Service: Scheduler integration enabled ",
       );
     } else {
       this.schedulerAdapter = new NoopSchedulerAdapter();
       console.log("[DI]    - Scheduler Service: DISABLED");
       console.log(
-        "[DI]    - Reminder Service: Scheduler integration disabled (noop) ⚠️",
+        "[DI]    - Reminder Service: Scheduler integration disabled (noop) ",
       );
     }
 
@@ -511,7 +511,7 @@ export class DIContainer {
     console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ");
     console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ");
     console.log(
-      `[DI]    - Billing Service: ${this.config.services.billingServiceUrl} 💳`,
+      `[DI]    - Billing Service: ${this.config.services.billingServiceUrl} `,
     );
     console.log("[DI]    - Authorization Service: RBAC enabled ");
     console.log(
@@ -828,7 +828,7 @@ export class DIContainer {
     );
 
     console.log(
-      "[DI] ✅ Event handlers initialized (5 total - Prepaid Billing Enabled)",
+      "[DI] Event handlers initialized (5 total - Prepaid Billing Enabled)",
     );
     console.log("[DI]    - AppointmentReadModelEventHandler");
     console.log("[DI]    - PatientEventConsumer (Pure Outbox)");
@@ -836,9 +836,9 @@ export class DIContainer {
     console.log("[DI]    - StaffEventConsumer (RabbitMQ)");
     console.log("[DI]    - DepartmentEventConsumer (RabbitMQ)");
     console.log(
-      "[DI]    - BillingEventConsumer (RabbitMQ) ✅ ENABLED for Prepaid Flow",
+      "[DI]    - BillingEventConsumer (RabbitMQ) ENABLED for Prepaid Flow",
     );
-    console.log("[DI]    ️  ClinicalEMREventConsumer REMOVED FOR MVP");
+    console.log("[DI]      ClinicalEMREventConsumer REMOVED FOR MVP");
   }
 
   /**
@@ -853,7 +853,7 @@ export class DIContainer {
     );
 
     console.log(
-      "[DI] ✅ Event subscriptions initialized with Pure Outbox Pattern consumers",
+      "[DI] Event subscriptions initialized with Pure Outbox Pattern consumers",
     );
   }
 

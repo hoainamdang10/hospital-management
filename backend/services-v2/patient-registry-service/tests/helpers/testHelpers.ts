@@ -208,12 +208,12 @@ export async function cleanupTestPatients(
       .like('national_id', pattern);
 
     if (error) {
-      console.warn(`️  Could not cleanup test patients: ${error.message}`);
+      console.warn(`  Could not cleanup test patients: ${error.message}`);
     } else {
       console.log(' Test patients cleaned up');
     }
   } catch (error) {
-    console.warn(`️  Error cleaning up test patients: ${error}`);
+    console.warn(`  Error cleaning up test patients: ${error}`);
   }
 }
 
@@ -240,7 +240,7 @@ export async function cleanupTestUsers(
         .eq('email', email);
 
       if (loginError) {
-        console.warn(`️  Could not delete login attempts for ${email}: ${loginError.message}`);
+        console.warn(`  Could not delete login attempts for ${email}: ${loginError.message}`);
       }
 
       // Get user profile to find user_id
@@ -258,7 +258,7 @@ export async function cleanupTestUsers(
           .eq('user_id', profile.id);
 
         if (rolesError) {
-          console.warn(`️  Could not delete user roles for ${email}: ${rolesError.message}`);
+          console.warn(`  Could not delete user roles for ${email}: ${rolesError.message}`);
         }
 
         // Delete user profile
@@ -268,7 +268,7 @@ export async function cleanupTestUsers(
           .eq('id', profile.id);
 
         if (profileError) {
-          console.warn(`️  Could not delete user profile for ${email}: ${profileError.message}`);
+          console.warn(`  Could not delete user profile for ${email}: ${profileError.message}`);
         } else {
           console.log(` Deleted test user profile: ${email}`);
         }
@@ -281,13 +281,13 @@ export async function cleanupTestUsers(
       if (user) {
         const { error } = await supabaseClient.auth.admin.deleteUser(user.id);
         if (error) {
-          console.warn(`️  Could not delete auth user ${email}: ${error.message}`);
+          console.warn(`  Could not delete auth user ${email}: ${error.message}`);
         } else {
           console.log(` Deleted auth user: ${email}`);
         }
       }
     } catch (error) {
-      console.warn(`️  Error deleting test user ${email}: ${error}`);
+      console.warn(`  Error deleting test user ${email}: ${error}`);
     }
   }
 }
@@ -352,7 +352,7 @@ export async function getOrCreateTestUser(
 
     if (authError) {
       if (authError.message?.includes('already been registered')) {
-        console.log(`ℹ️  Auth user already exists for ${email}, reusing existing account`);
+        console.log(`ℹ  Auth user already exists for ${email}, reusing existing account`);
 
         const { data: existingProfile, error: existingProfileError } = await supabaseClient
           .schema('auth_schema')
@@ -375,7 +375,7 @@ export async function getOrCreateTestUser(
         });
 
         if (updateError) {
-          console.warn(`️  Unable to synchronize existing auth user password: ${updateError.message}`);
+          console.warn(`  Unable to synchronize existing auth user password: ${updateError.message}`);
         } else {
           console.log(` Synchronized existing auth user credentials for ${email}`);
         }

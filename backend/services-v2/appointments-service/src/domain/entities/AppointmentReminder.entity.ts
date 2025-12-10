@@ -2,7 +2,7 @@
  * AppointmentReminder Entity - Domain Layer
  * Represents a MANUALLY CREATED reminder for an appointment
  *
- * ⚠️ ARCHITECTURE NOTE: ALTERNATIVE APPROACH ⚠️
+ *  ARCHITECTURE NOTE: ALTERNATIVE APPROACH 
  *
  * This entity provides manual reminder management as an ALTERNATIVE to the existing
  * auto-scheduling system. Most reminders should use the Scheduler Service integration.

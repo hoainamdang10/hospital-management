@@ -489,14 +489,14 @@ export function setupDependencies(container: DIContainer): void {
         queueName:
           process.env.APPOINTMENT_EVENT_QUEUE ||
           "notifications.appointment.events",
-        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ FIX: Use hospital.events to match all services
+        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", //  FIX: Use hospital.events to match all services
         routingKeys: [
-          "appointment.scheduled", // ✅ THESIS SCOPE
-          "appointment.confirmed", // ✅ THESIS SCOPE
-          "appointment.cancelled", // ✅ THESIS SCOPE
-          "appointment.rescheduled", // ✅ Included để xử lý badge/reschedule flow
-          "appointment.completed", // ✅ Hoàn tất khám -> gửi đánh giá/lời nhắc follow-up
-          "appointment.reminder.*", // ✅ Nhận mọi nhắc lịch (24h/2h/30m)
+          "appointment.scheduled", //  THESIS SCOPE
+          "appointment.confirmed", //  THESIS SCOPE
+          "appointment.cancelled", //  THESIS SCOPE
+          "appointment.rescheduled", //  Included để xử lý badge/reschedule flow
+          "appointment.completed", //  Hoàn tất khám -> gửi đánh giá/lời nhắc follow-up
+          "appointment.reminder.*", //  Nhận mọi nhắc lịch (24h/2h/30m)
           // FUTURE: appointment.no_show
         ],
         prefetchCount: parseInt(
@@ -537,7 +537,7 @@ export function setupDependencies(container: DIContainer): void {
         rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://localhost:5672",
         queueName:
           process.env.STAFF_EVENT_QUEUE || "notifications.staff.events",
-        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ FIX: Use hospital.events to match all services
+        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", //  FIX: Use hospital.events to match all services
         routingKeys: [
           "availability.staff.changed",
           "shift.staff.assigned",
@@ -583,13 +583,13 @@ export function setupDependencies(container: DIContainer): void {
         rabbitmqUrl: process.env.RABBITMQ_URL || "amqp://localhost:5672",
         queueName:
           process.env.BILLING_EVENT_QUEUE || "notifications.billing.events",
-        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", // ✅ Unified exchange
+        exchangeName: process.env.RABBITMQ_EXCHANGE || "hospital.events", //  Unified exchange
         routingKeys: [
-          "billing.payment.completed", // ✅ THESIS SCOPE - Payment receipt
+          "billing.payment.completed", //  THESIS SCOPE - Payment receipt
           "billing.payment.refunded",
           "billing.payment.refund_requested",
-          "billing.invoice.generated", // ✅ Cho biết hóa đơn mới
-          "billing.payment.reminder.due", // ✅ Nhắc tới hạn thanh toán
+          "billing.invoice.generated", //  Cho biết hóa đơn mới
+          "billing.payment.reminder.due", //  Nhắc tới hạn thanh toán
           // FUTURE: billing.payment.reminder.before/after, billing.insurance
         ],
         prefetchCount: parseInt(

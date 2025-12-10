@@ -80,7 +80,7 @@ export class GlobalProxyMiddleware {
         specificity: route.getSpecificity(),
       });
 
-      // ✅ FIX: Check if route requires authentication
+      //  FIX: Check if route requires authentication
       if (route.requiresAuth && !req.user) {
         this.logger.warn(
           "Global proxy: Authentication required but user not authenticated",
@@ -97,7 +97,7 @@ export class GlobalProxyMiddleware {
         });
       }
 
-      // ✅ FIX: Check required permissions
+      //  FIX: Check required permissions
       if (
         route.requiredPermissions &&
         route.requiredPermissions.length > 0 &&
@@ -131,7 +131,7 @@ export class GlobalProxyMiddleware {
         }
       }
 
-      // ✅ FIX: Enforce patient self-service ownership checks
+      //  FIX: Enforce patient self-service ownership checks
       const matchedSelfServicePrefix = this.patientSelfServicePrefixes.find(
         (prefix) => originalPath.startsWith(prefix),
       );
@@ -165,7 +165,7 @@ export class GlobalProxyMiddleware {
           });
         }
 
-        // ✅ IMPROVED: Support both PAT-ID and UUID for patient identification
+        //  IMPROVED: Support both PAT-ID and UUID for patient identification
         // Patients can be identified by:
         // 1. Their userId (UUID from auth)
         // 2. Their patientId (PAT-XXXXXX-XXX format)
@@ -219,7 +219,7 @@ export class GlobalProxyMiddleware {
         }
       }
 
-      // ✅ FIX: Check service health via circuit breaker
+      //  FIX: Check service health via circuit breaker
       const isHealthy = await this.serviceRegistry.isHealthy(route.serviceName);
       if (!isHealthy) {
         this.logger.error("Global proxy: Service unhealthy", {
@@ -233,7 +233,7 @@ export class GlobalProxyMiddleware {
         });
       }
 
-      // ✅ FIX: Set req.url to originalPath BEFORE proxy sees it
+      //  FIX: Set req.url to originalPath BEFORE proxy sees it
       // This ensures http-proxy-middleware sees the full path with /api prefix
       req.url = originalPath;
 
@@ -312,7 +312,7 @@ export class GlobalProxyMiddleware {
           proxyReq.setHeader("X-Forwarded-Host", request.hostname);
           proxyReq.removeHeader("expect");
 
-          // ✅ FIX: Don't manually re-stream body - let http-proxy-middleware handle it
+          //  FIX: Don't manually re-stream body - let http-proxy-middleware handle it
           // The body parsing logic was skipped by shouldParseJson() check in main.ts,
           // so request body is still in raw stream format and will be auto-piped by proxy
           // Manually writing body causes conflicts and corruption

@@ -48,6 +48,7 @@ import { ReactivateStaffUseCase } from "./application/use-cases/ReactivateStaffU
 import { TerminateStaffUseCase } from "./application/use-cases/TerminateStaffUseCase";
 import { UpdateEmploymentStatusUseCase } from "./application/use-cases/UpdateEmploymentStatusUseCase";
 import { UpdateStaffScheduleUseCase } from "./application/use-cases/UpdateStaffScheduleUseCase";
+import { HardDeleteStaffUseCase } from "./application/use-cases/HardDeleteStaffUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
 import { StaffCommandHandlers } from "./application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "./application/handlers/StaffQueryHandlers";
@@ -588,6 +589,10 @@ class ProviderStaffServiceApp {
       this.container.resolve<SetDepartmentHeadUseCase>(
         ServiceTokens.SET_DEPARTMENT_HEAD_USE_CASE,
       );
+    const hardDeleteStaffUseCase =
+      this.container.resolve<HardDeleteStaffUseCase>(
+        ServiceTokens.HARD_DELETE_STAFF_USE_CASE,
+      );
 
     setupRoutes(
       this.app as Express,
@@ -607,6 +612,7 @@ class ProviderStaffServiceApp {
       this.terminateStaffUseCase,
       this.updateEmploymentStatusUseCase,
       updateStaffScheduleUseCase,
+      hardDeleteStaffUseCase,
       // REMOVED: Availability/legacy profile use cases - Belongs to Scheduling/Appointment Service
     );
 

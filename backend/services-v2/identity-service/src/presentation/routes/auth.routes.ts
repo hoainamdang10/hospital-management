@@ -77,7 +77,7 @@ export function createAuthRoutes(deps: RouteDependencies): Router {
         email: req.body.email,
         password: req.body.password,
         fullName: req.body.fullName,
-        roleType: "PATIENT", // ✅ SECURITY: Force patient role, prevent privilege escalation
+        roleType: "PATIENT", //  SECURITY: Force patient role, prevent privilege escalation
         phoneNumber: req.body.phoneNumber,
         citizenId: req.body.citizenId,
         dateOfBirth: req.body.dateOfBirth,

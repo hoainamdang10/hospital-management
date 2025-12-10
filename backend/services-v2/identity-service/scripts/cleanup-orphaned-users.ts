@@ -44,7 +44,7 @@ async function findOrphanedAuthUsers(): Promise<string[]> {
     }
     
     if (!authUsers || authUsers.users.length === 0) {
-      console.log('ℹ️  No auth users found');
+      console.log('ℹ  No auth users found');
       return [];
     }
     
@@ -109,7 +109,7 @@ async function verifyCleanup(): Promise<void> {
   if (orphanedIds.length === 0) {
     console.log(' No orphaned auth users found. Cleanup successful!');
   } else {
-    console.warn(`️  Still found ${orphanedIds.length} orphaned auth users`);
+    console.warn(`  Still found ${orphanedIds.length} orphaned auth users`);
   }
 }
 

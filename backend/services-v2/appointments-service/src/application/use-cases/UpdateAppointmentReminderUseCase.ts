@@ -2,7 +2,7 @@
  * UpdateAppointmentReminderUseCase - Application Layer
  * Updates MANUAL appointment reminder (Alternative approach)
  *
- * ⚠️ NOTE: This updates manual reminders only, not auto-generated reminders
+ *  NOTE: This updates manual reminders only, not auto-generated reminders
  *
  * Auto-generated reminders are managed by Scheduler Service and should be
  * updated by canceling and recreating the schedule via Scheduler Service API.

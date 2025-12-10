@@ -118,7 +118,7 @@ async function bootstrap() {
 
     // Graceful shutdown
     const shutdown = async (signal: string) => {
-      console.log(`\n️ Received ${signal}, shutting down gracefully...`);
+      console.log(`\n Received ${signal}, shutting down gracefully...`);
 
       try {
         await consumer.stop();

@@ -66,7 +66,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     }): Promise<Patient>;
     /**
      * Save patient (create or update)
-     * ✅ FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
+     *  FIX TRANSACTION SUPPORT: Use PostgreSQL function for atomic operations
      */
     save(patient: Patient): Promise<void>;
     private shouldUseDirectPersistence;
@@ -75,6 +75,17 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      * Delete patient (soft delete)
      */
     delete(patientId: PatientId): Promise<void>;
+    /**
+     * Hard delete patient by linked identity user ID
+     * Used when Identity Service performs a permanent account deletion
+     */
+    hardDeleteByUserId(userId: string, options?: {
+        deletedBy?: string;
+        reason?: string;
+    }): Promise<{
+        deleted: boolean;
+        patientId?: string;
+    }>;
     /**
      * Update patient lifecycle status by user ID
      */
@@ -157,19 +168,19 @@ export declare class SupabasePatientRepository implements IPatientRepository {
      */
     private fetchLinks;
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch insurance for multiple patients
      */
     private fetchInsuranceBatch;
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch emergency contacts for multiple patients
      */
     private fetchEmergencyContactsBatch;
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch consents for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch consents for multiple patients
      */
     private fetchConsentsBatch;
     /**
-     * ✅ FIX N+1 PROBLEM: Batch fetch links for multiple patients
+     *  FIX N+1 PROBLEM: Batch fetch links for multiple patients
      */
     private fetchLinksBatch;
     private buildInClause;
@@ -196,7 +207,7 @@ export declare class SupabasePatientRepository implements IPatientRepository {
     private _saveLinks;
     /**
      * Publish domain events from aggregate
-     * ✅ OUTBOX PATTERN: Save events to outbox table for reliable publishing
+     *  OUTBOX PATTERN: Save events to outbox table for reliable publishing
      */
     private publishDomainEvents;
     /**

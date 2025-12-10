@@ -14,6 +14,7 @@ import { ILogger } from "../../application/interfaces/ILogger";
 import { UserCreatedEventHandler } from "./UserCreatedEventHandler";
 import { UserDeactivatedEventHandler } from "./UserDeactivatedEventHandler";
 import { UserRoleChangedEventHandler } from "./UserRoleChangedEventHandler";
+import { UserDeletedEventHandler } from "./UserDeletedEventHandler";
 import {
   UserCreatedEvent,
   UserDeactivatedEvent,
@@ -46,6 +47,7 @@ export class IdentityEventConsumer {
     private config: IdentityEventConsumerConfig,
     private logger: ILogger,
     private userCreatedHandler: UserCreatedEventHandler,
+    private userDeletedHandler: UserDeletedEventHandler,
     private userDeactivatedHandler: UserDeactivatedEventHandler,
     private userRoleChangedHandler: UserRoleChangedEventHandler,
   ) {}
@@ -217,8 +219,10 @@ export class IdentityEventConsumer {
           break;
 
         case "UserDeletedEvent":
+          await this.handleUserDeleted(event);
+          break;
+
         case "UserDeactivatedEvent":
-          // Handle both UserDeletedEvent (soft delete) and UserDeactivatedEvent
           await this.handleUserDeactivated(event);
           break;
 
@@ -299,6 +303,20 @@ export class IdentityEventConsumer {
     );
 
     await this.userDeactivatedHandler.handle(event);
+  }
+
+  /**
+   * Handle UserDeleted event
+   */
+  private async handleUserDeleted(eventData: any): Promise<void> {
+    const payload = eventData.payload || eventData;
+    await this.userDeletedHandler.handle({
+      userId: payload.userId || eventData.aggregateId,
+      email: payload.email,
+      deletedBy: payload.deletedBy || "system",
+      reason: payload.reason,
+      deletedAt: payload.deletedAt,
+    });
   }
 
   /**

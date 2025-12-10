@@ -95,7 +95,7 @@ export class TestUserFactory {
         });
 
       if (profileError) {
-        console.warn(`️  Failed to create user profile: ${profileError.message}`);
+        console.warn(`  Failed to create user profile: ${profileError.message}`);
         // Continue anyway, profile might be created by trigger
       } else {
         console.log(` User profile created for ${email}`);
@@ -113,7 +113,7 @@ export class TestUserFactory {
         });
 
       if (roleError) {
-        console.warn(`️  Failed to assign role: ${roleError.message}`);
+        console.warn(`  Failed to assign role: ${roleError.message}`);
       } else {
         console.log(` Role ${roleType} assigned to ${email}`);
       }
@@ -220,7 +220,7 @@ export class TestUserFactory {
 
         console.log(` Deleted test user: ${userId}`);
       } catch (error) {
-        console.warn(`️  Error deleting test user ${userId}:`, error);
+        console.warn(`  Error deleting test user ${userId}:`, error);
       }
     }
 

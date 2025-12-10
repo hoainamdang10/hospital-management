@@ -317,7 +317,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
       durationMinutes,
       type,
       priority,
-      // ✅ FIX: Use PENDING_PAYMENT for prepaid flow (Flow 3)
+      //  FIX: Use PENDING_PAYMENT for prepaid flow (Flow 3)
       status: AppointmentStatus.PENDING_PAYMENT,
       details,
       roomId,
@@ -348,7 +348,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
         durationMinutes,
         type,
         priority,
-        // ✅ FIX: Event status should match aggregate status
+        //  FIX: Event status should match aggregate status
         'pending_payment',
         consultationFee,
         createdBy,
@@ -390,8 +390,8 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
   /**
    * Confirm appointment (after payment completed)
    * 
-   * ✅ PURE DOMAIN LOGIC - No infrastructure dependencies
-   * ✅ Logging moved to application/infrastructure layer
+   *  PURE DOMAIN LOGIC - No infrastructure dependencies
+   *  Logging moved to application/infrastructure layer
    * 
    * BUSINESS RULES:
    * - Can only confirm appointments in PENDING_PAYMENT or SCHEDULED status
@@ -449,7 +449,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
     }
 
     // ===== DOMAIN EVENT =====
-    // ⚠️ Names will be enriched from read model in Repository layer
+    //  Names will be enriched from read model in Repository layer
     this.addDomainEvent(
       new AppointmentConfirmedEvent(
         this.props.appointmentId.value,
@@ -470,7 +470,7 @@ export class Appointment extends HealthcareAggregateRoot<AppointmentProps> {
 
     this.incrementVersion();
 
-    // ✅ NO LOGGING HERE - Pure domain logic only
+    //  NO LOGGING HERE - Pure domain logic only
     // Logging sẽ được thực hiện ở application/infrastructure layer
   }
 

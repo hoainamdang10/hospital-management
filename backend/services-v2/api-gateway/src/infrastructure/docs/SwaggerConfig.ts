@@ -14,14 +14,14 @@ export const swaggerOptions: swaggerJsdoc.Options = {
         API Gateway cho Hospital Management System V2 - Clean Architecture
         
         ## Tính năng chính:
-        - ✅ Authentication & Authorization (JWT)
-        - ✅ Patient Management
-        - ✅ Provider/Staff Management
-        - ✅ Appointments & Scheduling
-        - ✅ Clinical EMR (FHIR R4)
-        - ✅ Billing & Payments
-        - ✅ Notifications
-        - ✅ Job Scheduling
+        -  Authentication & Authorization (JWT)
+        -  Patient Management
+        -  Provider/Staff Management
+        -  Appointments & Scheduling
+        -  Clinical EMR (FHIR R4)
+        -  Billing & Payments
+        -  Notifications
+        -  Job Scheduling
         
         ## Authentication:
         Tất cả các endpoint (trừ /api/v1/auth/*) yêu cầu JWT token trong header:

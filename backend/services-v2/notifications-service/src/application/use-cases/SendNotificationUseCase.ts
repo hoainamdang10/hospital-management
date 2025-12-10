@@ -36,15 +36,15 @@ export interface SendNotificationCommand {
     | "STAFF"
     | "DEPARTMENT"
     | string;
-  recipientName?: string; // ✅ ADDED for personalization
-  recipientEmail?: string; // ✅ ADDED for delivery
-  recipientPhone?: string; // ✅ ADDED for SMS delivery
+  recipientName?: string; //  ADDED for personalization
+  recipientEmail?: string; //  ADDED for delivery
+  recipientPhone?: string; //  ADDED for SMS delivery
   type?: string;
   title?: string;
   content?: string;
   templateType?: string;
   templateData?: Record<string, any>;
-  data?: Record<string, any>; // ✅ ADDED - alias for templateData
+  data?: Record<string, any>; //  ADDED - alias for templateData
   channels: string[];
   priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT" | string;
   scheduledAt?: Date;

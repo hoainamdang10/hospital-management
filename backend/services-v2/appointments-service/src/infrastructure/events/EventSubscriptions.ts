@@ -136,10 +136,10 @@ export class EventSubscriptions {
       await this.setupSubscriptions();
 
       this.isConnected = true;
-      console.log("[EventSubscriptions]  All subscriptions ready");
+      console.log("[EventSubscriptions] All subscriptions ready");
     } catch (error) {
       console.error(
-        "[EventSubscriptions] ❌ Failed to setup subscriptions:",
+        "[EventSubscriptions] Failed to setup subscriptions:",
         error,
       );
       throw error;
@@ -177,7 +177,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.scheduled`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentScheduled (Read Model)",
     );
 
     // 1b. Scheduler Integration Handler (optional)
@@ -188,7 +188,7 @@ export class EventSubscriptions {
         `${this.config.serviceName}.appointment.scheduled.scheduler`,
       );
       console.log(
-        "[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Scheduler Integration)",
+        "[EventSubscriptions] Subscribed to AppointmentScheduled (Scheduler Integration)",
       );
     }
 
@@ -231,7 +231,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.status.changed`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentStatusChanged",
+      "[EventSubscriptions] Subscribed to AppointmentStatusChanged",
     );
 
     // 6b. Subscribe to AppointmentStarted events and update read model
@@ -241,7 +241,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.started`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentStarted (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentStarted (Read Model)",
     );
 
     // 7. Subscribe to AppointmentCancelled events (from Scheduling Service itself)
@@ -252,7 +252,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.cancelled`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentCancelled (Read Model)",
     );
 
     // 7b. Scheduler Integration Handler (optional)
@@ -263,7 +263,7 @@ export class EventSubscriptions {
         `${this.config.serviceName}.appointment.cancelled.scheduler`,
       );
       console.log(
-        "[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Scheduler Integration)",
+        "[EventSubscriptions] Subscribed to AppointmentCancelled (Scheduler Integration)",
       );
     }
 
@@ -274,7 +274,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.rescheduled`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentRescheduled (Read Model)",
     );
 
     if (this.schedulerHandlers) {
@@ -284,7 +284,7 @@ export class EventSubscriptions {
         `${this.config.serviceName}.appointment.rescheduled.scheduler`,
       );
       console.log(
-        "[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Scheduler Integration)",
+        "[EventSubscriptions] Subscribed to AppointmentRescheduled (Scheduler Integration)",
       );
     }
 
@@ -296,7 +296,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.staff.schedule.updated`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to StaffScheduleUpdated (Provider Schedule Cache)",
+      "[EventSubscriptions] Subscribed to StaffScheduleUpdated (Provider Schedule Cache)",
     );
 
     // 10. Subscribe to AppointmentConfirmed events (from Scheduling Service itself)
@@ -306,7 +306,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.confirmed`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentConfirmed (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentConfirmed (Read Model)",
     );
 
     // 11. Subscribe to AppointmentCompleted events (from Scheduling Service itself)
@@ -316,7 +316,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.completed`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentCompleted (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentCompleted (Read Model)",
     );
 
     // 12. Subscribe to AppointmentNoShow events (from Scheduling Service itself)
@@ -326,7 +326,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.appointment.noshow`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to AppointmentNoShow (Read Model)",
+      "[EventSubscriptions] Subscribed to AppointmentNoShow (Read Model)",
     );
 
     // ========================================================================
@@ -341,7 +341,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.patient.read.model.registered`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to patient.patient.registered (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to patient.patient.registered (Pure Outbox)",
     );
 
     await this.eventBus.subscribe(
@@ -350,7 +350,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.patient.read.model.updated`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to patient.patient.updated (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to patient.patient.updated (Pure Outbox)",
     );
 
     await this.eventBus.subscribe(
@@ -359,7 +359,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.patient.read.model.deactivated`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to patient.patient.deactivated (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to patient.patient.deactivated (Pure Outbox)",
     );
 
     await this.eventBus.subscribe(
@@ -368,7 +368,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.patient.read.model.deleted`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to patient.patient.deleted (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to patient.patient.deleted (Pure Outbox)",
     );
 
     // 14. Subscribe to provider.staff.* events (from Provider Staff Service)
@@ -379,7 +379,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.provider.read.model.created`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to provider.staff.created (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to provider.staff.created (Pure Outbox)",
     );
 
     await this.eventBus.subscribe(
@@ -388,7 +388,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.provider.read.model.updated`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to provider.staff.updated (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to provider.staff.updated (Pure Outbox)",
     );
 
     await this.eventBus.subscribe(
@@ -397,7 +397,7 @@ export class EventSubscriptions {
       `${this.config.serviceName}.provider.read.model.deactivated`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to provider.staff.deactivated (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to provider.staff.deactivated (Pure Outbox)",
     );
 
     await this.eventBus.subscribe(
@@ -406,12 +406,12 @@ export class EventSubscriptions {
       `${this.config.serviceName}.provider.read.model.deleted`,
     );
     console.log(
-      "[EventSubscriptions] ✅ Subscribed to provider.staff.deleted (Pure Outbox)",
+      "[EventSubscriptions] Subscribed to provider.staff.deleted (Pure Outbox)",
     );
 
     console.log("[EventSubscriptions] =".repeat(30));
     console.log(
-      "[EventSubscriptions] 🚀 Pure Outbox Pattern: All read model syncs ready!",
+      "[EventSubscriptions] Pure Outbox Pattern: All read model syncs ready!",
     );
     console.log("[EventSubscriptions]    Patient Read Model: 4 events");
     console.log("[EventSubscriptions]    Provider Read Model: 4 events");

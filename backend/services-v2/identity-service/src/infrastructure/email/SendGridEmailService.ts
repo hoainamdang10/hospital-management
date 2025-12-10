@@ -279,7 +279,7 @@ export class SendGridEmailService implements IEmailService {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                 <tr>
                   <td style="background: linear-gradient(135deg, #0891B2 0%, #0EA5E9 100%); width: 56px; height: 56px; border-radius: 16px; text-align: center; vertical-align: middle; box-shadow: 0 10px 25px rgba(8, 145, 178, 0.3);">
-                    <span style="font-size: 28px; line-height: 56px;">🏥</span>
+                    <span style="font-size: 28px; line-height: 56px;"></span>
                   </td>
                 </tr>
               </table>
@@ -306,7 +306,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 24px auto;">
                       <tr>
                         <td style="width: 80px; height: 80px; background: linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 100%); border-radius: 50%; text-align: center; vertical-align: middle;">
-                          <span style="font-size: 36px; line-height: 80px;">✉️</span>
+                          <span style="font-size: 36px; line-height: 80px;">✉</span>
                         </td>
                       </tr>
                     </table>
@@ -352,7 +352,7 @@ export class SendGridEmailService implements IEmailService {
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
                               <td style="vertical-align: top; padding-right: 12px;">
-                                <span style="font-size: 20px;">⚠️</span>
+                                <span style="font-size: 20px;"></span>
                               </td>
                               <td>
                                 <p style="margin: 0; font-size: 14px; color: #92400E; font-weight: 600;">Lưu ý quan trọng</p>
@@ -435,7 +435,7 @@ export class SendGridEmailService implements IEmailService {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                 <tr>
                   <td style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); width: 56px; height: 56px; border-radius: 16px; text-align: center; vertical-align: middle; box-shadow: 0 10px 25px rgba(5, 150, 105, 0.3);">
-                    <span style="font-size: 28px; line-height: 56px;">🏥</span>
+                    <span style="font-size: 28px; line-height: 56px;"></span>
                   </td>
                 </tr>
               </table>
@@ -462,7 +462,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 24px auto;">
                       <tr>
                         <td style="width: 100px; height: 100px; background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 50%; text-align: center; vertical-align: middle; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);">
-                          <span style="font-size: 48px; line-height: 100px;">✅</span>
+                          <span style="font-size: 48px; line-height: 100px;"></span>
                         </td>
                       </tr>
                     </table>
@@ -482,7 +482,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-radius: 16px; margin-bottom: 24px;">
                       <tr>
                         <td style="padding: 24px;">
-                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #047857;">✨ Bạn đã có thể sử dụng:</p>
+                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #047857;"> Bạn đã có thể sử dụng:</p>
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
                               <td style="padding: 4px 0; font-size: 14px; color: #065F46;">
@@ -586,7 +586,7 @@ export class SendGridEmailService implements IEmailService {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                 <tr>
                   <td style="background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); width: 56px; height: 56px; border-radius: 16px; text-align: center; vertical-align: middle; box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);">
-                    <span style="font-size: 28px; line-height: 56px;">🏥</span>
+                    <span style="font-size: 28px; line-height: 56px;"></span>
                   </td>
                 </tr>
               </table>
@@ -634,7 +634,7 @@ export class SendGridEmailService implements IEmailService {
                       <tr>
                         <td style="border-radius: 14px; background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35), 0 4px 6px rgba(220, 38, 38, 0.2);">
                           <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 18px 48px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; letter-spacing: 0.3px;">
-                            🔑 Đặt lại mật khẩu
+                             Đặt lại mật khẩu
                           </a>
                         </td>
                       </tr>
@@ -659,7 +659,7 @@ export class SendGridEmailService implements IEmailService {
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
                               <td style="vertical-align: top; padding-right: 12px;">
-                                <span style="font-size: 20px;">⚠️</span>
+                                <span style="font-size: 20px;"></span>
                               </td>
                               <td>
                                 <p style="margin: 0 0 8px 0; font-size: 14px; color: #92400E; font-weight: 600;">Lưu ý bảo mật</p>
@@ -682,7 +682,7 @@ export class SendGridEmailService implements IEmailService {
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
                               <td style="vertical-align: top; padding-right: 12px;">
-                                <span style="font-size: 20px;">🔒</span>
+                                <span style="font-size: 20px;"></span>
                               </td>
                               <td>
                                 <p style="margin: 0 0 4px 0; font-size: 14px; color: #991B1B; font-weight: 600;">Bảo vệ tài khoản</p>
@@ -765,7 +765,7 @@ export class SendGridEmailService implements IEmailService {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                 <tr>
                   <td style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); width: 56px; height: 56px; border-radius: 16px; text-align: center; vertical-align: middle; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);">
-                    <span style="font-size: 28px; line-height: 56px;">🏥</span>
+                    <span style="font-size: 28px; line-height: 56px;"></span>
                   </td>
                 </tr>
               </table>
@@ -792,7 +792,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 24px auto;">
                       <tr>
                         <td style="width: 100px; height: 100px; background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border-radius: 50%; text-align: center; vertical-align: middle; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);">
-                          <span style="font-size: 48px; line-height: 100px;">🎉</span>
+                          <span style="font-size: 48px; line-height: 100px;"></span>
                         </td>
                       </tr>
                     </table>
@@ -812,7 +812,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-radius: 16px; margin-bottom: 20px;">
                       <tr>
                         <td style="padding: 24px;">
-                          <p style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; color: #047857;">✨ Bạn có thể bắt đầu sử dụng:</p>
+                          <p style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; color: #047857;"> Bạn có thể bắt đầu sử dụng:</p>
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                             <tr>
                               <td style="padding: 6px 0; font-size: 14px; color: #065F46;">
@@ -858,7 +858,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 16px; margin-bottom: 20px;">
                       <tr>
                         <td style="padding: 24px;">
-                          <p style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #1D4ED8;">📱 Hướng dẫn bắt đầu:</p>
+                          <p style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #1D4ED8;"> Hướng dẫn bắt đầu:</p>
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #1E40AF;"><strong>1.</strong> Đăng nhập bằng email và mật khẩu</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #1E40AF;"><strong>2.</strong> Hoàn thiện thông tin hồ sơ cá nhân</td></tr>
@@ -876,7 +876,7 @@ export class SendGridEmailService implements IEmailService {
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
                               <td style="vertical-align: top; padding-right: 12px;">
-                                <span style="font-size: 20px;">💡</span>
+                                <span style="font-size: 20px;"></span>
                               </td>
                               <td>
                                 <p style="margin: 0 0 8px 0; font-size: 14px; color: #92400E; font-weight: 600;">Mẹo hữu ích</p>
@@ -974,10 +974,10 @@ export class SendGridEmailService implements IEmailService {
     // Role icons
     const roleIcons: Record<string, string> = {
       ADMIN: "👨‍💼",
-      DOCTOR: "👨‍⚕️",
-      PATIENT: "🏥",
+      DOCTOR: "👨‍⚕",
+      PATIENT: "",
     };
-    const roleIcon = roleIcons[role] || "👤";
+    const roleIcon = roleIcons[role] || "";
 
     return `
 <!DOCTYPE html>
@@ -1004,7 +1004,7 @@ export class SendGridEmailService implements IEmailService {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                 <tr>
                   <td style="background: ${config.bgColor}; width: 56px; height: 56px; border-radius: 16px; text-align: center; vertical-align: middle; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);">
-                    <span style="font-size: 28px; line-height: 56px;">🏥</span>
+                    <span style="font-size: 28px; line-height: 56px;"></span>
                   </td>
                 </tr>
               </table>
@@ -1061,7 +1061,7 @@ export class SendGridEmailService implements IEmailService {
                       <tr>
                         <td style="border-radius: 14px; background: ${config.bgColor}; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.35), 0 4px 6px rgba(124, 58, 237, 0.2);">
                           <a href="${invitationUrl}" target="_blank" style="display: inline-block; padding: 18px 48px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; letter-spacing: 0.3px;">
-                            ✨ Kích hoạt tài khoản ngay
+                             Kích hoạt tài khoản ngay
                           </a>
                         </td>
                       </tr>
@@ -1083,7 +1083,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-radius: 16px; margin-bottom: 16px;">
                       <tr>
                         <td style="padding: 20px 24px;">
-                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #047857;">ℹ️ Thông tin quan trọng</p>
+                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #047857;">ℹ Thông tin quan trọng</p>
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                             <tr>
                               <td style="padding: 6px 0; font-size: 14px; color: #065F46;">
@@ -1107,7 +1107,7 @@ export class SendGridEmailService implements IEmailService {
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
                               <td style="vertical-align: top; padding-right: 12px;">
-                                <span style="font-size: 20px;">⚠️</span>
+                                <span style="font-size: 20px;"></span>
                               </td>
                               <td>
                                 <p style="margin: 0 0 8px 0; font-size: 14px; color: #92400E; font-weight: 600;">Lưu ý bảo mật</p>
@@ -1127,7 +1127,7 @@ export class SendGridEmailService implements IEmailService {
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-radius: 16px;">
                       <tr>
                         <td style="padding: 20px 24px;">
-                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #1D4ED8;">📋 Các bước kích hoạt</p>
+                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #1D4ED8;"> Các bước kích hoạt</p>
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr><td style="padding: 4px 0; font-size: 13px; color: #1E40AF;"><strong>1.</strong> Nhấp vào nút "Kích hoạt tài khoản"</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 13px; color: #1E40AF;"><strong>2.</strong> Tạo mật khẩu mạnh theo yêu cầu</td></tr>

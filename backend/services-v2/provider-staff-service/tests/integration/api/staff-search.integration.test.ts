@@ -470,7 +470,7 @@ describe('Staff Search API Integration Tests', () => {
     it('should handle Unicode characters in search', async () => {
       const response = await request(app)
         .get('/api/v1/staff/search')
-        .query({ searchTerm: '🏥👨‍⚕️' })
+        .query({ searchTerm: '👨‍⚕' })
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);

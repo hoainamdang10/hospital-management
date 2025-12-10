@@ -36,7 +36,7 @@ class TestUserPoolCache {
   async getPool(supabaseClient: SupabaseClient): Promise<TestUserPool> {
     // Return cached pool if already seeded
     if (this.userPool) {
-      console.log('️  Reusing cached test user pool');
+      console.log('  Reusing cached test user pool');
       this.userPool = await refreshTestUserPoolTokens(supabaseClient, this.userPool);
       return this.userPool;
     }

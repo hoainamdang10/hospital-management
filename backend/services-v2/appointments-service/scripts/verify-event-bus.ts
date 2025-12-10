@@ -66,7 +66,7 @@ async function verifyEventBus() {
     if (hospitalExchange) {
       console.log(`    Exchange 'hospital.events' exists (type: ${hospitalExchange.type})`);
     } else {
-      console.log(`   ️  Exchange 'hospital.events' NOT FOUND`);
+      console.log(`     Exchange 'hospital.events' NOT FOUND`);
     }
 
     // Step 3: Check queues
@@ -104,7 +104,7 @@ async function verifyEventBus() {
         console.log(`      ${b.source} → ${b.destination} (routing key: ${b.routing_key})`);
       });
     } else {
-      console.log(`   ️  No bindings found for appointments service`);
+      console.log(`     No bindings found for appointments service`);
     }
 
     // Step 5: Expected subscriptions
@@ -128,13 +128,13 @@ async function verifyEventBus() {
       if (binding) {
         console.log(`    Subscription '${pattern}' → ${binding.destination}`);
       } else {
-        console.log(`   ️  Subscription '${pattern}' NOT BOUND`);
+        console.log(`     Subscription '${pattern}' NOT BOUND`);
       }
     });
 
     // Step 6: Check inbox events
     console.log('\n Step 6: Checking inbox events (requires database connection)...');
-    console.log(`   ℹ️  To check inbox_events table, run:`);
+    console.log(`   ℹ  To check inbox_events table, run:`);
     console.log(`      SELECT COUNT(*) FROM appointments_schema.inbox_events;`);
     console.log(`      SELECT event_type, COUNT(*) FROM appointments_schema.inbox_events GROUP BY event_type;`);
 

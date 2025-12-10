@@ -115,7 +115,7 @@ export class CreateEmergencyAppointmentUseCase extends BaseHealthcareUseCase<
         timeSlot,
         30, // Default 30 minutes
         AppointmentType.EMERGENCY,
-        AppointmentPriority.EMERGENCY, // ✅ Set priority in constructor
+        AppointmentPriority.EMERGENCY, //  Set priority in constructor
         details,
         200000, // Default consultation fee
         request.createdBy

@@ -97,7 +97,7 @@ export class AuthenticationMiddleware {
         const requestId = uuidv4();
         req.requestId = requestId;
 
-        // ✅ FIX: Support session cookie (same as authenticate())
+        //  FIX: Support session cookie (same as authenticate())
         // Accept authentication from either Bearer token OR session cookie
         // Priority: Bearer token (for backward compat) > Session cookie (new secure method)
         let authHeader = req.headers.authorization;

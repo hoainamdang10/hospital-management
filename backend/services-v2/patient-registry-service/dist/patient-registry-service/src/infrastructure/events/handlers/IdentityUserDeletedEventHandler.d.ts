@@ -6,8 +6,8 @@
  * @version 2.0.0
  * @compliance Clean Architecture, Event-Driven Architecture
  */
-import { ILogger } from '../../../../../shared/application/services/logger.interface';
-import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
+import { ILogger } from "../../../../../shared/application/services/logger.interface";
+import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
 /**
  * Identity User Deleted Event Data
  */
@@ -17,6 +17,7 @@ export interface IdentityUserDeletedEventData {
     role: string;
     deletedAt: string;
     deletedBy: string;
+    reason?: string;
 }
 /**
  * Identity User Deleted Event Handler

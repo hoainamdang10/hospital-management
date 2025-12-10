@@ -25,7 +25,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
-import { searchStaff, type Staff } from '@/lib/api/staff.service';
+import { searchStaff, hardDeleteStaff, type Staff } from '@/lib/api/staff.service';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -182,6 +182,47 @@ export default function DoctorsListPage() {
       '20+': 0,
     },
   });
+
+  // Delete confirmation dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    doctor: Staff | null;
+    confirmText: string;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    doctor: null,
+    confirmText: '',
+    isDeleting: false,
+  });
+
+  // Handle hard delete
+  const handleHardDelete = async () => {
+    if (!deleteDialog.doctor || deleteDialog.confirmText !== 'DELETE') {
+      toast.error('Vui lòng nhập "DELETE" để xác nhận');
+      return;
+    }
+
+    setDeleteDialog((prev) => ({ ...prev, isDeleting: true }));
+
+    try {
+      const result = await hardDeleteStaff(deleteDialog.doctor.staffId, 'DELETE');
+      if (result.success) {
+        toast.success(result.message || 'Đã xóa vĩnh viễn bác sĩ khỏi hệ thống');
+        setDeleteDialog({ isOpen: false, doctor: null, confirmText: '', isDeleting: false });
+        // Refresh the list
+        fetchDoctors();
+        fetchStats();
+      } else {
+        toast.error(result.message || 'Không thể xóa bác sĩ');
+      }
+    } catch (err: any) {
+      console.error('Error deleting doctor:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể xóa bác sĩ');
+    } finally {
+      setDeleteDialog((prev) => ({ ...prev, isDeleting: false }));
+    }
+  };
 
   // Fetch stats (separate from main doctor list)
   const fetchStats = async () => {
@@ -729,33 +770,34 @@ export default function DoctorsListPage() {
                             <DropdownMenuContent
                               align="end"
                               className="w-48 rounded-xl border-slate-200 p-1 shadow-lg"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <DropdownMenuItem
-                                asChild
                                 className="cursor-pointer rounded-lg focus:bg-cyan-50 focus:text-cyan-700"
+                                onClick={() => router.push(`/admin/doctors/${doctor.staffId}`)}
                               >
-                                <Link
-                                  href={`/admin/doctors/${doctor.staffId}`}
-                                  className="flex items-center gap-2 px-3 py-2"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                  <span>Xem chi tiết</span>
-                                </Link>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>Xem chi tiết</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                asChild
                                 className="cursor-pointer rounded-lg focus:bg-cyan-50 focus:text-cyan-700"
+                                onClick={() => router.push(`/admin/staff/${doctor.staffId}`)}
                               >
-                                <Link
-                                  href={`/admin/doctors/${doctor.staffId}?edit=true`}
-                                  className="flex items-center gap-2 px-3 py-2"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  <span>Chỉnh sửa</span>
-                                </Link>
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>Chỉnh sửa</span>
                               </DropdownMenuItem>
                               <div className="my-1 h-px bg-slate-100" />
-                              <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700">
+                              <DropdownMenuItem
+                                className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
+                                onClick={() => {
+                                  setDeleteDialog({
+                                    isOpen: true,
+                                    doctor: doctor,
+                                    confirmText: '',
+                                    isDeleting: false,
+                                  });
+                                }}
+                              >
                                 <Trash2 className="h-4 w-4" />
                                 <span>Xóa bác sĩ</span>
                               </DropdownMenuItem>
@@ -831,6 +873,104 @@ export default function DoctorsListPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {deleteDialog.isOpen && deleteDialog.doctor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+            onClick={() => !deleteDialog.isDeleting && setDeleteDialog({ isOpen: false, doctor: null, confirmText: '', isDeleting: false })}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">Xóa vĩnh viễn bác sĩ</h3>
+                <button
+                  onClick={() => !deleteDialog.isDeleting && setDeleteDialog({ isOpen: false, doctor: null, confirmText: '', isDeleting: false })}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  disabled={deleteDialog.isDeleting}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 rounded-xl bg-red-50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                    <Trash2 className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-red-800">
+                      {deleteDialog.doctor.personalInfo?.fullName || 'Bác sĩ'}
+                    </p>
+                    <p className="text-sm text-red-600">
+                      {deleteDialog.doctor.staffId}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-4 text-sm text-slate-600">
+                <p className="mb-2">
+                  <strong className="text-red-600">Cảnh báo:</strong> Hành động này không thể hoàn tác!
+                </p>
+                <p>
+                  Bác sĩ sẽ bị xóa vĩnh viễn khỏi hệ thống, bao gồm tất cả thông tin cá nhân và lịch sử làm việc.
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Nhập <span className="font-mono font-bold text-red-600">DELETE</span> để xác nhận:
+                </label>
+                <input
+                  type="text"
+                  value={deleteDialog.confirmText}
+                  onChange={(e) => setDeleteDialog((prev) => ({ ...prev, confirmText: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  placeholder="DELETE"
+                  disabled={deleteDialog.isDeleting}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteDialog({ isOpen: false, doctor: null, confirmText: '', isDeleting: false })}
+                  className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  disabled={deleteDialog.isDeleting}
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleHardDelete}
+                  disabled={deleteDialog.confirmText !== 'DELETE' || deleteDialog.isDeleting}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deleteDialog.isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Đang xóa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      <span>Xóa vĩnh viễn</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

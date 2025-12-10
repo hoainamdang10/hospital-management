@@ -4,14 +4,14 @@
  * Implements Inbox Pattern for idempotent event processing
  *
  * BOUNDED CONTEXT RESPONSIBILITIES:
- * ✅ IN SCOPE:
+ *  IN SCOPE:
  *    - Receive scheduled notification events from Scheduler Service
  *    - Send immediate notifications from other services
  *    - Idempotent event processing (Inbox Pattern)
  *    - Multi-channel delivery (EMAIL, SMS, PUSH, IN_APP, VOICE)
  *    - Delivery tracking and retry logic
  *
- * ❌ OUT OF SCOPE:
+ *  OUT OF SCOPE:
  *    - Scheduling logic (belongs to Scheduler Service)
  *    - Business logic to create notifications (belongs to domain services)
  *    - User preferences management (belongs to Identity Service)

@@ -37,6 +37,7 @@ import { SuspendStaffUseCase } from "../../application/use-cases/SuspendStaffUse
 import { ReactivateStaffUseCase } from "../../application/use-cases/ReactivateStaffUseCase";
 import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaffUseCase";
 import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
+import { HardDeleteStaffUseCase } from "../../application/use-cases/HardDeleteStaffUseCase";
 // REMOVED: Availability use cases - Belongs to Scheduling/Appointment Service (bounded context violation)
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
@@ -67,6 +68,7 @@ import { StaffReadModelRepository } from "../repositories/StaffReadModelReposito
 import { StaffReadModelProjectionHandler } from "../events/StaffReadModelProjectionHandler";
 import { OutboxService } from "../outbox/OutboxService";
 import { OutboxPublisher } from "../outbox/OutboxPublisher";
+import { UserDeletedEventHandler } from "../events/UserDeletedEventHandler";
 
 // Service Tokens
 export const ServiceTokens = {
@@ -108,6 +110,7 @@ export const ServiceTokens = {
   REACTIVATE_STAFF_USE_CASE: "ReactivateStaffUseCase",
   TERMINATE_STAFF_USE_CASE: "TerminateStaffUseCase",
   UPDATE_EMPLOYMENT_STATUS_USE_CASE: "UpdateEmploymentStatusUseCase",
+  HARD_DELETE_STAFF_USE_CASE: "HardDeleteStaffUseCase",
   // REMOVED: Availability use case tokens - Belongs to Scheduling/Appointment Service
 
   // Handlers
@@ -118,6 +121,7 @@ export const ServiceTokens = {
   STAFF_DOMAIN_EVENT_HANDLER: "StaffDomainEventHandler",
   STAFF_READ_MODEL_PROJECTION_HANDLER: "StaffReadModelProjectionHandler",
   USER_CREATED_EVENT_HANDLER: "UserCreatedEventHandler",
+  USER_DELETED_EVENT_HANDLER: "UserDeletedEventHandler",
   USER_DEACTIVATED_EVENT_HANDLER: "UserDeactivatedEventHandler",
   USER_ROLE_CHANGED_EVENT_HANDLER: "UserRoleChangedEventHandler",
   IDENTITY_EVENT_CONSUMER: "IdentityEventConsumer",
@@ -661,6 +665,19 @@ export function setupDependencies(): DIContainer {
     ServiceLifetime.TRANSIENT,
   );
 
+  container.registerFactory(
+    ServiceTokens.HARD_DELETE_STAFF_USE_CASE,
+    (container) => {
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new HardDeleteStaffUseCase(staffRepository, logger);
+    },
+    ServiceLifetime.TRANSIENT,
+  );
+
   // REMOVED: Availability Management Use Cases - Belongs to Scheduling/Appointment Service (bounded context violation)
   // - GET_STAFF_AVAILABILITY_USE_CASE
   // - ADD_STAFF_AVAILABILITY_USE_CASE
@@ -818,6 +835,19 @@ export function setupDependencies(): DIContainer {
   );
 
   container.registerFactory(
+    ServiceTokens.USER_DELETED_EVENT_HANDLER,
+    (container) => {
+      const staffRepository = container.resolve(
+        ServiceTokens.PROVIDER_STAFF_REPOSITORY,
+      );
+      const logger = container.resolve(ServiceTokens.LOGGER);
+
+      return new UserDeletedEventHandler(staffRepository, logger);
+    },
+    ServiceLifetime.SINGLETON,
+  );
+
+  container.registerFactory(
     ServiceTokens.USER_ROLE_CHANGED_EVENT_HANDLER,
     (container) => {
       const staffRepository = container.resolve(
@@ -843,6 +873,9 @@ export function setupDependencies(): DIContainer {
       const userCreatedHandler = container.resolve(
         ServiceTokens.USER_CREATED_EVENT_HANDLER,
       );
+      const userDeletedHandler = container.resolve(
+        ServiceTokens.USER_DELETED_EVENT_HANDLER,
+      );
       const userDeactivatedHandler = container.resolve(
         ServiceTokens.USER_DEACTIVATED_EVENT_HANDLER,
       );
@@ -857,6 +890,7 @@ export function setupDependencies(): DIContainer {
         queueName: "provider-staff-service.identity-events",
         routingKeys: [
           "user.created.event",
+          "user.deleted.event",
           "user.deactivated.event",
           "user.role.changed.event",
         ],
@@ -869,6 +903,7 @@ export function setupDependencies(): DIContainer {
         config,
         logger,
         userCreatedHandler,
+        userDeletedHandler,
         userDeactivatedHandler,
         userRoleChangedHandler,
       );

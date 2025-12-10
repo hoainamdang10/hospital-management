@@ -9,6 +9,10 @@ export declare class InMemoryPatientRepository implements IPatientRepository {
     findByNationalId(nationalId: string): Promise<Patient | null>;
     save(patient: Patient): Promise<void>;
     delete(patientId: PatientId): Promise<void>;
+    hardDeleteByUserId(userId: string): Promise<{
+        deleted: boolean;
+        patientId?: string;
+    }>;
     updateStatusByUserId(userId: string, newStatus: PatientStatus): Promise<{
         updated: boolean;
         patientId?: string;

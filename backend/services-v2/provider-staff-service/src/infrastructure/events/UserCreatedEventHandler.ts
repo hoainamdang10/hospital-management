@@ -417,7 +417,7 @@ export class UserCreatedEventHandler {
       admin: "receptionist",
     };
 
-    // 🔄 Map role to department for proper ID generation
+    //  Map role to department for proper ID generation
     const departmentMap: Record<string, string> = {
       doctor: "INTE", // General practitioners -> Internal Medicine
       receptionist: "ADMI", // Receptionist -> Administration

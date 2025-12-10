@@ -2,7 +2,7 @@
  * IAppointmentReminderRepository - Domain Repository Interface
  * Defines contract for MANUAL reminder persistence (Alternative approach)
  *
- * ⚠️ NOTE: This is for manual reminders only, not auto-generated reminders
+ *  NOTE: This is for manual reminders only, not auto-generated reminders
  *
  * Auto-generated reminders are managed by Scheduler Service and stored in
  * scheduler.schedules table. This repository is for manual reminder management.

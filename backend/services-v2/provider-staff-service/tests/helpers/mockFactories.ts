@@ -6,8 +6,8 @@
  * @version 2.0.0
  */
 
-import { ILogger } from '../../src/application/interfaces/ILogger';
-import { IProviderStaffRepository } from '../../src/domain/repositories/IProviderStaffRepository';
+import { ILogger } from "../../src/application/interfaces/ILogger";
+import { IProviderStaffRepository } from "../../src/domain/repositories/IProviderStaffRepository";
 
 /**
  * Create mock logger
@@ -19,7 +19,7 @@ export function createMockLogger(): jest.Mocked<ILogger> {
     warn: jest.fn(),
     error: jest.fn(),
     fatal: jest.fn(),
-    log: jest.fn()
+    log: jest.fn(),
   };
 }
 
@@ -38,9 +38,11 @@ export function createMockStaffRepository(): jest.Mocked<IProviderStaffRepositor
     findBySpecialization: jest.fn(),
     findAvailableStaff: jest.fn(),
     delete: jest.fn(),
+    hardDelete: jest.fn(),
+    hardDeleteByUserId: jest.fn(),
     exists: jest.fn(),
     count: jest.fn(),
-    getStatistics: jest.fn()
+    getStatistics: jest.fn(),
   } as jest.Mocked<IProviderStaffRepository>;
 }
 
@@ -53,7 +55,7 @@ export function createMockEventPublisher() {
     disconnect: jest.fn().mockResolvedValue(undefined),
     publish: jest.fn().mockResolvedValue(undefined),
     publishAll: jest.fn().mockResolvedValue(undefined),
-    isReady: jest.fn().mockReturnValue(true)
+    isReady: jest.fn().mockReturnValue(true),
   };
 }
 
@@ -66,7 +68,7 @@ export function createMockEventHandler() {
     handleStaffRegistered: jest.fn().mockResolvedValue(undefined),
     handleStaffUpdated: jest.fn().mockResolvedValue(undefined),
     handleDoctorAvailabilityChanged: jest.fn().mockResolvedValue(undefined),
-    handleStaffStatusChanged: jest.fn().mockResolvedValue(undefined)
+    handleStaffStatusChanged: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -91,7 +93,7 @@ export function createMockSupabaseClient() {
     select: mockSelect,
     insert: mockInsert,
     update: mockUpdate,
-    delete: mockDelete
+    delete: mockDelete,
   });
 
   mockSelect.mockReturnValue({
@@ -100,46 +102,46 @@ export function createMockSupabaseClient() {
     order: mockOrder,
     limit: mockLimit,
     range: mockRange,
-    single: mockSingle
+    single: mockSingle,
   });
 
   mockInsert.mockReturnValue({
     select: mockSelect,
-    single: mockSingle
+    single: mockSingle,
   });
 
   mockUpdate.mockReturnValue({
     eq: mockEq,
-    select: mockSelect
+    select: mockSelect,
   });
 
   mockDelete.mockReturnValue({
     eq: mockEq,
-    in: mockIn
+    in: mockIn,
   });
 
   mockEq.mockReturnValue({
     single: mockSingle,
     select: mockSelect,
-    eq: mockEq
+    eq: mockEq,
   });
 
   mockIn.mockReturnValue({
-    select: mockSelect
+    select: mockSelect,
   });
 
   mockOrder.mockReturnValue({
     limit: mockLimit,
-    range: mockRange
+    range: mockRange,
   });
 
   mockLimit.mockReturnValue({
-    range: mockRange
+    range: mockRange,
   });
 
   mockSingle.mockResolvedValue({
     data: null,
-    error: null
+    error: null,
   });
 
   return {
@@ -148,9 +150,9 @@ export function createMockSupabaseClient() {
       signInWithPassword: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
-      getUser: jest.fn()
+      getUser: jest.fn(),
     },
-    rpc: jest.fn()
+    rpc: jest.fn(),
   };
 }
 
@@ -160,29 +162,32 @@ export function createMockSupabaseClient() {
 export function createMockStaff(overrides: any = {}) {
   return {
     id: {
-      value: overrides.staffId || 'STF-202501-001'
+      value: overrides.staffId || "STF-202501-001",
     },
     userId: {
-      value: overrides.userId || 'user-123'
+      value: overrides.userId || "user-123",
     },
-    staffType: overrides.staffType || 'doctor',
+    staffType: overrides.staffType || "doctor",
     personalInfo: {
-      fullName: overrides.fullName || 'Bác sĩ Nguyễn Văn Test',
-      dateOfBirth: new Date(overrides.dateOfBirth || '1985-01-01'),
-      gender: overrides.gender || 'male',
-      nationalId: overrides.nationalId || '001234567890',
-      phoneNumber: overrides.phoneNumber || '0901234567',
-      email: overrides.email || 'test@hospital.vn'
+      fullName: overrides.fullName || "Bác sĩ Nguyễn Văn Test",
+      dateOfBirth: new Date(overrides.dateOfBirth || "1985-01-01"),
+      gender: overrides.gender || "male",
+      nationalId: overrides.nationalId || "001234567890",
+      phoneNumber: overrides.phoneNumber || "0901234567",
+      email: overrides.email || "test@hospital.vn",
     },
     professionalInfo: {
-      licenseNumber: overrides.licenseNumber || 'BYS-12345',
-      specialization: overrides.specialization || 'Nội khoa',
-      department: overrides.department || 'Khoa Nội',
+      licenseNumber: overrides.licenseNumber || "BYS-12345",
+      specialization: overrides.specialization || "Nội khoa",
+      department: overrides.department || "Khoa Nội",
       yearsOfExperience: overrides.yearsOfExperience || 10,
-      consultationFee: overrides.consultationFee || 500000
+      consultationFee: overrides.consultationFee || 500000,
     },
-    status: overrides.status || 'active',
-    isAcceptingNewPatients: overrides.isAcceptingNewPatients !== undefined ? overrides.isAcceptingNewPatients : true,
+    status: overrides.status || "active",
+    isAcceptingNewPatients:
+      overrides.isAcceptingNewPatients !== undefined
+        ? overrides.isAcceptingNewPatients
+        : true,
     workSchedule: overrides.workSchedule || null,
     credentials: overrides.credentials || [],
     createdAt: new Date(overrides.createdAt || Date.now()),
@@ -195,7 +200,7 @@ export function createMockStaff(overrides: any = {}) {
     addCredential: jest.fn(),
     changeStatus: jest.fn(),
     setAcceptingNewPatients: jest.fn(),
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -207,73 +212,97 @@ export function createMockStaff(overrides: any = {}) {
  * @returns ProviderStaff instance
  */
 export function createTestStaff(overrides: any = {}) {
-  const { ProviderStaff } = require('../../src/domain/aggregates/ProviderStaff');
-  const { StaffId } = require('../../src/domain/value-objects/StaffId');
-  const { PersonalInfo } = require('../../src/domain/value-objects/PersonalInfo');
-  const { ProfessionalInfo } = require('../../src/domain/value-objects/ProfessionalInfo');
-  const { WorkSchedule } = require('../../src/domain/value-objects/WorkSchedule');
-  const { Specialization } = require('../../src/domain/entities/Specialization');
+  const {
+    ProviderStaff,
+  } = require("../../src/domain/aggregates/ProviderStaff");
+  const { StaffId } = require("../../src/domain/value-objects/StaffId");
+  const {
+    PersonalInfo,
+  } = require("../../src/domain/value-objects/PersonalInfo");
+  const {
+    ProfessionalInfo,
+  } = require("../../src/domain/value-objects/ProfessionalInfo");
+  const {
+    WorkSchedule,
+  } = require("../../src/domain/value-objects/WorkSchedule");
+  const {
+    Specialization,
+  } = require("../../src/domain/entities/Specialization");
 
   // Create PersonalInfo value object
   const personalInfo = PersonalInfo.create({
-    fullName: overrides.fullName || 'Dr. Test Staff',
-    dateOfBirth: overrides.dateOfBirth ? new Date(overrides.dateOfBirth) : new Date('1980-01-01'),
-    gender: overrides.gender || 'male',
-    nationalId: overrides.nationalId || '001234567890',
-    phoneNumber: overrides.phoneNumber || '0901234567',
-    email: overrides.email || 'test@hospital.vn',
-    nationality: overrides.nationality || 'Vietnamese',
+    fullName: overrides.fullName || "Dr. Test Staff",
+    dateOfBirth: overrides.dateOfBirth
+      ? new Date(overrides.dateOfBirth)
+      : new Date("1980-01-01"),
+    gender: overrides.gender || "male",
+    nationalId: overrides.nationalId || "001234567890",
+    phoneNumber: overrides.phoneNumber || "0901234567",
+    email: overrides.email || "test@hospital.vn",
+    nationality: overrides.nationality || "Vietnamese",
     address: {
-      street: overrides.street || '123 Test Street',
-      ward: overrides.ward || 'Ward 1',
-      district: overrides.district || 'District 1',
-      city: overrides.city || 'Ho Chi Minh',
-      province: overrides.province || 'Ho Chi Minh',
-      country: overrides.country || 'Vietnam'
-    }
+      street: overrides.street || "123 Test Street",
+      ward: overrides.ward || "Ward 1",
+      district: overrides.district || "District 1",
+      city: overrides.city || "Ho Chi Minh",
+      province: overrides.province || "Ho Chi Minh",
+      country: overrides.country || "Vietnam",
+    },
   });
 
   // Create ProfessionalInfo value object
   const professionalInfo = ProfessionalInfo.create({
-    title: overrides.title || 'Dr.',
-    department: overrides.department || 'Cardiology Department',
-    position: overrides.position || 'Senior Doctor',
-    education: overrides.education || ['Doctor of Medicine', 'Bachelor of Medicine'],
-    languages: overrides.languages || ['Vietnamese', 'English']
+    title: overrides.title || "Dr.",
+    department: overrides.department || "Cardiology Department",
+    position: overrides.position || "Senior Doctor",
+    education: overrides.education || [
+      "Doctor of Medicine",
+      "Bachelor of Medicine",
+    ],
+    languages: overrides.languages || ["Vietnamese", "English"],
   });
 
   // Create WorkSchedule value object
   const workSchedule = WorkSchedule.create({
-    workingDays: overrides.workingDays || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    workingHours: overrides.workingHours || { start: '08:00', end: '17:00' },
-    timeZone: overrides.timeZone || 'Asia/Ho_Chi_Minh',
-    isFlexible: overrides.isFlexible !== undefined ? overrides.isFlexible : false
+    workingDays: overrides.workingDays || [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+    ],
+    workingHours: overrides.workingHours || { start: "08:00", end: "17:00" },
+    timeZone: overrides.timeZone || "Asia/Ho_Chi_Minh",
+    isFlexible:
+      overrides.isFlexible !== undefined ? overrides.isFlexible : false,
   });
 
   // Create specializations for doctors
   const specializations = overrides.specializations
     ? overrides.specializations
-    : (overrides.staffType === 'doctor' || !overrides.staffType
-        ? [Specialization.create({
-            code: overrides.specializationCode || 'CARD',
-            name: overrides.specialization || 'Cardiology',
-            description: 'Heart and cardiovascular system specialist',
-            isActive: true
-          })]
-        : []);
+    : overrides.staffType === "doctor" || !overrides.staffType
+      ? [
+          Specialization.create({
+            code: overrides.specializationCode || "CARD",
+            name: overrides.specialization || "Cardiology",
+            description: "Heart and cardiovascular system specialist",
+            isActive: true,
+          }),
+        ]
+      : [];
 
   // Create staff using factory method
   const staff = ProviderStaff.create(
-    overrides.userId || 'user-test-123',
-    overrides.staffType || 'doctor',
+    overrides.userId || "user-test-123",
+    overrides.staffType || "doctor",
     personalInfo,
     professionalInfo,
     workSchedule,
-    overrides.licenseNumber || 'BYS-TEST-001',
-    overrides.employmentType || 'full_time',
-    new Date(overrides.hireDate || '2020-01-01'),
+    overrides.licenseNumber || "BYS-TEST-001",
+    overrides.employmentType || "full_time",
+    new Date(overrides.hireDate || "2020-01-01"),
     overrides.yearsOfExperience || 10,
-    specializations
+    specializations,
   );
 
   // Override staffId if provided (for testing specific IDs)
@@ -283,12 +312,12 @@ export function createTestStaff(overrides: any = {}) {
   }
 
   // Override aggregate UUID if provided, otherwise ensure deterministic value for tests
-  (staff as any)._id = overrides.aggregateId || 'aggregate-staff-test';
+  (staff as any)._id = overrides.aggregateId || "aggregate-staff-test";
 
   // Override status if provided (for testing different states)
-  if (overrides.status && overrides.status !== 'active') {
+  if (overrides.status && overrides.status !== "active") {
     (staff as any).props.status = overrides.status;
-    (staff as any).props.isActive = overrides.status === 'active';
+    (staff as any).props.isActive = overrides.status === "active";
   }
 
   return staff;
@@ -308,10 +337,10 @@ export function createMockDomainEvent(eventType: string, data: any = {}) {
   } = data;
 
   const metadata = {
-    source: 'domain',
-    priority: 'normal',
+    source: "domain",
+    priority: "normal",
     retryable: true,
-    ...metadataOverrides
+    ...metadataOverrides,
   };
 
   const payloadClone = { ...eventPayload };
@@ -319,15 +348,15 @@ export function createMockDomainEvent(eventType: string, data: any = {}) {
   return {
     eventId: providedEventId || `evt-${Date.now()}`,
     eventType,
-    aggregateId: aggregateId || eventPayload.staffId || 'STF-202501-001',
-    aggregateType: aggregateType || 'Staff',
+    aggregateId: aggregateId || eventPayload.staffId || "STF-202501-001",
+    aggregateType: aggregateType || "Staff",
     occurredAt: occurredAtOverride ? new Date(occurredAtOverride) : new Date(),
     metadata,
     eventData: payloadClone,
     getEventData: () => ({ ...payloadClone }),
     containsPHI: () => false,
     getPatientId: () => null,
-    ...eventPayload
+    ...eventPayload,
   };
 }
 
@@ -338,20 +367,20 @@ export function createMockIntegrationEvent(eventType: string, data: any = {}) {
   return {
     eventId: `evt-${Date.now()}`,
     eventType,
-    aggregateId: data.aggregateId || 'STF-202501-001',
-    aggregateType: 'Staff',
+    aggregateId: data.aggregateId || "STF-202501-001",
+    aggregateType: "Staff",
     occurredAt: new Date(),
-    serviceName: 'provider-staff-service',
+    serviceName: "provider-staff-service",
     eventData: data,
     metadata: {
-      priority: 'normal',
-      complianceLevel: 'hipaa',
+      priority: "normal",
+      complianceLevel: "hipaa",
       containsPHI: false,
-      eventCategory: 'provider_staff',
-      eventSubcategory: 'staff_management',
-      vietnameseDescription: 'Sự kiện quản lý nhân viên y tế'
+      eventCategory: "provider_staff",
+      eventSubcategory: "staff_management",
+      vietnameseDescription: "Sự kiện quản lý nhân viên y tế",
     },
-    ...data
+    ...data,
   };
 }
 
@@ -360,24 +389,24 @@ export function createMockIntegrationEvent(eventType: string, data: any = {}) {
  */
 export function createMockRegisterStaffRequest(overrides: any = {}) {
   return {
-    userId: overrides.userId || 'user-123',
-    staffType: overrides.staffType || 'doctor',
+    userId: overrides.userId || "user-123",
+    staffType: overrides.staffType || "doctor",
     personalInfo: {
-      fullName: overrides.fullName || 'Bác sĩ Nguyễn Văn Test',
-      dateOfBirth: overrides.dateOfBirth || '1985-01-01',
-      gender: overrides.gender || 'male',
-      nationalId: overrides.nationalId || '001234567890',
-      phoneNumber: overrides.phoneNumber || '0901234567',
-      email: overrides.email || 'test@hospital.vn'
+      fullName: overrides.fullName || "Bác sĩ Nguyễn Văn Test",
+      dateOfBirth: overrides.dateOfBirth || "1985-01-01",
+      gender: overrides.gender || "male",
+      nationalId: overrides.nationalId || "001234567890",
+      phoneNumber: overrides.phoneNumber || "0901234567",
+      email: overrides.email || "test@hospital.vn",
     },
     professionalInfo: {
-      licenseNumber: overrides.licenseNumber || 'BYS-12345',
-      specialization: overrides.specialization || 'Nội khoa',
-      department: overrides.department || 'Khoa Nội',
+      licenseNumber: overrides.licenseNumber || "BYS-12345",
+      specialization: overrides.specialization || "Nội khoa",
+      department: overrides.department || "Khoa Nội",
       yearsOfExperience: overrides.yearsOfExperience || 10,
-      consultationFee: overrides.consultationFee || 500000
+      consultationFee: overrides.consultationFee || 500000,
     },
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -386,10 +415,10 @@ export function createMockRegisterStaffRequest(overrides: any = {}) {
  */
 export function createMockUpdateStaffRequest(overrides: any = {}) {
   return {
-    staffId: overrides.staffId || 'STF-202501-001',
+    staffId: overrides.staffId || "STF-202501-001",
     personalInfo: overrides.personalInfo,
     professionalInfo: overrides.professionalInfo,
     workSchedule: overrides.workSchedule,
-    ...overrides
+    ...overrides,
   };
 }

@@ -2,7 +2,7 @@
  * GetAppointmentRemindersUseCase - Application Layer
  * Retrieves MANUAL reminders for an appointment (Alternative approach)
  *
- * ⚠️ NOTE: This retrieves manual reminders only, not auto-generated reminders
+ *  NOTE: This retrieves manual reminders only, not auto-generated reminders
  *
  * For auto-generated reminders, use Scheduler Service API:
  * GET /api/v1/schedules?ownerService=appointments&ownerResourceId={appointmentId}

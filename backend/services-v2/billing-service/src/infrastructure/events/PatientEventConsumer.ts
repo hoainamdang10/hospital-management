@@ -43,10 +43,10 @@ export class PatientEventConsumer {
     });
 
     this.connection = await amqp.connect(this.config.rabbitmqUrl);
-    this.loggerInstance.info("[PatientEventConsumer] ✅ RabbitMQ connection established");
+    this.loggerInstance.info("[PatientEventConsumer]  RabbitMQ connection established");
 
     this.channel = await this.connection.createChannel();
-    this.loggerInstance.info("[PatientEventConsumer] ✅ RabbitMQ channel created");
+    this.loggerInstance.info("[PatientEventConsumer]  RabbitMQ channel created");
 
     if (!this.channel) {
       throw new Error("Failed to create RabbitMQ channel for patient events");
@@ -54,7 +54,7 @@ export class PatientEventConsumer {
 
     if (this.config.prefetchCount) {
       await this.channel.prefetch(this.config.prefetchCount);
-      this.loggerInstance.info("[PatientEventConsumer] ✅ Prefetch count set", {
+      this.loggerInstance.info("[PatientEventConsumer]  Prefetch count set", {
         prefetchCount: this.config.prefetchCount,
       });
     }
@@ -62,14 +62,14 @@ export class PatientEventConsumer {
     await this.channel.assertExchange(this.config.exchangeName, "topic", {
       durable: true,
     });
-    this.loggerInstance.info("[PatientEventConsumer] ✅ Exchange asserted", {
+    this.loggerInstance.info("[PatientEventConsumer]  Exchange asserted", {
       exchangeName: this.config.exchangeName,
     });
 
     await this.channel.assertQueue(this.config.queueName, {
       durable: true,
     });
-    this.loggerInstance.info("[PatientEventConsumer] ✅ Queue asserted", {
+    this.loggerInstance.info("[PatientEventConsumer]  Queue asserted", {
       queueName: this.config.queueName,
     });
 
@@ -79,12 +79,12 @@ export class PatientEventConsumer {
         this.config.exchangeName,
         routingKey,
       );
-      this.loggerInstance.debug("[PatientEventConsumer] ✅ Routing key bound", {
+      this.loggerInstance.debug("[PatientEventConsumer]  Routing key bound", {
         routingKey,
       });
     }
 
-    this.loggerInstance.info("[PatientEventConsumer] ✅ All routing keys bound", {
+    this.loggerInstance.info("[PatientEventConsumer]  All routing keys bound", {
       count: this.config.routingKeys.length,
       routingKeys: this.config.routingKeys,
     });
@@ -96,7 +96,7 @@ export class PatientEventConsumer {
     );
 
     this.isConnected = true;
-    this.loggerInstance.info("[PatientEventConsumer] 🎉 PATIENT EVENT CONSUMER READY - Actively consuming messages", {
+    this.loggerInstance.info("[PatientEventConsumer]  PATIENT EVENT CONSUMER READY - Actively consuming messages", {
       queueName: this.config.queueName,
       exchangeName: this.config.exchangeName,
       routingKeyCount: this.config.routingKeys.length,
@@ -117,7 +117,7 @@ export class PatientEventConsumer {
 
   private async handleMessage(msg: ConsumeMessage | null): Promise<void> {
     if (!msg || !this.channel) {
-      this.loggerInstance.warn("[PatientEventConsumer] ⚠️ Received null message or channel not available");
+      this.loggerInstance.warn("[PatientEventConsumer]  Received null message or channel not available");
       return;
     }
 
@@ -162,16 +162,16 @@ export class PatientEventConsumer {
         this.loggerInstance.info("[PatientEventConsumer] → Handling PatientRemoved event");
         await this.handlePatientRemoved(event);
       } else {
-        this.loggerInstance.debug("[PatientEventConsumer] ⏭️ Patient event ignored (not matching any handler)", {
+        this.loggerInstance.debug("[PatientEventConsumer] ⏭ Patient event ignored (not matching any handler)", {
           eventType: normalizedType,
           routingKey: msg.fields.routingKey,
         });
       }
 
       this.channel.ack(msg);
-      this.loggerInstance.debug("[PatientEventConsumer] ✅ Message acknowledged");
+      this.loggerInstance.debug("[PatientEventConsumer]  Message acknowledged");
     } catch (error) {
-      this.loggerInstance.error("[PatientEventConsumer] ❌ Failed to process patient event", {
+      this.loggerInstance.error("[PatientEventConsumer]  Failed to process patient event", {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
         routingKey: msg.fields.routingKey,
@@ -181,7 +181,7 @@ export class PatientEventConsumer {
   }
 
   private async handlePatientUpdated(event: any): Promise<void> {
-    this.loggerInstance.info("[PatientEventConsumer] 🔄 Processing PatientUpdated event", {
+    this.loggerInstance.info("[PatientEventConsumer]  Processing PatientUpdated event", {
       eventData: JSON.stringify(event).substring(0, 300),
     });
 
@@ -193,7 +193,7 @@ export class PatientEventConsumer {
 
     if (!patientId) {
       this.loggerInstance.warn(
-        "[PatientEventConsumer] ⚠️ PatientUpdated event received without patientId",
+        "[PatientEventConsumer]  PatientUpdated event received without patientId",
         {
           eventPayload: event?.eventData || event?.payload,
         },
@@ -208,7 +208,7 @@ export class PatientEventConsumer {
     });
 
     if (updateType && !updateType.includes("insurance")) {
-      this.loggerInstance.info("[PatientEventConsumer] ⏭️ Skipping non-insurance patient update", {
+      this.loggerInstance.info("[PatientEventConsumer] ⏭ Skipping non-insurance patient update", {
         patientId,
         updateType,
         reason: "Not insurance-related update",
@@ -216,7 +216,7 @@ export class PatientEventConsumer {
       return;
     }
 
-    this.loggerInstance.info("[PatientEventConsumer] ✅ Insurance update detected, syncing snapshot", {
+    this.loggerInstance.info("[PatientEventConsumer]  Insurance update detected, syncing snapshot", {
       patientId,
       updateType,
     });
@@ -246,7 +246,7 @@ export class PatientEventConsumer {
     patientId: string,
     reason: "update" | "registered" | "removed",
   ): Promise<void> {
-    this.loggerInstance.info("[PatientEventConsumer] 🔄 STARTING insurance snapshot sync", {
+    this.loggerInstance.info("[PatientEventConsumer]  STARTING insurance snapshot sync", {
       patientId,
       reason,
       timestamp: new Date().toISOString(),
@@ -254,13 +254,13 @@ export class PatientEventConsumer {
 
     try {
       await this.patientRepository.syncInsuranceSnapshot(patientId);
-      this.loggerInstance.info("[PatientEventConsumer] ✅ ✅ ✅ PATIENT INSURANCE SNAPSHOT SYNCED SUCCESSFULLY", {
+      this.loggerInstance.info("[PatientEventConsumer]    PATIENT INSURANCE SNAPSHOT SYNCED SUCCESSFULLY", {
         patientId,
         reason,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      this.loggerInstance.error("[PatientEventConsumer] ❌ Failed to sync patient insurance snapshot", {
+      this.loggerInstance.error("[PatientEventConsumer]  Failed to sync patient insurance snapshot", {
         patientId,
         reason,
         error: error instanceof Error ? error.message : "Unknown error",

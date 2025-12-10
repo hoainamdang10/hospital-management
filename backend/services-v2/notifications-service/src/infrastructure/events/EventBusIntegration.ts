@@ -116,7 +116,7 @@ export class EventBusIntegration {
       // Setup dead letter queue for failed messages
       await this.setupDeadLetterQueue();
 
-      console.log('️ Exchange and queue setup completed');
+      console.log(' Exchange and queue setup completed');
 
     } catch (error) {
       console.error(' Failed to setup exchange and queue:', error);

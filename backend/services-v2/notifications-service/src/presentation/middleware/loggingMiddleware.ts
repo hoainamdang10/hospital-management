@@ -50,7 +50,7 @@ class Logger {
     if (entry.error) {
       console.error(' [ERROR]', this.formatLogEntry(entry));
     } else if (entry.statusCode && entry.statusCode >= 400) {
-      console.warn('️ [WARN]', this.formatLogEntry(entry));
+      console.warn(' [WARN]', this.formatLogEntry(entry));
     } else if (entry.sensitiveDataAccessed) {
       console.info(' [AUDIT]', this.formatLogEntry(entry));
     } else {
@@ -87,7 +87,7 @@ class Logger {
     }
 
     if (entry.sensitiveDataAccessed) {
-      parts.push('🔒 SENSITIVE_DATA');
+      parts.push(' SENSITIVE_DATA');
     }
 
     if (entry.complianceFlags && entry.complianceFlags.length > 0) {

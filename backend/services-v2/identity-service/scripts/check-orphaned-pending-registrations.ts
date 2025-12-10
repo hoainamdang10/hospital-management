@@ -148,9 +148,9 @@ async function checkOrphanedRecords(): Promise<void> {
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`Total Records:        ${allRecords.length}`);
     console.log(` Active (Valid):    ${activeRecords.length}`);
-    console.log(`️  Orphaned (Stuck): ${orphanedRecords.length}`);
+    console.log(`  Orphaned (Stuck): ${orphanedRecords.length}`);
     console.log(`⏰ Expired:           ${expiredRecords.length}`);
-    console.log(`️  Used (Not Deleted): ${usedRecords.length}`);
+    console.log(`  Used (Not Deleted): ${usedRecords.length}`);
     console.log('═══════════════════════════════════════════════════════════════\n');
 
     // 4. Display active records
@@ -169,7 +169,7 @@ async function checkOrphanedRecords(): Promise<void> {
 
     // 5. Display orphaned records (CRITICAL)
     if (orphanedRecords.length > 0) {
-      console.log('️  ORPHANED PENDING REGISTRATIONS (Blocking Re-registration)');
+      console.log('  ORPHANED PENDING REGISTRATIONS (Blocking Re-registration)');
       console.log('───────────────────────────────────────────────────────────────');
       orphanedRecords.forEach((record, index) => {
         console.log(`${index + 1}. Email: ${record.email}`);
@@ -177,7 +177,7 @@ async function checkOrphanedRecords(): Promise<void> {
         console.log(`   Created: ${record.createdAt.toLocaleString()}`);
         console.log(`   Expires: ${record.expiresAt.toLocaleString()}`);
         console.log(`   Age: ${record.ageInHours.toFixed(1)} hours`);
-        console.log(`   ️  Reason: ${record.reason}`);
+        console.log(`     Reason: ${record.reason}`);
         console.log(`   ID: ${record.id}`);
         console.log('');
       });
@@ -200,7 +200,7 @@ async function checkOrphanedRecords(): Promise<void> {
 
     // 7. Display used records
     if (usedRecords.length > 0) {
-      console.log('️  USED PENDING REGISTRATIONS (Should be deleted)');
+      console.log('  USED PENDING REGISTRATIONS (Should be deleted)');
       console.log('───────────────────────────────────────────────────────────────');
       usedRecords.forEach((record, index) => {
         console.log(`${index + 1}. Email: ${record.email}`);
@@ -217,7 +217,7 @@ async function checkOrphanedRecords(): Promise<void> {
     console.log('═══════════════════════════════════════════════════════════════');
 
     if (orphanedRecords.length > 0) {
-      console.log('️  CRITICAL: Found orphaned records blocking re-registration!');
+      console.log('  CRITICAL: Found orphaned records blocking re-registration!');
       console.log('   These records are preventing users from registering again.');
       console.log('   Recommended actions:');
       console.log('   1. Run cleanup script to delete orphaned records');
@@ -233,7 +233,7 @@ async function checkOrphanedRecords(): Promise<void> {
     }
 
     if (usedRecords.length > 0) {
-      console.log('️  Found used records that should be deleted.');
+      console.log('  Found used records that should be deleted.');
       console.log('   These records were verified but not cleaned up.');
       console.log('   Run: npm run cleanup:pending-registrations');
       console.log('');

@@ -23,54 +23,41 @@ class IdentityUserDeletedEventHandler {
      */
     async handle(eventData) {
         try {
-            this.logger.info('Processing identity.user.deleted event', {
+            this.logger.info("Processing identity.user.deleted event", {
                 userId: eventData.userId,
-                role: eventData.role
+                role: eventData.role,
             });
             // Only process if user role is PATIENT
-            if (eventData.role !== 'PATIENT') {
-                this.logger.debug('Skipping non-patient user deletion', {
+            if (eventData.role !== "PATIENT") {
+                this.logger.debug("Skipping non-patient user deletion", {
                     userId: eventData.userId,
-                    role: eventData.role
+                    role: eventData.role,
                 });
                 return;
             }
-            // Find patient by user ID
-            const patient = await this.patientRepository.findByUserId(eventData.userId);
-            if (!patient) {
-                this.logger.warn('No patient found for deleted user', {
-                    userId: eventData.userId
+            const deleteResult = await this.patientRepository.hardDeleteByUserId(eventData.userId, {
+                deletedBy: eventData.deletedBy,
+                reason: eventData.reason ||
+                    "Identity user hard deleted - removing patient record",
+            });
+            if (!deleteResult.deleted) {
+                this.logger.warn("No patient record removed for deleted user", {
+                    userId: eventData.userId,
                 });
                 return;
             }
-            /* POST-MVP: Patient Lifecycle - Deactivation not required for graduation project
-            // Deactivate patient (soft delete)
-            // Note: We don't hard delete patient records for compliance/audit reasons
-            if (patient.isActive()) {
-              patient.deactivate('User account deleted', eventData.deletedBy);
-              await this.patientRepository.save(patient);
-      
-              this.logger.info('Patient deactivated due to user deletion', {
+            this.logger.info("Patient record hard deleted after user deletion", {
                 userId: eventData.userId,
-                patientId: patient.id
-              });
-            } else {
-              this.logger.debug('Patient already inactive', {
-                userId: eventData.userId,
-                patientId: patient.id
-              });
-            }
-            END POST-MVP: Patient Lifecycle */
-            // For MVP: Log the event but do not deactivate
-            this.logger.info('User deleted - patient record retained (MVP behavior)', {
-                userId: eventData.userId,
-                patientId: patient.id
+                patientId: deleteResult.patientId,
+                deletedBy: eventData.deletedBy,
+                deletedAt: eventData.deletedAt,
+                reason: eventData.reason,
             });
         }
         catch (error) {
-            this.logger.error('Error handling identity.user.deleted event', {
+            this.logger.error("Error handling identity.user.deleted event", {
                 userId: eventData.userId,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : "Unknown error",
             });
             throw error;
         }

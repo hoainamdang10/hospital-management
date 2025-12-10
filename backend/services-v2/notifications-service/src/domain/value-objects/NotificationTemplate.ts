@@ -209,8 +209,8 @@ Chúng tôi xin nhắc nhở về lịch hẹn khám của quý khách:
 
 📅 Ngày: {{appointmentDate}}
 🕐 Giờ: {{appointmentTime}}
-👨‍⚕️ Bác sĩ: {{doctorName}}
-🏥 Khoa: {{department}}
+👨‍⚕ Bác sĩ: {{doctorName}}
+ Khoa: {{department}}
 
 Địa điểm: {{hospitalName}}
 {{hospitalAddress}}
@@ -273,7 +273,7 @@ Kết quả xét nghiệm của quý khách đã sẵn sàng:
 
 🔬 Xét nghiệm: {{testName}}
 📅 Ngày thực hiện: {{testDate}}
-👨‍⚕️ Bác sĩ chỉ định: {{doctorName}}
+👨‍⚕ Bác sĩ chỉ định: {{doctorName}}
 
 Quý khách có thể:
 - Xem kết quả trên ứng dụng

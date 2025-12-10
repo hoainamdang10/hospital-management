@@ -165,7 +165,7 @@ describe('Verify CreateTestUser Flow', () => {
       console.log(' createTestUser throws error on duplicate email');
       expect(user2Error).toBeDefined();
     } else if (user2) {
-      console.log('️ createTestUser does NOT throw error on duplicate email');
+      console.log(' createTestUser does NOT throw error on duplicate email');
       console.log('  Returns same user ID?', user1.userId === user2.userId);
     }
   });

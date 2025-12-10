@@ -20,15 +20,15 @@ const options: swaggerJsdoc.Options = {
 Multi-channel notification system for Vietnamese healthcare facilities.
 
 ## Features
-- ✅ Email Notifications (SendGrid)
-- ✅ SMS Notifications (Twilio)
-- ✅ In-App Notifications
-- ✅ Push Notifications
-- ✅ Template Management
-- ✅ Delivery Tracking
-- ✅ Notification Preferences
-- ✅ Batch Notifications
-- ✅ Event-Driven Architecture
+-  Email Notifications (SendGrid)
+-  SMS Notifications (Twilio)
+-  In-App Notifications
+-  Push Notifications
+-  Template Management
+-  Delivery Tracking
+-  Notification Preferences
+-  Batch Notifications
+-  Event-Driven Architecture
 
 ## Authentication
 All endpoints require JWT authentication via Bearer token:

@@ -25,6 +25,7 @@ import { ReactivateStaffUseCase } from "../../application/use-cases/ReactivateSt
 import { TerminateStaffUseCase } from "../../application/use-cases/TerminateStaffUseCase";
 import { UpdateEmploymentStatusUseCase } from "../../application/use-cases/UpdateEmploymentStatusUseCase";
 import { UpdateStaffScheduleUseCase } from "../../application/use-cases/UpdateStaffScheduleUseCase";
+import { HardDeleteStaffUseCase } from "../../application/use-cases/HardDeleteStaffUseCase";
 // REMOVED: Availability & legacy profile use cases - Belongs to Scheduling/Appointment Service
 import { StaffCommandHandlers } from "../../application/handlers/StaffCommandHandlers";
 import { StaffQueryHandlers } from "../../application/handlers/StaffQueryHandlers";
@@ -49,6 +50,7 @@ export function setupRoutes(
   terminateStaffUseCase: TerminateStaffUseCase,
   updateEmploymentStatusUseCase: UpdateEmploymentStatusUseCase,
   updateStaffScheduleUseCase: UpdateStaffScheduleUseCase,
+  hardDeleteStaffUseCase: HardDeleteStaffUseCase,
   // REMOVED: Availability & legacy profile use cases - Belongs to Scheduling/Appointment Service
 ): void {
   // Initialize controller
@@ -70,6 +72,7 @@ export function setupRoutes(
     terminateStaffUseCase,
     updateEmploymentStatusUseCase,
     updateStaffScheduleUseCase,
+    hardDeleteStaffUseCase,
     // REMOVED: Availability & legacy profile use cases - Belongs to Scheduling/Appointment Service
   );
 

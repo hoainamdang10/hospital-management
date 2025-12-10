@@ -75,7 +75,7 @@ const testUsers = [
 ];
 
 async function deleteExistingUsers() {
-  console.log('\n️  Deleting existing test users...');
+  console.log('\n  Deleting existing test users...');
   
   for (const user of testUsers) {
     try {
@@ -178,7 +178,7 @@ async function verifyUsers() {
           .single();
         
         if (error) {
-          console.error(`   ️  Profile not found for ${user.email}`);
+          console.error(`     Profile not found for ${user.email}`);
         } else {
           console.log(`    Profile exists: ${profile.full_name} (${profile.role_type})`);
         }

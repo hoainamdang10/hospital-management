@@ -55,16 +55,16 @@ export abstract class BaseEventHandler {
    */
   public async initialize(): Promise<void> {
     try {
-      this.log('info', `🚀 Initializing event handler for ${this.serviceName}`);
+      this.log('info', ` Initializing event handler for ${this.serviceName}`);
 
       await this.connect();
       await this.setupInfrastructure();
       await this.startConsuming();
 
-      this.log('info', `✅ Event handler initialized for ${this.serviceName}`);
+      this.log('info', ` Event handler initialized for ${this.serviceName}`);
 
     } catch (error) {
-      this.log('error', `❌ Failed to initialize event handler for ${this.serviceName}:`, error);
+      this.log('error', ` Failed to initialize event handler for ${this.serviceName}:`, error);
       throw error;
     }
   }
@@ -86,13 +86,13 @@ export abstract class BaseEventHandler {
       });
 
       this.connection.on('close', () => {
-        this.log('warn', `⚠️ RabbitMQ connection closed for ${this.serviceName}`);
+        this.log('warn', ` RabbitMQ connection closed for ${this.serviceName}`);
         this.isConnected = false;
         this.scheduleReconnect();
       });
 
     } catch (error) {
-      this.log('error', `❌ Failed to connect to RabbitMQ for ${this.serviceName}:`, error);
+      this.log('error', ` Failed to connect to RabbitMQ for ${this.serviceName}:`, error);
       throw error;
     }
   }
@@ -130,7 +130,7 @@ export abstract class BaseEventHandler {
       this.log('info', `👂 Started consuming messages for ${this.serviceName}`);
 
     } catch (error) {
-      this.log('error', `❌ Failed to start consuming for ${this.serviceName}:`, error);
+      this.log('error', ` Failed to start consuming for ${this.serviceName}:`, error);
       throw error;
     }
   }
@@ -156,7 +156,7 @@ export abstract class BaseEventHandler {
 
       // Check if service should process this event
       if (!this.eventBusConfig.shouldProcessEvent(event, this.serviceConfig)) {
-        this.log('debug', `⏭️ Skipping event ${event.eventType} - not relevant for ${this.serviceName}`);
+        this.log('debug', `⏭ Skipping event ${event.eventType} - not relevant for ${this.serviceName}`);
         this.channel?.ack(message);
         return;
       }
@@ -171,13 +171,13 @@ export abstract class BaseEventHandler {
       if (result.success) {
         this.channel?.ack(message);
         this.updateMetrics(true, result.processingTime);
-        this.log('info', `✅ Successfully processed event ${event.eventType} in ${result.processingTime}ms`);
+        this.log('info', ` Successfully processed event ${event.eventType} in ${result.processingTime}ms`);
       } else {
         await this.handleProcessingError(message, event, result.error || new Error('Processing failed'));
       }
 
     } catch (error) {
-      this.log('error', `❌ Failed to handle message for ${this.serviceName}:`, error);
+      this.log('error', ` Failed to handle message for ${this.serviceName}:`, error);
       await this.handleProcessingError(message, event, error as Error);
     }
   }
@@ -205,7 +205,7 @@ export abstract class BaseEventHandler {
         // Retry with exponential backoff
         const delay = this.eventBusConfig.getConfig().retryDelay * Math.pow(2, retryCount);
         
-        this.log('warn', `🔄 Retrying event processing (attempt ${retryCount + 1}/${maxRetries}) in ${delay}ms`);
+        this.log('warn', ` Retrying event processing (attempt ${retryCount + 1}/${maxRetries}) in ${delay}ms`);
         
         setTimeout(() => {
           this.channel?.nack(message, false, true);
@@ -220,7 +220,7 @@ export abstract class BaseEventHandler {
       }
 
     } catch (retryError) {
-      this.log('error', `❌ Failed to handle processing error for ${this.serviceName}:`, retryError);
+      this.log('error', ` Failed to handle processing error for ${this.serviceName}:`, retryError);
       this.channel?.nack(message, false, false);
     }
   }
@@ -252,7 +252,7 @@ export abstract class BaseEventHandler {
       this.log('info', `📤 Sent failed event to dead letter queue: ${event?.eventType || 'unknown'}`);
 
     } catch (dlqError) {
-      this.log('error', `❌ Failed to send to dead letter queue for ${this.serviceName}:`, dlqError);
+      this.log('error', ` Failed to send to dead letter queue for ${this.serviceName}:`, dlqError);
     }
   }
 
@@ -297,7 +297,7 @@ export abstract class BaseEventHandler {
       this.log('info', `📤 Published event: ${event.eventType} with routing key: ${routingKey}`);
 
     } catch (error) {
-      this.log('error', `❌ Failed to publish event from ${this.serviceName}:`, error);
+      this.log('error', ` Failed to publish event from ${this.serviceName}:`, error);
       throw error;
     }
   }
@@ -354,10 +354,10 @@ export abstract class BaseEventHandler {
   protected scheduleReconnect(): void {
     setTimeout(async () => {
       try {
-        this.log('info', `🔄 Attempting to reconnect event handler for ${this.serviceName}`);
+        this.log('info', ` Attempting to reconnect event handler for ${this.serviceName}`);
         await this.initialize();
       } catch (error) {
-        this.log('error', `❌ Reconnection failed for ${this.serviceName}:`, error);
+        this.log('error', ` Reconnection failed for ${this.serviceName}:`, error);
         this.scheduleReconnect();
       }
     }, 5000);
@@ -404,7 +404,7 @@ export abstract class BaseEventHandler {
       this.log('info', `🔌 Event handler closed for ${this.serviceName}`);
 
     } catch (error) {
-      this.log('error', `❌ Error closing event handler for ${this.serviceName}:`, error);
+      this.log('error', ` Error closing event handler for ${this.serviceName}:`, error);
     }
   }
 

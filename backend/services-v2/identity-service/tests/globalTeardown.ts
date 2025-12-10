@@ -20,10 +20,10 @@ export default async function globalTeardown() {
       await cleanupTestUserPool(supabaseClient, userPool);
       console.log(' Global Teardown: Test user pool cleaned up\n');
     } else {
-      console.log('ℹ️  No test user pool to clean up\n');
+      console.log('ℹ  No test user pool to clean up\n');
     }
   } catch (error) {
-    console.warn('️  Global Teardown warning:', error);
+    console.warn('  Global Teardown warning:', error);
   }
 }
 

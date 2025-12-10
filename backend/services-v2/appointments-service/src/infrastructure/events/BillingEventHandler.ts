@@ -30,7 +30,7 @@ export interface PaymentProcessedEventData {
  * Billing Event Handler
  * Subscribes to billing.payment.completed and confirms appointments
  *
- * ✅ KEY FEATURES:
+ *  KEY FEATURES:
  * - Idempotent: Safe to call multiple times for same payment
  * - Multiple guards for safety
  * - Proper error handling with logging
@@ -43,7 +43,7 @@ export class BillingEventHandler {
    * Handle payment processed event from Billing Service
    * Updates appointment status to CONFIRMED when payment succeeds
    *
-   * ⚠️ IDEMPOTENT: Safe to call multiple times for same payment
+   *  IDEMPOTENT: Safe to call multiple times for same payment
    *
    * FLOW:
    * 1. Billing publishes billing.payment.completed
@@ -113,7 +113,7 @@ export class BillingEventHandler {
             "Event already processed. This is normal for at-least-once delivery.",
         },
       );
-      return; // ✅ Safe exit - event đã xử lý rồi
+      return; //  Safe exit - event đã xử lý rồi
     }
 
     // ===== GUARD 4: Status validation (allow SCHEDULED for legacy flows) =====

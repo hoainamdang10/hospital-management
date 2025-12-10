@@ -1,6 +1,6 @@
 /**
  * TEST-ONLY Routes for Development & E2E Testing
- * ⚠️ SECURITY: These endpoints MUST be disabled in production
+ *  SECURITY: These endpoints MUST be disabled in production
  * 
  * @author Hospital Management Team
  * @version 1.0.0
@@ -13,7 +13,7 @@ export function createTestRoutes(deps: RouteDependencies): Router {
   const router = Router();
   const { logger } = deps;
 
-  // ⚠️ TEMPORARILY DISABLED: Auto-verify email endpoint
+  //  TEMPORARILY DISABLED: Auto-verify email endpoint
   // TODO: Re-enable after adding pendingRegistrationRepository to RouteDependencies
   // or refactor to use VerifyEmailUseCase directly with token from request body
   /*

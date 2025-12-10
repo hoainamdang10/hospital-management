@@ -44,7 +44,7 @@ async function applyOutboxMigration() {
     .filter(s => s.length > 0 && !s.startsWith('--'));
 
   console.log(` Found ${statements.length} SQL statements\n`);
-  console.log('️  Executing migration via psql...\n');
+  console.log('  Executing migration via psql...\n');
 
   // Use psql to execute the entire migration file
   const { execSync } = require('child_process');
@@ -62,7 +62,7 @@ async function applyOutboxMigration() {
     console.log(`   Host: aws-0-ap-southeast-1.pooler.supabase.com`);
     console.log(`   Port: 6543\n`);
 
-    console.log('️  Note: Direct psql execution not available in this environment');
+    console.log('  Note: Direct psql execution not available in this environment');
     console.log('   Using alternative approach via REST API...\n');
 
     // Use Supabase REST API to execute SQL
@@ -84,7 +84,7 @@ async function applyOutboxMigration() {
     console.log(' Migration executed successfully via REST API!\n');
 
   } catch (error: any) {
-    console.log('️  REST API approach failed, using manual verification...\n');
+    console.log('  REST API approach failed, using manual verification...\n');
     console.log('   Error:', error.message);
     console.log('\n Manual Steps:');
     console.log('   1. Open: https://supabase.com/dashboard/project/ciasxktujslgsdgylimv/sql/new');
@@ -142,7 +142,7 @@ async function applyOutboxMigration() {
     console.log('   3. ⏳ Verify worker starts: "Outbox Publisher Worker started"');
     console.log('   4. ⏳ Test event flow\n');
   } else {
-    console.log('️  Some tables not found. Please run SQL manually:\n');
+    console.log('  Some tables not found. Please run SQL manually:\n');
     console.log('   Dashboard: https://supabase.com/dashboard/project/ciasxktujslgsdgylimv/sql/new');
     console.log('   SQL File: migrations/007_create_outbox_pattern.sql\n');
   }

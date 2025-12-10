@@ -2,10 +2,10 @@
  * Appointment Event Adapter
  * Maps appointment events to use case requests with type safety
  *
- * ✅ COMPILE-TIME SAFE: TypeScript enforces interface compatibility
- * ✅ CENTRALIZED: Single source of truth for mapping logic
- * ✅ TESTABLE: Unit tests verify conversions
- * ✅ TOLERANT READER: Handles missing optional fields gracefully
+ *  COMPILE-TIME SAFE: TypeScript enforces interface compatibility
+ *  CENTRALIZED: Single source of truth for mapping logic
+ *  TESTABLE: Unit tests verify conversions
+ *  TOLERANT READER: Handles missing optional fields gracefully
  *
  * @author Hospital Management Team
  * @version 2.0.0
@@ -21,9 +21,9 @@ import {
  * Notification Preferences (subset for mapping)
  */
 interface NotificationPreferencesSubset {
-  phoneNumber?: string; // ✅ Match actual field name
+  phoneNumber?: string; //  Match actual field name
   email?: string;
-  language?: string; // ✅ Match actual field name
+  language?: string; //  Match actual field name
   preferredChannels?: string[];
 }
 
@@ -35,7 +35,7 @@ export class AppointmentEventAdapter {
   /**
    * Map AppointmentConfirmedEvent to CreateAppointmentRemindersRequest
    *
-   * ✅ Type conversions:
+   *  Type conversions:
    * - appointmentDate: string → Date object
    * - Remove fields not in interface
    * - Add default values for optional fields
@@ -55,7 +55,7 @@ export class AppointmentEventAdapter {
         : event.appointmentDate;
 
     // ===== MAP TO EXACT INTERFACE =====
-    // ✅ TypeScript will error if interface changes
+    //  TypeScript will error if interface changes
     const request: CreateAppointmentRemindersRequest = {
       appointmentId: event.appointmentId,
       tenantId: "hospital-1",
@@ -73,7 +73,7 @@ export class AppointmentEventAdapter {
       doctorSpecialization: undefined, // Not available in confirmed event
 
       // Appointment details
-      appointmentDate, // ✅ Date object (converted)
+      appointmentDate, //  Date object (converted)
       appointmentTime: event.appointmentTime,
       appointmentType: undefined, // Not available in confirmed event
       reason: undefined,
@@ -85,7 +85,7 @@ export class AppointmentEventAdapter {
   /**
    * Map AppointmentScheduledEvent to CreateAppointmentRemindersRequest
    *
-   * ⚠️ NOTE: In MVP, reminders are created from appointment.confirmed, not scheduled
+   *  NOTE: In MVP, reminders are created from appointment.confirmed, not scheduled
    * This is kept for future use if flow changes
    */
   static toCreateRemindersFromScheduled(

@@ -321,7 +321,7 @@ function validateConfig(config: AppConfig): void {
     console.log("[Config]  Scheduler API key validated");
   } else {
     console.log(
-      "[Config] ⚠️ Scheduler integration disabled (ENABLE_SCHEDULER=false)",
+      "[Config]  Scheduler integration disabled (ENABLE_SCHEDULER=false)",
     );
   }
 }

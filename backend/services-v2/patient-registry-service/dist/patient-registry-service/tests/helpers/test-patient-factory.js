@@ -213,7 +213,7 @@ class TestPatientFactory {
                 console.log(` Deleted test patient: ${patientId}`);
             }
             catch (error) {
-                console.warn(`️  Error deleting test patient ${patientId}:`, error);
+                console.warn(`  Error deleting test patient ${patientId}:`, error);
             }
         }
         this.createdPatientIds = [];

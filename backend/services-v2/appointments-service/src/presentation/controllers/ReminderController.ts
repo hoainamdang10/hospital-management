@@ -2,7 +2,7 @@
  * ReminderController - Presentation Layer
  * Handles HTTP requests for MANUAL appointment reminders (Alternative API)
  *
- * ⚠️ ALTERNATIVE API - READ BEFORE USING ⚠️
+ *  ALTERNATIVE API - READ BEFORE USING 
  *
  * This controller provides MANUAL reminder management as an alternative to auto-scheduling.
  *

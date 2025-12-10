@@ -262,7 +262,7 @@ export async function seedTestUserPool(
       });
 
       if (error || !data.session) {
-        console.error(`   ️  Failed to login ${user.email}: ${error?.message || 'No session'}`);
+        console.error(`     Failed to login ${user.email}: ${error?.message || 'No session'}`);
         // Keep user without token
         loggedInUsers.push(user);
       } else {
@@ -283,7 +283,7 @@ export async function seedTestUserPool(
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     } catch (error: any) {
-      console.error(`   ️  Error logging in ${user.email}: ${error.message}`);
+      console.error(`     Error logging in ${user.email}: ${error.message}`);
       loggedInUsers.push(user);
     }
   }
@@ -337,7 +337,7 @@ export async function cleanupTestUserPool(
   
   // Check if pool is valid before cleanup
   if (!pool || !pool.admin) {
-    console.warn('️  Test pool is empty or invalid, skipping cleanup');
+    console.warn('  Test pool is empty or invalid, skipping cleanup');
     return;
   }
 
@@ -406,7 +406,7 @@ export async function refreshTestUserPoolTokens(
   supabaseClient: SupabaseClient,
   pool: TestUserPool
 ): Promise<TestUserPool> {
-  console.log('️  Refreshing tokens for cached test user pool...');
+  console.log('  Refreshing tokens for cached test user pool...');
 
   const refreshed: TestUserPool = {
     admin: pool.admin,
@@ -428,7 +428,7 @@ export async function refreshTestUserPoolTokens(
       await new Promise(resolve => setTimeout(resolve, 500));
       return updated;
     } catch (error: any) {
-      console.warn(`️  Could not refresh token for ${label} (${user.email}): ${error.message}`);
+      console.warn(`  Could not refresh token for ${label} (${user.email}): ${error.message}`);
       return user;
     }
   };
@@ -482,7 +482,7 @@ export async function refreshTestUserToken(
         // Check if it's a rate limit error
         if (error.message?.includes('rate limit') || error.message?.includes('429')) {
           lastError = error;
-          console.warn(`️  Rate limit hit on attempt ${attempt}/${maxRetries}`);
+          console.warn(`  Rate limit hit on attempt ${attempt}/${maxRetries}`);
           continue; // Retry
         }
         
@@ -508,7 +508,7 @@ export async function refreshTestUserToken(
       
       if (isNetworkError && attempt < maxRetries) {
         lastError = error;
-        console.warn(`️  Network error on attempt ${attempt}/${maxRetries}`);
+        console.warn(`  Network error on attempt ${attempt}/${maxRetries}`);
         continue; // Retry
       }
       
@@ -564,7 +564,7 @@ export async function resetUserState(
 
     console.log(` User state reset for ${userId}`);
   } catch (error: any) {
-    console.error(`️  Failed to reset user state for ${userId}:`, error.message);
+    console.error(`  Failed to reset user state for ${userId}:`, error.message);
     // Don't throw - best effort cleanup
   }
 }
@@ -590,7 +590,7 @@ export async function resetUserPassword(
 
     console.log(` Password reset for ${userId}`);
   } catch (error: any) {
-    console.error(`️  Failed to reset password for ${userId}:`, error.message);
+    console.error(`  Failed to reset password for ${userId}:`, error.message);
     throw error;
   }
 }

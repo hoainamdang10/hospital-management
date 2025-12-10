@@ -82,7 +82,7 @@ export class EventIntegrationSetup {
             console.error(` Failed to initialize ${config.serviceName} event handler:`, error);
           }
         } else {
-          console.log(`⏭️ ${config.serviceName} event handler disabled`);
+          console.log(`⏭ ${config.serviceName} event handler disabled`);
         }
       }
 
@@ -239,7 +239,7 @@ export class EventIntegrationSetup {
           totalProcessingTime += metrics.averageProcessingTime * metrics.totalProcessed;
 
         } catch (error) {
-          console.warn(`️ Health check failed for ${serviceName}:`, error);
+          console.warn(` Health check failed for ${serviceName}:`, error);
         }
       }
 
@@ -256,7 +256,7 @@ export class EventIntegrationSetup {
       if (this.status.connectedServices === this.status.totalServices) {
         console.log(` All services healthy - Events: ${totalEvents}, Success Rate: ${((successfulEvents / totalEvents) * 100).toFixed(1)}%`);
       } else {
-        console.warn(`️ Service health issues - Connected: ${connectedServices}/${this.status.totalServices}`);
+        console.warn(` Service health issues - Connected: ${connectedServices}/${this.status.totalServices}`);
       }
 
     } catch (error) {

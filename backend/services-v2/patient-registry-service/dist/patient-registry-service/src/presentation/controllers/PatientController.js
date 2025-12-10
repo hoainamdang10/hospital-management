@@ -51,7 +51,7 @@ function userHasAnyRole(req, allowedRoles) {
 class PatientController {
     constructor(
     // ============================================================================
-    // ✅ ESSENTIAL DEPENDENCIES - MVP SCOPE (12 dependencies)
+    //  ESSENTIAL DEPENDENCIES - MVP SCOPE (12 dependencies)
     // ============================================================================
     logger, 
     // Core CRUD (3)
@@ -547,7 +547,7 @@ class PatientController {
         }
     }
     // ============================================================================
-    // ❌ POST-MVP METHODS - ARCHIVED FOR GRADUATION PROJECT
+    //  POST-MVP METHODS - ARCHIVED FOR GRADUATION PROJECT
     // ============================================================================
     // The following methods have been commented out as part of scope reduction.
     // Use cases moved to: src/application/use-cases/_archived_post_mvp/

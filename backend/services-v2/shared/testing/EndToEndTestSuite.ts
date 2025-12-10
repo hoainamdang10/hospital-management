@@ -167,7 +167,7 @@ export class EndToEndTestSuite {
       };
 
       console.log(
-        `✅ E2E tests completed: ${passedTests}/${totalTests} scenarios passed`
+        ` E2E tests completed: ${passedTests}/${totalTests} scenarios passed`
       );
       return testSuite;
     } catch (error) {
@@ -985,7 +985,7 @@ export class EndToEndTestSuite {
           scenarioContext[step.stepId] = stepOutput;
 
           console.log(
-            `    ✅ Step completed: ${step.stepName} (${stepExecutionTime}ms)`
+            `     Step completed: ${step.stepName} (${stepExecutionTime}ms)`
           );
         } catch (error) {
           const stepExecutionTime = Date.now() - stepStartTime;
@@ -999,7 +999,7 @@ export class EndToEndTestSuite {
           });
 
           console.log(
-            `    ❌ Step failed: ${step.stepName} (${stepExecutionTime}ms)`
+            `     Step failed: ${step.stepName} (${stepExecutionTime}ms)`
           );
 
           // Stop scenario execution on step failure
@@ -1037,11 +1037,11 @@ export class EndToEndTestSuite {
 
       if (status === "PASSED") {
         console.log(
-          `  ✅ Scenario completed: ${scenario.scenarioName} (${executionTime}ms)`
+          `   Scenario completed: ${scenario.scenarioName} (${executionTime}ms)`
         );
       } else {
         console.log(
-          `  ❌ Scenario failed: ${scenario.scenarioName} (${executionTime}ms)`
+          `   Scenario failed: ${scenario.scenarioName} (${executionTime}ms)`
         );
       }
 

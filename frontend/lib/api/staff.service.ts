@@ -10,13 +10,13 @@ export interface Staff {
   staffId: string;
   userId: string;
   staffType:
-  | 'doctor'
-  | 'nurse'
-  | 'admin'
-  | 'receptionist'
-  | 'technician'
-  | 'pharmacist'
-  | 'therapist';
+    | 'doctor'
+    | 'nurse'
+    | 'admin'
+    | 'receptionist'
+    | 'technician'
+    | 'pharmacist'
+    | 'therapist';
   personalInfo: {
     fullName: string;
     email: string;
@@ -370,7 +370,13 @@ export async function createStaffProfile(payload: {
 
 export async function assignStaffToDepartment(
   staffId: string,
-  options: { departmentId: string; departmentName?: string; role?: string; isPrimary?: boolean; startDate?: string }
+  options: {
+    departmentId: string;
+    departmentName?: string;
+    role?: string;
+    isPrimary?: boolean;
+    startDate?: string;
+  }
 ): Promise<{ success: boolean; message?: string }> {
   const body = {
     staffId,
@@ -408,4 +414,29 @@ export async function reactivateStaff(
 ): Promise<{ success: boolean; message?: string }> {
   const response = await apiClient.post(`/v1/staff/${staffId}/reactivate`);
   return response.data;
+}
+
+/**
+ * Hard delete staff (permanent removal)
+ * WARNING: This action cannot be undone!
+ * @param staffId - The staff ID to delete
+ * @param confirmPhrase - Must be "DELETE" to confirm
+ */
+export async function hardDeleteStaff(
+  staffId: string,
+  confirmPhrase: string = 'DELETE'
+): Promise<{ success: boolean; message?: string; data?: { staffId: string; deletedAt: string } }> {
+  try {
+    const response = await apiClient.delete(`/v1/staff/${staffId}/permanent`, {
+      data: { confirmPhrase },
+    });
+    return response.data;
+  } catch (error: any) {
+    const apiMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      'Không thể xóa bác sĩ';
+    throw new Error(apiMessage);
+  }
 }
