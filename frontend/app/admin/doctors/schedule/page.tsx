@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout';
 import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, User, Filter, CalendarDays, List, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { appointmentsClient } from '@/lib/api/clients';
+import apiClient from '@/lib/api/axios';
 import { searchStaff } from '@/lib/api/staff.service';
 
 interface Appointment {
@@ -49,7 +49,7 @@ export default function DoctorSchedulePage() {
           params.doctorId = selectedDoctor;   // Also try doctorId in case API uses this
         }
 
-        const resp = await appointmentsClient.get('/v1/appointments', { params });
+        const resp = await apiClient.get('/v1/appointments', { params });
         const list = resp.data?.data?.appointments || [];
 
         console.log(' Loaded appointments:', list.length, 'for doctor:', selectedDoctor);
