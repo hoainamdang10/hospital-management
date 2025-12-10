@@ -46,7 +46,7 @@ describe('RLS Policy Integration Tests', () => {
     nurseUser = users.nurse;
     deptManagerUser = users.departmentManager;
 
-    console.log('✅ Test users created:', {
+    console.log(' Test users created:', {
       admin: adminUser.userId,
       doctor: doctorUser.userId,
       nurse: nurseUser.userId,

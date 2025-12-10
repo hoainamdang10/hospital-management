@@ -42,7 +42,7 @@ describe('Staff Status Management Integration Tests', () => {
     adminUserId = adminUser.userId;
     adminToken = adminUser.token;
 
-    console.log('✅ Admin user created:', adminUserId);
+    console.log(' Admin user created:', adminUserId);
   }, 60000);
 
   afterAll(async () => {
@@ -76,7 +76,7 @@ describe('Staff Status Management Integration Tests', () => {
 
       // Skip test if registration fails
       if (registerResponse.status !== 201) {
-        console.warn('⚠️  Staff registration failed, skipping test');
+        console.warn('️  Staff registration failed, skipping test');
         return;
       }
 

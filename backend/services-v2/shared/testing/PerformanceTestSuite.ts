@@ -123,7 +123,7 @@ export class PerformanceTestSuite {
    * Run complete performance test suite
    */
   public async runPerformanceTests(): Promise<LoadTestResult[]> {
-    console.log('⚡ Starting Hospital Management System V2 Performance Tests');
+    console.log(' Starting Hospital Management System V2 Performance Tests');
 
     try {
       const testResults: LoadTestResult[] = [];
@@ -146,11 +146,11 @@ export class PerformanceTestSuite {
       // Generate performance report
       await this.generatePerformanceReport(testResults);
 
-      console.log(`✅ Performance tests completed: ${testResults.length} tests executed`);
+      console.log(` Performance tests completed: ${testResults.length} tests executed`);
       return testResults;
 
     } catch (error) {
-      console.error('❌ Performance test suite failed:', error);
+      console.error(' Performance test suite failed:', error);
       throw error;
     }
   }
@@ -159,7 +159,7 @@ export class PerformanceTestSuite {
    * Run load test
    */
   private async runLoadTest(): Promise<LoadTestResult> {
-    console.log('📊 Running Load Test...');
+    console.log(' Running Load Test...');
     
     const testId = `load_test_${Date.now()}`;
     const startTime = new Date();
@@ -195,12 +195,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Load Test completed: ${status} (${metrics.averageResponseTime}ms avg response)`);
+      console.log(` Load Test completed: ${status} (${metrics.averageResponseTime}ms avg response)`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Load Test failed:', error);
+      console.error(' Load Test failed:', error);
       throw error;
     }
   }
@@ -209,7 +209,7 @@ export class PerformanceTestSuite {
    * Run stress test
    */
   private async runStressTest(): Promise<LoadTestResult> {
-    console.log('🔥 Running Stress Test...');
+    console.log(' Running Stress Test...');
     
     const testId = `stress_test_${Date.now()}`;
     const startTime = new Date();
@@ -245,12 +245,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Stress Test completed: ${status} (${metrics.errorRate}% error rate)`);
+      console.log(` Stress Test completed: ${status} (${metrics.errorRate}% error rate)`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Stress Test failed:', error);
+      console.error(' Stress Test failed:', error);
       throw error;
     }
   }
@@ -259,7 +259,7 @@ export class PerformanceTestSuite {
    * Run spike test
    */
   private async runSpikeTest(): Promise<LoadTestResult> {
-    console.log('⚡ Running Spike Test...');
+    console.log(' Running Spike Test...');
     
     const testId = `spike_test_${Date.now()}`;
     const startTime = new Date();
@@ -295,12 +295,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Spike Test completed: ${status} (${metrics.maxResponseTime}ms max response)`);
+      console.log(` Spike Test completed: ${status} (${metrics.maxResponseTime}ms max response)`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Spike Test failed:', error);
+      console.error(' Spike Test failed:', error);
       throw error;
     }
   }
@@ -309,7 +309,7 @@ export class PerformanceTestSuite {
    * Run volume test
    */
   private async runVolumeTest(): Promise<LoadTestResult> {
-    console.log('📈 Running Volume Test...');
+    console.log(' Running Volume Test...');
     
     const testId = `volume_test_${Date.now()}`;
     const startTime = new Date();
@@ -341,12 +341,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Volume Test completed: ${status} (${metrics.throughput} req/s throughput)`);
+      console.log(` Volume Test completed: ${status} (${metrics.throughput} req/s throughput)`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Volume Test failed:', error);
+      console.error(' Volume Test failed:', error);
       throw error;
     }
   }
@@ -391,12 +391,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Endurance Test completed: ${status} (${metrics.testDuration}s duration)`);
+      console.log(` Endurance Test completed: ${status} (${metrics.testDuration}s duration)`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Endurance Test failed:', error);
+      console.error(' Endurance Test failed:', error);
       throw error;
     }
   }
@@ -405,7 +405,7 @@ export class PerformanceTestSuite {
    * Run healthcare workflow performance test
    */
   private async runHealthcareWorkflowPerformanceTest(): Promise<LoadTestResult> {
-    console.log('🏥 Running Healthcare Workflow Performance Test...');
+    console.log(' Running Healthcare Workflow Performance Test...');
     
     const testId = `healthcare_workflow_test_${Date.now()}`;
     const startTime = new Date();
@@ -437,12 +437,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Healthcare Workflow Test completed: ${status}`);
+      console.log(` Healthcare Workflow Test completed: ${status}`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Healthcare Workflow Test failed:', error);
+      console.error(' Healthcare Workflow Test failed:', error);
       throw error;
     }
   }
@@ -451,7 +451,7 @@ export class PerformanceTestSuite {
    * Run Vietnamese data performance test
    */
   private async runVietnameseDataPerformanceTest(): Promise<LoadTestResult> {
-    console.log('🇻🇳 Running Vietnamese Data Performance Test...');
+    console.log(' Running Vietnamese Data Performance Test...');
     
     const testId = `vietnamese_data_test_${Date.now()}`;
     const startTime = new Date();
@@ -483,12 +483,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Vietnamese Data Test completed: ${status}`);
+      console.log(` Vietnamese Data Test completed: ${status}`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Vietnamese Data Test failed:', error);
+      console.error(' Vietnamese Data Test failed:', error);
       throw error;
     }
   }
@@ -497,7 +497,7 @@ export class PerformanceTestSuite {
    * Run concurrent user test
    */
   private async runConcurrentUserTest(): Promise<LoadTestResult> {
-    console.log('👥 Running Concurrent User Test...');
+    console.log(' Running Concurrent User Test...');
     
     const testId = `concurrent_user_test_${Date.now()}`;
     const startTime = new Date();
@@ -533,12 +533,12 @@ export class PerformanceTestSuite {
       this.testResults.set(testId, result);
       this.activeTests.delete(testId);
 
-      console.log(`✅ Concurrent User Test completed: ${status} (${metrics.concurrentUsers} users)`);
+      console.log(` Concurrent User Test completed: ${status} (${metrics.concurrentUsers} users)`);
       return result;
 
     } catch (error) {
       this.activeTests.delete(testId);
-      console.error('❌ Concurrent User Test failed:', error);
+      console.error(' Concurrent User Test failed:', error);
       throw error;
     }
   }
@@ -551,7 +551,7 @@ export class PerformanceTestSuite {
     duration: number;
     rampUpTime: number;
   }): Promise<PerformanceMetrics> {
-    console.log(`  🔄 Executing load test: ${params.concurrentUsers} users, ${params.duration}s duration`);
+    console.log(`   Executing load test: ${params.concurrentUsers} users, ${params.duration}s duration`);
 
     // Simulate load test execution
     const startTime = Date.now();
@@ -601,7 +601,7 @@ export class PerformanceTestSuite {
    * Execute volume test
    */
   private async executeVolumeTest(): Promise<PerformanceMetrics> {
-    console.log('  📊 Executing volume test with large datasets...');
+    console.log('   Executing volume test with large datasets...');
 
     // Simulate volume test with large data processing
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -639,7 +639,7 @@ export class PerformanceTestSuite {
    * Execute healthcare workflow test
    */
   private async executeHealthcareWorkflowTest(): Promise<PerformanceMetrics> {
-    console.log('  🏥 Executing healthcare workflow performance test...');
+    console.log('   Executing healthcare workflow performance test...');
 
     // Simulate healthcare-specific workflow testing
     await new Promise(resolve => setTimeout(resolve, 8000));
@@ -677,7 +677,7 @@ export class PerformanceTestSuite {
    * Execute Vietnamese data test
    */
   private async executeVietnameseDataTest(): Promise<PerformanceMetrics> {
-    console.log('  🇻🇳 Executing Vietnamese data handling test...');
+    console.log('   Executing Vietnamese data handling test...');
 
     // Simulate Vietnamese character processing performance
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -903,7 +903,7 @@ export class PerformanceTestSuite {
    * Generate performance report
    */
   private async generatePerformanceReport(results: LoadTestResult[]): Promise<void> {
-    console.log('📊 Generating performance test report...');
+    console.log(' Generating performance test report...');
 
     const report = {
       title: 'Hospital Management System V2 - Performance Test Report',
@@ -927,7 +927,7 @@ export class PerformanceTestSuite {
     };
 
     // In a real implementation, this would save the report to a file
-    console.log('✅ Performance test report generated');
+    console.log(' Performance test report generated');
   }
 
   /**

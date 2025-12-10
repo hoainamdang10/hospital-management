@@ -62,7 +62,7 @@ export class RealTimeNotificationService {
       });
     });
 
-    console.log('🔌 Real-time notification service initialized');
+    console.log(' Real-time notification service initialized');
   }
 
   /**
@@ -71,7 +71,7 @@ export class RealTimeNotificationService {
   async sendToUser(userId: string, notification: RealTimeNotification): Promise<void> {
     try {
       this.io.to(`user_${userId}`).emit('notification', notification);
-      console.log(`📱 Real-time notification sent to user ${userId}`);
+      console.log(` Real-time notification sent to user ${userId}`);
     } catch (error) {
       console.error('Error sending real-time notification:', error);
     }
@@ -83,7 +83,7 @@ export class RealTimeNotificationService {
   async sendEmergencyAlert(notification: RealTimeNotification): Promise<void> {
     try {
       this.io.emit('emergency_alert', notification);
-      console.log('🚨 Emergency alert broadcasted');
+      console.log(' Emergency alert broadcasted');
     } catch (error) {
       console.error('Error sending emergency alert:', error);
     }

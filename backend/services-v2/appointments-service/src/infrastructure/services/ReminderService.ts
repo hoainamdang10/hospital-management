@@ -375,7 +375,7 @@ export class ReminderService implements IReminderService {
         channels: ['email', 'sms']
       });
 
-      console.log(`✅ Reschedule notification scheduled for appointment ${appointmentId}`);
+      console.log(` Reschedule notification scheduled for appointment ${appointmentId}`);
     } catch (error) {
       console.error('Failed to send reschedule notification:', error);
       throw error;
@@ -403,7 +403,7 @@ export class ReminderService implements IReminderService {
         channels: ['email', 'sms']
       });
 
-      console.log(`✅ Conflict notification scheduled for appointment ${appointmentId}`);
+      console.log(` Conflict notification scheduled for appointment ${appointmentId}`);
     } catch (error) {
       console.error('Failed to send conflict notification:', error);
       throw error;
@@ -430,7 +430,7 @@ export class ReminderService implements IReminderService {
         channels: ['email', 'sms']
       });
 
-      console.log(`✅ Appointment scheduled notification sent to patient ${patientId}`);
+      console.log(` Appointment scheduled notification sent to patient ${patientId}`);
     } catch (error) {
       console.error('Failed to send appointment scheduled notification:', error);
       throw error;
@@ -458,7 +458,7 @@ export class ReminderService implements IReminderService {
         channels: ['email', 'internal']
       });
 
-      console.log(`✅ Staff assignment notification sent for appointment ${appointmentId}`);
+      console.log(` Staff assignment notification sent for appointment ${appointmentId}`);
     } catch (error) {
       console.error('Failed to send staff assignment notification:', error);
       throw error;
@@ -485,7 +485,7 @@ export class ReminderService implements IReminderService {
         channels: ['email', 'sms']
       });
 
-      console.log(`✅ Operating hours change notification sent for department ${departmentId}`);
+      console.log(` Operating hours change notification sent for department ${departmentId}`);
     } catch (error) {
       console.error('Failed to send operating hours change notification:', error);
       throw error;
@@ -518,7 +518,7 @@ export class ReminderService implements IReminderService {
         channels: data.urgency === 'urgent' ? ['email', 'sms'] : ['email']
       });
 
-      console.log(`✅ Physician notification sent for appointment ${data.appointmentId}`);
+      console.log(` Physician notification sent for appointment ${data.appointmentId}`);
     } catch (error) {
       console.error('Failed to notify physician about results:', error);
       throw error;
@@ -549,7 +549,7 @@ export class ReminderService implements IReminderService {
         channels: ['email']
       });
 
-      console.log(`✅ Physician document notification sent for appointment ${data.appointmentId}`);
+      console.log(` Physician document notification sent for appointment ${data.appointmentId}`);
     } catch (error) {
       console.error('Failed to notify physician about document:', error);
       throw error;
@@ -580,7 +580,7 @@ export class ReminderService implements IReminderService {
         channels: data.urgency === 'emergency' ? ['email', 'sms', 'phone'] : ['email', 'sms']
       });
 
-      console.log(`✅ Urgent appointment notification sent for appointment ${data.appointmentId}`);
+      console.log(` Urgent appointment notification sent for appointment ${data.appointmentId}`);
     } catch (error) {
       console.error('Failed to send urgent appointment notification:', error);
       throw error;
@@ -617,7 +617,7 @@ export class ReminderService implements IReminderService {
         });
       }
 
-      console.log(`✅ Clinical staff notifications sent for appointment ${data.appointmentId}`);
+      console.log(` Clinical staff notifications sent for appointment ${data.appointmentId}`);
     } catch (error) {
       console.error('Failed to notify clinical staff about urgent case:', error);
       throw error;
@@ -652,7 +652,7 @@ export class ReminderService implements IReminderService {
         channels: ['email', 'sms']
       });
 
-      console.log(`✅ Priority slot offer sent to patient ${data.patientId}`);
+      console.log(` Priority slot offer sent to patient ${data.patientId}`);
     } catch (error) {
       console.error('Failed to offer priority appointment slot:', error);
       throw error;

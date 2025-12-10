@@ -43,7 +43,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
       expect(completedAppointments!.length).toBeGreaterThan(0);
 
       const completedAppointment = completedAppointments![0];
-      console.log('✅ Found completed appointment:', {
+      console.log(' Found completed appointment:', {
         appointmentId: completedAppointment.appointment_id,
         patientId: completedAppointment.patient_id,
         consultationFee: completedAppointment.consultation_fee,
@@ -66,11 +66,11 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
         .eq('appointment_id', completedAppointment.appointment_id);
 
       expect(invoiceError).toBeNull();
-      console.log('📋 Invoices found:', invoices?.length || 0);
+      console.log(' Invoices found:', invoices?.length || 0);
 
       if (invoices && invoices.length > 0) {
         const invoice = invoices[0];
-        console.log('✅ Invoice with appointment linkage:', {
+        console.log(' Invoice with appointment linkage:', {
           invoiceId: invoice.invoice_id,
           appointmentId: invoice.appointment_id,
           patientId: invoice.patient_id,
@@ -102,11 +102,11 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
           .eq('invoice_id', invoice.id);
 
         expect(paymentError).toBeNull();
-        console.log('💳 Payments found:', payments?.length || 0);
+        console.log(' Payments found:', payments?.length || 0);
 
         if (payments && payments.length > 0) {
           const payment = payments[0];
-          console.log('✅ Payment record:', {
+          console.log(' Payment record:', {
             paymentId: payment.payment_id,
             amount: payment.amount,
             currency: payment.currency,
@@ -121,7 +121,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
         }
 
         // ✅ FLOW 4 VERIFICATION PASSED
-        console.log('\n✅ FLOW 4 VERIFICATION PASSED');
+        console.log('\n FLOW 4 VERIFICATION PASSED');
         console.log('Traceability Chain:');
         console.log(`  Appointment: ${completedAppointment.appointment_id}`);
         console.log(`  ↓`);
@@ -131,7 +131,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
           console.log(`  Payment: ${payments[0].payment_id}`);
         }
       } else {
-        console.log('⚠️  No invoices found for this appointment yet');
+        console.log('️  No invoices found for this appointment yet');
         console.log('Note: Invoices are created asynchronously when appointment.completed event is consumed');
       }
     });
@@ -156,7 +156,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
 
       if (invoicesWithAppointmentId && invoicesWithAppointmentId.length > 0) {
         const appointmentId = invoicesWithAppointmentId[0].appointment_id;
-        console.log('✅ appointment_id column stores VARCHAR format:', appointmentId);
+        console.log(' appointment_id column stores VARCHAR format:', appointmentId);
         expect(typeof appointmentId).toBe('string');
         // Verify it's in the expected format (e.g., "2025-APT-202511-901")
         expect(appointmentId).toMatch(/^\d{4}-APT-\d{6}-\d{3}$/);
@@ -173,10 +173,10 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
         .limit(5);
 
       expect(error).toBeNull();
-      console.log('📤 Outbox events found:', outboxEvents?.length || 0);
+      console.log(' Outbox events found:', outboxEvents?.length || 0);
 
       if (outboxEvents && outboxEvents.length > 0) {
-        console.log('✅ Recent appointment.completed events:');
+        console.log(' Recent appointment.completed events:');
         outboxEvents.forEach((event, idx) => {
           console.log(`  ${idx + 1}. ${event.aggregate_id} (${event.created_at})`);
         });
@@ -193,7 +193,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
         .limit(20);
 
       expect(error).toBeNull();
-      console.log('\n📊 Invoice Summary (last 20):');
+      console.log('\n Invoice Summary (last 20):');
 
       let withAppointmentId = 0;
       let withoutAppointmentId = 0;
@@ -211,7 +211,7 @@ describe('Flow 4: Appointment Completion → Invoice → Payment', () => {
       console.log(`  Total: ${allInvoices?.length || 0}`);
 
       if (withAppointmentId > 0) {
-        console.log(`  ✅ ${((withAppointmentId / (allInvoices?.length || 1)) * 100).toFixed(1)}% invoices have appointment linkage`);
+        console.log(`   ${((withAppointmentId / (allInvoices?.length || 1)) * 100).toFixed(1)}% invoices have appointment linkage`);
       }
     });
   });

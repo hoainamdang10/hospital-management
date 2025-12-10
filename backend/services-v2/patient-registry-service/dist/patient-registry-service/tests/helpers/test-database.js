@@ -46,7 +46,7 @@ class TestDatabase {
      * Called before test suite runs
      */
     async setup() {
-        console.log('🔧 Setting up test database...');
+        console.log(' Setting up test database...');
         // Verify connection using schema-qualified table name
         const { error } = await this.supabaseClient
             .schema('patient_schema')
@@ -56,14 +56,14 @@ class TestDatabase {
         if (error) {
             throw new Error(`Failed to connect to test database: ${error.message}`);
         }
-        console.log('✅ Test database connected');
+        console.log(' Test database connected');
     }
     /**
      * Cleanup all test data
      * Called after each test or test suite
      */
     async cleanup() {
-        console.log('🧹 Cleaning up test data...');
+        console.log(' Cleaning up test data...');
         try {
             // Delete in reverse order of dependencies
             // 1. Delete insurance info
@@ -105,10 +105,10 @@ class TestDatabase {
                 medicalHistory: [],
                 insuranceInfo: []
             };
-            console.log('✅ Test data cleaned up');
+            console.log(' Test data cleaned up');
         }
         catch (error) {
-            console.error('❌ Error cleaning up test data:', error);
+            console.error(' Error cleaning up test data:', error);
             throw error;
         }
     }
@@ -148,14 +148,14 @@ class TestDatabase {
                 .delete()
                 .like('personal_info->>nationalId', pattern);
             if (error) {
-                console.warn(`⚠️  Could not cleanup test patients: ${error.message}`);
+                console.warn(`️  Could not cleanup test patients: ${error.message}`);
             }
             else {
-                console.log('✅ Test patients cleaned up');
+                console.log(' Test patients cleaned up');
             }
         }
         catch (error) {
-            console.warn('⚠️  Error cleaning up test patients:', error);
+            console.warn('️  Error cleaning up test patients:', error);
         }
     }
     /**
@@ -195,7 +195,7 @@ class TestDatabase {
      */
     async close() {
         // Supabase client doesn't need explicit closing
-        console.log('✅ Test database connection closed');
+        console.log(' Test database connection closed');
     }
 }
 exports.TestDatabase = TestDatabase;

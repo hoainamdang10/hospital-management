@@ -384,21 +384,21 @@ async function createApp() {
  */
 async function gracefulShutdown() {
     try {
-        console.log("🛑 Starting graceful shutdown...");
+        console.log(" Starting graceful shutdown...");
         // Disconnect event subscriptions first
-        console.log("📡 Disconnecting event subscriptions...");
+        console.log(" Disconnecting event subscriptions...");
         await cleanupEventSubscriptions();
-        console.log("✅ Event subscriptions disconnected");
+        console.log(" Event subscriptions disconnected");
         // Cleanup container
-        console.log("🧹 Cleaning up DI container...");
+        console.log(" Cleaning up DI container...");
         const { cleanupContainer } = await Promise.resolve().then(() => __importStar(require("./infrastructure/di/container")));
         await cleanupContainer();
-        console.log("✅ Container cleaned up");
-        console.log("✅ Graceful shutdown completed");
+        console.log(" Container cleaned up");
+        console.log(" Graceful shutdown completed");
         process.exit(0);
     }
     catch (error) {
-        console.error("❌ Error during graceful shutdown:", error);
+        console.error(" Error during graceful shutdown:", error);
         process.exit(1);
     }
 }
@@ -407,27 +407,27 @@ async function gracefulShutdown() {
  */
 async function initializeApp() {
     try {
-        console.log("🏥 Initializing Clinical EMR Service...");
+        console.log(" Initializing Clinical EMR Service...");
         // Initialize container
-        console.log("📦 Initializing DI Container...");
+        console.log(" Initializing DI Container...");
         const { success, errors } = await (0, container_1.initializeContainer)();
         if (!success) {
             throw new Error(`Container initialization failed: ${errors.join(", ")}`);
         }
-        console.log("✅ DI Container initialized");
+        console.log(" DI Container initialized");
         // Create Express app
-        console.log("🚀 Creating Express application...");
+        console.log(" Creating Express application...");
         const app = await createApp();
-        console.log("✅ Express app created");
+        console.log(" Express app created");
         // Initialize event subscriptions
-        console.log("📡 Initializing event subscriptions...");
+        console.log(" Initializing event subscriptions...");
         await initializeEventSubscriptions();
-        console.log("✅ Event subscriptions initialized");
-        console.log("✅ Clinical EMR Service initialized successfully");
+        console.log(" Event subscriptions initialized");
+        console.log(" Clinical EMR Service initialized successfully");
         return app;
     }
     catch (error) {
-        console.error("💥 Failed to initialize Clinical EMR Service:", error);
+        console.error(" Failed to initialize Clinical EMR Service:", error);
         throw error;
     }
 }
@@ -444,11 +444,11 @@ async function initializeEventSubscriptions() {
         eventSubscriptions = (0, EventSubscriptions_1.createEventSubscriptions)(clinicalEMRHandler, domainEventHandler, logger);
         // Connect to event bus
         await eventSubscriptions.connect();
-        console.log("✅ Event bus connected and listening for events");
+        console.log(" Event bus connected and listening for events");
     }
     catch (error) {
-        console.error("⚠️  Event subscriptions failed to initialize:", error);
-        console.warn("⚠️  Service will run without event handling capabilities");
+        console.error("️  Event subscriptions failed to initialize:", error);
+        console.warn("️  Service will run without event handling capabilities");
         // Don't throw - allow service to run without events in development
     }
 }

@@ -17,7 +17,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 async function requeueStuckEvents() {
-    console.log('🔄 Requeuing stuck outbox events...\n');
+    console.log(' Requeuing stuck outbox events...\n');
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
@@ -37,11 +37,11 @@ async function requeueStuckEvents() {
         }
 
         if (!stuckEvents || stuckEvents.length === 0) {
-            console.log('✅ No stuck events found.');
+            console.log(' No stuck events found.');
             return;
         }
 
-        console.log(`📋 Found ${stuckEvents.length} stuck PUBLISHING events:\n`);
+        console.log(` Found ${stuckEvents.length} stuck PUBLISHING events:\n`);
         stuckEvents.forEach((evt, idx) => {
             console.log(`  ${idx + 1}. ${evt.outbox_id}`);
             console.log(`     Event: ${evt.event_type}`);
@@ -65,14 +65,14 @@ async function requeueStuckEvents() {
             throw new Error(`Failed to requeue events: ${updateError.message}`);
         }
 
-        console.log(`✅ Successfully requeued ${outboxIds.length} events to PENDING status.\n`);
-        console.log('💡 Next steps:');
+        console.log(` Successfully requeued ${outboxIds.length} events to PENDING status.\n`);
+        console.log(' Next steps:');
         console.log('   1. Restart provider-staff-service to apply code fixes');
         console.log('   2. Monitor logs for successful event publishing');
         console.log('   3. Check outbox table to verify events are PUBLISHED\n');
 
     } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        console.error(' Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
     }
 }
@@ -80,10 +80,10 @@ async function requeueStuckEvents() {
 // Run the script
 requeueStuckEvents()
     .then(() => {
-        console.log('✅ Script completed successfully');
+        console.log(' Script completed successfully');
         process.exit(0);
     })
     .catch((error) => {
-        console.error('❌ Script failed:', error);
+        console.error(' Script failed:', error);
         process.exit(1);
     });

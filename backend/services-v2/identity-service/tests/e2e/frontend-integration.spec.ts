@@ -72,7 +72,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       expect(body.user).toHaveProperty('id');
       expect(body.user).toHaveProperty('fullName');
       
-      console.log('✅ Login successful!');
+      console.log(' Login successful!');
       console.log('User ID:', userId);
       console.log('Access Token (first 50 chars):', accessToken.substring(0, 50) + '...');
     });
@@ -140,7 +140,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       expect(body.user).toHaveProperty('email');
       expect(body.user.email).toBe(testUser.email);
       
-      console.log('✅ Successfully retrieved user info');
+      console.log(' Successfully retrieved user info');
     });
 
     test('should reject request without token', async ({ request }) => {
@@ -199,7 +199,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       // New tokens should be different from old ones
       expect(body.accessToken).not.toBe(loginBody.accessToken);
       
-      console.log('✅ Token refreshed successfully');
+      console.log(' Token refreshed successfully');
     });
 
     test('should reject refresh with invalid token', async ({ request }) => {
@@ -244,7 +244,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       expect(response.status()).toBe(200);
       expect(body.success).toBe(true);
       
-      console.log('✅ Logout successful');
+      console.log(' Logout successful');
     });
 
     test('should reject logout without token', async ({ request }) => {
@@ -259,7 +259,7 @@ test.describe('Frontend Integration - Identity Service', () => {
 
   test.describe('6. Complete Authentication Flow', () => {
     test('should complete full login -> get user -> refresh -> logout flow', async ({ request }) => {
-      console.log('\n🔄 Starting complete authentication flow...\n');
+      console.log('\n Starting complete authentication flow...\n');
 
       // Step 1: Login
       console.log('Step 1: Login');
@@ -273,7 +273,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       const loginBody = await loginResponse.json();
       expect(loginResponse.status()).toBe(200);
       expect(loginBody.success).toBe(true);
-      console.log('✅ Login successful');
+      console.log(' Login successful');
 
       const accessToken = loginBody.accessToken;
       const refreshToken = loginBody.refreshToken;
@@ -289,7 +289,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       const userInfoBody = await userInfoResponse.json();
       expect(userInfoResponse.status()).toBe(200);
       expect(userInfoBody.success).toBe(true);
-      console.log('✅ User info retrieved');
+      console.log(' User info retrieved');
 
       // Step 3: Refresh token
       console.log('\nStep 3: Refresh token');
@@ -302,7 +302,7 @@ test.describe('Frontend Integration - Identity Service', () => {
       const refreshBody = await refreshResponse.json();
       expect(refreshResponse.status()).toBe(200);
       expect(refreshBody.success).toBe(true);
-      console.log('✅ Token refreshed');
+      console.log(' Token refreshed');
 
       const newAccessToken = refreshBody.accessToken;
 
@@ -317,9 +317,9 @@ test.describe('Frontend Integration - Identity Service', () => {
       const logoutBody = await logoutResponse.json();
       expect(logoutResponse.status()).toBe(200);
       expect(logoutBody.success).toBe(true);
-      console.log('✅ Logout successful');
+      console.log(' Logout successful');
 
-      console.log('\n✅ Complete authentication flow finished successfully!\n');
+      console.log('\n Complete authentication flow finished successfully!\n');
     });
   });
 });

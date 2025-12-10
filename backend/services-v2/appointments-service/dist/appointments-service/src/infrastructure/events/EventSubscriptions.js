@@ -69,10 +69,10 @@ class EventSubscriptions {
             console.log("[EventSubscriptions] Setting up subscriptions...");
             await this.setupSubscriptions();
             this.isConnected = true;
-            console.log("[EventSubscriptions] ✅ All subscriptions ready");
+            console.log("[EventSubscriptions]  All subscriptions ready");
         }
         catch (error) {
-            console.error("[EventSubscriptions] ❌ Failed to setup subscriptions:", error);
+            console.error("[EventSubscriptions]  Failed to setup subscriptions:", error);
             throw error;
         }
     }
@@ -87,10 +87,10 @@ class EventSubscriptions {
             console.log("[EventSubscriptions] Disconnecting from event bus...");
             await this.eventBus.disconnect();
             this.isConnected = false;
-            console.log("[EventSubscriptions] ✅ Disconnected");
+            console.log("[EventSubscriptions]  Disconnected");
         }
         catch (error) {
-            console.error("[EventSubscriptions] ❌ Failed to disconnect:", error);
+            console.error("[EventSubscriptions]  Failed to disconnect:", error);
             throw error;
         }
     }
@@ -101,84 +101,84 @@ class EventSubscriptions {
         // 1. Subscribe to AppointmentScheduled events (from Scheduling Service itself)
         // 1a. Read Model Handler
         await this.eventBus.subscribe("AppointmentScheduled", new EventHandlers_1.AppointmentScheduledEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.scheduled`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentScheduled (Read Model)");
         // 1b. Scheduler Integration Handler (optional)
         if (this.schedulerHandlers) {
             await this.eventBus.subscribe("AppointmentScheduled", this.schedulerHandlers.scheduled, `${this.config.serviceName}.appointment.scheduled.scheduler`);
-            console.log("[EventSubscriptions] ✅ Subscribed to AppointmentScheduled (Scheduler Integration)");
+            console.log("[EventSubscriptions]  Subscribed to AppointmentScheduled (Scheduler Integration)");
         }
         // 2. Subscribe to PatientUpdated events (from Patient Registry Service)
         await this.eventBus.subscribe("PatientUpdated", new EventHandlers_1.PatientUpdatedEventHandler(this.readModelHandler), `${this.config.serviceName}.patient.updated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to PatientUpdated");
+        console.log("[EventSubscriptions]  Subscribed to PatientUpdated");
         // 3. Subscribe to PatientRegistered events (from Patient Registry Service)
         await this.eventBus.subscribe("PatientRegistered", new EventHandlers_1.PatientUpdatedEventHandler(this.readModelHandler), `${this.config.serviceName}.patient.registered`);
-        console.log("[EventSubscriptions] ✅ Subscribed to PatientRegistered");
+        console.log("[EventSubscriptions]  Subscribed to PatientRegistered");
         // 4. Subscribe to StaffUpdated events (from Provider Staff Service)
         await this.eventBus.subscribe("StaffUpdated", new EventHandlers_1.DoctorUpdatedEventHandler(this.readModelHandler), `${this.config.serviceName}.staff.updated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to StaffUpdated");
+        console.log("[EventSubscriptions]  Subscribed to StaffUpdated");
         // 5. Subscribe to StaffRegistered events (from Provider Staff Service)
         await this.eventBus.subscribe("StaffRegistered", new EventHandlers_1.DoctorUpdatedEventHandler(this.readModelHandler), `${this.config.serviceName}.staff.registered`);
-        console.log("[EventSubscriptions] ✅ Subscribed to StaffRegistered");
+        console.log("[EventSubscriptions]  Subscribed to StaffRegistered");
         // 6. Subscribe to AppointmentStatusChanged events (from Scheduling Service itself)
         await this.eventBus.subscribe("AppointmentStatusChanged", new EventHandlers_1.AppointmentStatusChangedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.status.changed`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentStatusChanged");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentStatusChanged");
         // 6b. Subscribe to AppointmentStarted events and update read model
         await this.eventBus.subscribe("AppointmentStarted", new EventHandlers_1.AppointmentStatusChangedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.started`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentStarted (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentStarted (Read Model)");
         // 7. Subscribe to AppointmentCancelled events (from Scheduling Service itself)
         // 7a. Read Model Handler
         await this.eventBus.subscribe("AppointmentCancelled", new EventHandlers_1.AppointmentCancelledEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.cancelled`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentCancelled (Read Model)");
         // 7b. Scheduler Integration Handler (optional)
         if (this.schedulerHandlers) {
             await this.eventBus.subscribe("AppointmentCancelled", this.schedulerHandlers.cancelled, `${this.config.serviceName}.appointment.cancelled.scheduler`);
-            console.log("[EventSubscriptions] ✅ Subscribed to AppointmentCancelled (Scheduler Integration)");
+            console.log("[EventSubscriptions]  Subscribed to AppointmentCancelled (Scheduler Integration)");
         }
         // 8. Subscribe to AppointmentRescheduled events (from Scheduling Service itself)
         await this.eventBus.subscribe("AppointmentRescheduled", new EventHandlers_1.AppointmentRescheduledEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.rescheduled`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentRescheduled (Read Model)");
         if (this.schedulerHandlers) {
             await this.eventBus.subscribe("AppointmentRescheduled", this.schedulerHandlers.rescheduled, `${this.config.serviceName}.appointment.rescheduled.scheduler`);
-            console.log("[EventSubscriptions] ✅ Subscribed to AppointmentRescheduled (Scheduler Integration)");
+            console.log("[EventSubscriptions]  Subscribed to AppointmentRescheduled (Scheduler Integration)");
         }
         // 9. Subscribe to StaffScheduleUpdated events (from Provider Staff Service)
         // This caches work schedule templates for runtime availability calculation
         await this.eventBus.subscribe("StaffScheduleUpdated", this.staffScheduleUpdatedHandler, `${this.config.serviceName}.staff.schedule.updated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to StaffScheduleUpdated (Provider Schedule Cache)");
+        console.log("[EventSubscriptions]  Subscribed to StaffScheduleUpdated (Provider Schedule Cache)");
         // 10. Subscribe to AppointmentConfirmed events (from Scheduling Service itself)
         await this.eventBus.subscribe("AppointmentConfirmed", new EventHandlers_1.AppointmentConfirmedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.confirmed`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentConfirmed (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentConfirmed (Read Model)");
         // 11. Subscribe to AppointmentCompleted events (from Scheduling Service itself)
         await this.eventBus.subscribe("AppointmentCompleted", new EventHandlers_1.AppointmentCompletedEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.completed`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentCompleted (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentCompleted (Read Model)");
         // 12. Subscribe to AppointmentNoShow events (from Scheduling Service itself)
         await this.eventBus.subscribe("AppointmentNoShow", new EventHandlers_1.AppointmentNoShowEventHandler(this.readModelHandler), `${this.config.serviceName}.appointment.noshow`);
-        console.log("[EventSubscriptions] ✅ Subscribed to AppointmentNoShow (Read Model)");
+        console.log("[EventSubscriptions]  Subscribed to AppointmentNoShow (Read Model)");
         // ========================================================================
         // PURE OUTBOX PATTERN - Read Model Sync Subscriptions
         // ========================================================================
         // 13. Subscribe to patient.patient.* events (from Patient Registry Service)
         // These events sync Patient data into local patient_read_model
         await this.eventBus.subscribe("patient.registered", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.registered`);
-        console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.registered (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to patient.patient.registered (Pure Outbox)");
         await this.eventBus.subscribe("patient.updated", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.updated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.updated (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to patient.patient.updated (Pure Outbox)");
         await this.eventBus.subscribe("patient.deactivated", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.deactivated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.deactivated (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to patient.patient.deactivated (Pure Outbox)");
         await this.eventBus.subscribe("patient.deleted", this.patientEventConsumer, `${this.config.serviceName}.patient.read.model.deleted`);
-        console.log("[EventSubscriptions] ✅ Subscribed to patient.patient.deleted (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to patient.patient.deleted (Pure Outbox)");
         // 14. Subscribe to provider.staff.* events (from Provider Staff Service)
         // These events sync Provider/Staff data into local provider_read_model
         await this.eventBus.subscribe("provider.staff.created", this.providerEventConsumer, `${this.config.serviceName}.provider.read.model.created`);
-        console.log("[EventSubscriptions] ✅ Subscribed to provider.staff.created (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to provider.staff.created (Pure Outbox)");
         await this.eventBus.subscribe("provider.staff.updated", this.providerEventConsumer, `${this.config.serviceName}.provider.read.model.updated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to provider.staff.updated (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to provider.staff.updated (Pure Outbox)");
         await this.eventBus.subscribe("provider.staff.deactivated", this.providerEventConsumer, `${this.config.serviceName}.provider.read.model.deactivated`);
-        console.log("[EventSubscriptions] ✅ Subscribed to provider.staff.deactivated (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to provider.staff.deactivated (Pure Outbox)");
         await this.eventBus.subscribe("provider.staff.deleted", this.providerEventConsumer, `${this.config.serviceName}.provider.read.model.deleted`);
-        console.log("[EventSubscriptions] ✅ Subscribed to provider.staff.deleted (Pure Outbox)");
+        console.log("[EventSubscriptions]  Subscribed to provider.staff.deleted (Pure Outbox)");
         console.log("[EventSubscriptions] =".repeat(30));
-        console.log("[EventSubscriptions] 🚀 Pure Outbox Pattern: All read model syncs ready!");
+        console.log("[EventSubscriptions]  Pure Outbox Pattern: All read model syncs ready!");
         console.log("[EventSubscriptions]    Patient Read Model: 4 events");
         console.log("[EventSubscriptions]    Provider Read Model: 4 events");
         console.log("[EventSubscriptions] =".repeat(30));

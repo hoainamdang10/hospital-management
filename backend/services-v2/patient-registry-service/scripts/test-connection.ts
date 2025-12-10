@@ -223,7 +223,7 @@ async function testDatabaseData(): Promise<TestResult> {
  * Run all tests
  */
 async function runTests() {
-  console.log('\n🔍 Testing Patient Registry Service Database Connection\n');
+  console.log('\n Testing Patient Registry Service Database Connection\n');
   console.log('='.repeat(60));
 
   // Test 1: Environment Variables
@@ -233,7 +233,7 @@ async function runTests() {
   printResult(envTest);
 
   if (envTest.status === 'FAIL') {
-    console.log('\n❌ Cannot proceed without environment variables.');
+    console.log('\n Cannot proceed without environment variables.');
     console.log('Please check your .env file in backend/services-v2/');
     process.exit(1);
   }
@@ -245,7 +245,7 @@ async function runTests() {
   printResult(connectionTest);
 
   if (connectionTest.status === 'FAIL') {
-    console.log('\n❌ Cannot proceed without Supabase connection.');
+    console.log('\n Cannot proceed without Supabase connection.');
     process.exit(1);
   }
 
@@ -269,20 +269,20 @@ async function runTests() {
 
   // Summary
   console.log('\n' + '='.repeat(60));
-  console.log('\n📊 Test Summary\n');
+  console.log('\n Test Summary\n');
 
   const passed = results.filter(r => r.status === 'PASS').length;
   const failed = results.filter(r => r.status === 'FAIL').length;
 
-  console.log(`✅ Passed: ${passed}/${results.length}`);
-  console.log(`❌ Failed: ${failed}/${results.length}`);
+  console.log(` Passed: ${passed}/${results.length}`);
+  console.log(` Failed: ${failed}/${results.length}`);
 
   if (failed > 0) {
-    console.log('\n⚠️  Some tests failed. Please follow the setup instructions below:\n');
+    console.log('\n️  Some tests failed. Please follow the setup instructions below:\n');
     printSetupInstructions();
     process.exit(1);
   } else {
-    console.log('\n🎉 All tests passed! Database is ready to use.\n');
+    console.log('\n All tests passed! Database is ready to use.\n');
     process.exit(0);
   }
 }
@@ -303,7 +303,7 @@ function printResult(result: TestResult) {
  * Print setup instructions
  */
 function printSetupInstructions() {
-  console.log('📋 Setup Instructions:\n');
+  console.log(' Setup Instructions:\n');
   console.log('1. Open Supabase Dashboard: https://supabase.com/dashboard');
   console.log('2. Select your project');
   console.log('3. Go to SQL Editor');
@@ -316,7 +316,7 @@ function printSetupInstructions() {
 
 // Run tests
 runTests().catch((error) => {
-  console.error('\n💥 Unexpected error:', error);
+  console.error('\n Unexpected error:', error);
   process.exit(1);
 });
 

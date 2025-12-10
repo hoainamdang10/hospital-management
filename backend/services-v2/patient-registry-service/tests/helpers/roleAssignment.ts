@@ -104,7 +104,7 @@ export async function assignRoleToUser(
 
     if (checkError && checkError.code !== 'PGRST116') {
       // PGRST116 = no rows returned, which is fine
-      console.warn(`⚠️  Error checking existing role: ${checkError.message}`);
+      console.warn(`️  Error checking existing role: ${checkError.message}`);
     }
 
     if (existingRole) {
@@ -123,12 +123,12 @@ export async function assignRoleToUser(
       });
 
     if (insertError) {
-      console.warn(`⚠️  Could not assign role ${role} to user ${userId}: ${insertError.message}`);
+      console.warn(`️  Could not assign role ${role} to user ${userId}: ${insertError.message}`);
     } else {
-      console.log(`✅ Assigned role ${role} to user ${userId}`);
+      console.log(` Assigned role ${role} to user ${userId}`);
     }
   } catch (error) {
-    console.warn(`⚠️  Error assigning role: ${error}`);
+    console.warn(`️  Error assigning role: ${error}`);
   }
 }
 
@@ -151,7 +151,7 @@ export async function assignPermissionsToUser(
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.warn(`⚠️  Error checking existing permission: ${checkError.message}`);
+        console.warn(`️  Error checking existing permission: ${checkError.message}`);
       }
 
       if (existingPermission) {
@@ -169,13 +169,13 @@ export async function assignPermissionsToUser(
         });
 
       if (insertError) {
-        console.warn(`⚠️  Could not assign permission ${permission}: ${insertError.message}`);
+        console.warn(`️  Could not assign permission ${permission}: ${insertError.message}`);
       }
     }
 
-    console.log(`✅ Assigned ${permissions.length} permissions to user ${userId}`);
+    console.log(` Assigned ${permissions.length} permissions to user ${userId}`);
   } catch (error) {
-    console.warn(`⚠️  Error assigning permissions: ${error}`);
+    console.warn(`️  Error assigning permissions: ${error}`);
   }
 }
 
@@ -190,7 +190,7 @@ export async function setupTestUserRoles(
   const userRole = TEST_USER_ROLES.find(r => r.email === email);
 
   if (!userRole) {
-    console.warn(`⚠️  No role configuration found for ${email}`);
+    console.warn(`️  No role configuration found for ${email}`);
     return;
   }
 
@@ -216,7 +216,7 @@ export async function cleanupUserRoles(
       .eq('user_id', userId);
 
     if (rolesError) {
-      console.warn(`⚠️  Could not delete roles: ${rolesError.message}`);
+      console.warn(`️  Could not delete roles: ${rolesError.message}`);
     }
 
     // Delete permissions
@@ -226,12 +226,12 @@ export async function cleanupUserRoles(
       .eq('user_id', userId);
 
     if (permissionsError) {
-      console.warn(`⚠️  Could not delete permissions: ${permissionsError.message}`);
+      console.warn(`️  Could not delete permissions: ${permissionsError.message}`);
     }
 
-    console.log(`✅ Cleaned up roles and permissions for user ${userId}`);
+    console.log(` Cleaned up roles and permissions for user ${userId}`);
   } catch (error) {
-    console.warn(`⚠️  Error cleaning up user roles: ${error}`);
+    console.warn(`️  Error cleaning up user roles: ${error}`);
   }
 }
 
@@ -249,13 +249,13 @@ export async function getUserRoles(
       .eq('user_id', userId);
 
     if (error) {
-      console.warn(`⚠️  Could not get user roles: ${error.message}`);
+      console.warn(`️  Could not get user roles: ${error.message}`);
       return [];
     }
 
     return data?.map(r => r.role_name) || [];
   } catch (error) {
-    console.warn(`⚠️  Error getting user roles: ${error}`);
+    console.warn(`️  Error getting user roles: ${error}`);
     return [];
   }
 }
@@ -274,13 +274,13 @@ export async function getUserPermissions(
       .eq('user_id', userId);
 
     if (error) {
-      console.warn(`⚠️  Could not get user permissions: ${error.message}`);
+      console.warn(`️  Could not get user permissions: ${error.message}`);
       return [];
     }
 
     return data?.map(p => p.permission_name) || [];
   } catch (error) {
-    console.warn(`⚠️  Error getting user permissions: ${error}`);
+    console.warn(`️  Error getting user permissions: ${error}`);
     return [];
   }
 }

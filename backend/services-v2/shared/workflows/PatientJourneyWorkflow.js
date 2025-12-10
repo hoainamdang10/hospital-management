@@ -25,7 +25,7 @@ class PatientJourneyWorkflow {
      * Register all patient journey workflows
      */
     registerPatientJourneyWorkflows() {
-        console.log('📋 Registering Patient Journey Workflows');
+        console.log(' Registering Patient Journey Workflows');
         // Register individual workflows
         this.registerPatientRegistrationWorkflow();
         this.registerAppointmentSchedulingWorkflow();
@@ -35,7 +35,7 @@ class PatientJourneyWorkflow {
         this.registerDischargeWorkflow();
         this.registerFollowUpWorkflow();
         this.registerEmergencyWorkflow();
-        console.log('✅ All Patient Journey Workflows registered');
+        console.log(' All Patient Journey Workflows registered');
     }
     /**
      * Patient Registration Workflow
@@ -757,7 +757,7 @@ class PatientJourneyWorkflow {
      * Execute patient registration workflow
      */
     async executePatientRegistration(context) {
-        console.log(`🏥 Starting Patient Registration for: ${context.patientInfo.fullName}`);
+        console.log(` Starting Patient Registration for: ${context.patientInfo.fullName}`);
         return await this.orchestrator.startWorkflow('patient-registration', context, {
             patientId: context.patientId,
             correlationId: `patient_reg_${Date.now()}`,
@@ -768,7 +768,7 @@ class PatientJourneyWorkflow {
      * Execute appointment scheduling workflow
      */
     async executeAppointmentScheduling(patientContext, appointmentContext) {
-        console.log(`📅 Starting Appointment Scheduling for: ${patientContext.patientInfo.fullName}`);
+        console.log(` Starting Appointment Scheduling for: ${patientContext.patientInfo.fullName}`);
         return await this.orchestrator.startWorkflow('appointment-scheduling', { ...patientContext, ...appointmentContext }, {
             patientId: patientContext.patientId,
             appointmentId: appointmentContext.appointmentId,
@@ -781,7 +781,7 @@ class PatientJourneyWorkflow {
      * Execute complete patient journey
      */
     async executeCompletePatientJourney(patientContext, appointmentContext, treatmentContext) {
-        console.log(`🏥 Starting Complete Patient Journey for: ${patientContext.patientInfo.fullName}`);
+        console.log(` Starting Complete Patient Journey for: ${patientContext.patientInfo.fullName}`);
         const results = [];
         try {
             // 1. Patient Registration
@@ -816,7 +816,7 @@ class PatientJourneyWorkflow {
             };
         }
         catch (error) {
-            console.error('❌ Patient journey failed:', error);
+            console.error(' Patient journey failed:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',

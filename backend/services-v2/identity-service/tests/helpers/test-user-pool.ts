@@ -39,7 +39,7 @@ export async function seedTestUserPool(
   supabaseClient: SupabaseClient,
   options: { sequential?: boolean } = {}
 ): Promise<TestUserPool> {
-  console.log('🌱 Seeding test user pool...');
+  console.log(' Seeding test user pool...');
 
   const timestamp = Date.now();
   
@@ -213,7 +213,7 @@ export async function seedTestUserPool(
     for (const config of userConfigs) {
       const user = await createUserWithDelay(config, 1000);
       users.push(user);
-      console.log(`   ✓ Created ${config.role}: ${config.email}`);
+      console.log(`    Created ${config.role}: ${config.email}`);
     }
   } else {
     // Tạo song song với concurrency limit = 2
@@ -237,7 +237,7 @@ export async function seedTestUserPool(
   const [admin, doctor, nurse, patient, patient2, lockable, deletable, passwordChange] = users;
 
   // Login tất cả users tuần tự với delay để lấy token (tránh rate limit)
-  console.log('🔐 Logging in all users to get tokens...');
+  console.log(' Logging in all users to get tokens...');
   
   const usersToLogin = [
     { user: admin, password: 'AdminPool123!' },
@@ -262,7 +262,7 @@ export async function seedTestUserPool(
       });
 
       if (error || !data.session) {
-        console.error(`   ⚠️  Failed to login ${user.email}: ${error?.message || 'No session'}`);
+        console.error(`   ️  Failed to login ${user.email}: ${error?.message || 'No session'}`);
         // Keep user without token
         loggedInUsers.push(user);
       } else {
@@ -272,7 +272,7 @@ export async function seedTestUserPool(
           token: data.session.access_token,
           refreshToken: data.session.refresh_token
         });
-        console.log(`   ✓ Logged in ${user.email.split('@')[0]}`);
+        console.log(`    Logged in ${user.email.split('@')[0]}`);
       }
 
       // Sign out to reset context
@@ -283,7 +283,7 @@ export async function seedTestUserPool(
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     } catch (error: any) {
-      console.error(`   ⚠️  Error logging in ${user.email}: ${error.message}`);
+      console.error(`   ️  Error logging in ${user.email}: ${error.message}`);
       loggedInUsers.push(user);
     }
   }
@@ -299,17 +299,17 @@ export async function seedTestUserPool(
     passwordChangeWithToken
   ] = loggedInUsers;
 
-  console.log('✅ Test user pool seeded successfully with tokens');
+  console.log(' Test user pool seeded successfully with tokens');
   console.log('   Core users:');
-  console.log('   - Admin:', adminWithToken.email, adminWithToken.token ? '(✓ token)' : '(✗ no token)');
-  console.log('   - Doctor:', doctorWithToken.email, doctorWithToken.token ? '(✓ token)' : '(✗ no token)');
-  console.log('   - Nurse:', nurseWithToken.email, nurseWithToken.token ? '(✓ token)' : '(✗ no token)');
-  console.log('   - Patient:', patientWithToken.email, patientWithToken.token ? '(✓ token)' : '(✗ no token)');
-  console.log('   - Patient 2:', patient2WithToken.email, patient2WithToken.token ? '(✓ token)' : '(✗ no token)');
+  console.log('   - Admin:', adminWithToken.email, adminWithToken.token ? '( token)' : '( no token)');
+  console.log('   - Doctor:', doctorWithToken.email, doctorWithToken.token ? '( token)' : '( no token)');
+  console.log('   - Nurse:', nurseWithToken.email, nurseWithToken.token ? '( token)' : '( no token)');
+  console.log('   - Patient:', patientWithToken.email, patientWithToken.token ? '( token)' : '( no token)');
+  console.log('   - Patient 2:', patient2WithToken.email, patient2WithToken.token ? '( token)' : '( no token)');
   console.log('   Destructive test users:');
-  console.log('   - Lockable:', lockableWithToken.email, lockableWithToken.token ? '(✓ token)' : '(✗ no token)');
-  console.log('   - Deletable:', deletableWithToken.email, deletableWithToken.token ? '(✓ token)' : '(✗ no token)');
-  console.log('   - Password Change:', passwordChangeWithToken.email, passwordChangeWithToken.token ? '(✓ token)' : '(✗ no token)');
+  console.log('   - Lockable:', lockableWithToken.email, lockableWithToken.token ? '( token)' : '( no token)');
+  console.log('   - Deletable:', deletableWithToken.email, deletableWithToken.token ? '( token)' : '( no token)');
+  console.log('   - Password Change:', passwordChangeWithToken.email, passwordChangeWithToken.token ? '( token)' : '( no token)');
 
   return {
     admin: adminWithToken,
@@ -333,11 +333,11 @@ export async function cleanupTestUserPool(
   supabaseClient: SupabaseClient,
   pool: TestUserPool
 ): Promise<void> {
-  console.log('🧹 Cleaning up test user pool...');
+  console.log(' Cleaning up test user pool...');
   
   // Check if pool is valid before cleanup
   if (!pool || !pool.admin) {
-    console.warn('⚠️  Test pool is empty or invalid, skipping cleanup');
+    console.warn('️  Test pool is empty or invalid, skipping cleanup');
     return;
   }
 
@@ -356,7 +356,7 @@ export async function cleanupTestUserPool(
     await cleanupTestUsers(supabaseClient, emails);
   }
   
-  console.log('✅ Test user pool cleaned up');
+  console.log(' Test user pool cleaned up');
 }
 
 /**
@@ -371,7 +371,7 @@ export async function loginTestUser(
   supabaseClient: SupabaseClient,
   user: TestUser
 ): Promise<TestUser> {
-  console.log(`🔐 Logging in test user ${user.email}...`);
+  console.log(` Logging in test user ${user.email}...`);
 
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email: user.email,
@@ -389,7 +389,7 @@ export async function loginTestUser(
   // Sign out to reset client context
   await supabaseClient.auth.signOut().catch(() => {});
 
-  console.log(`✅ Logged in ${user.email}`);
+  console.log(` Logged in ${user.email}`);
 
   return {
     ...user,
@@ -406,7 +406,7 @@ export async function refreshTestUserPoolTokens(
   supabaseClient: SupabaseClient,
   pool: TestUserPool
 ): Promise<TestUserPool> {
-  console.log('♻️  Refreshing tokens for cached test user pool...');
+  console.log('️  Refreshing tokens for cached test user pool...');
 
   const refreshed: TestUserPool = {
     admin: pool.admin,
@@ -428,7 +428,7 @@ export async function refreshTestUserPoolTokens(
       await new Promise(resolve => setTimeout(resolve, 500));
       return updated;
     } catch (error: any) {
-      console.warn(`⚠️  Could not refresh token for ${label} (${user.email}): ${error.message}`);
+      console.warn(`️  Could not refresh token for ${label} (${user.email}): ${error.message}`);
       return user;
     }
   };
@@ -442,7 +442,7 @@ export async function refreshTestUserPoolTokens(
   refreshed.destructive.deletable = await refreshSequentially(pool.destructive.deletable, 'deletable');
   refreshed.destructive.passwordChange = await refreshSequentially(pool.destructive.passwordChange, 'passwordChange');
 
-  console.log('✅ Tokens refreshed for test user pool');
+  console.log(' Tokens refreshed for test user pool');
   return refreshed;
 }
 
@@ -482,7 +482,7 @@ export async function refreshTestUserToken(
         // Check if it's a rate limit error
         if (error.message?.includes('rate limit') || error.message?.includes('429')) {
           lastError = error;
-          console.warn(`⚠️  Rate limit hit on attempt ${attempt}/${maxRetries}`);
+          console.warn(`️  Rate limit hit on attempt ${attempt}/${maxRetries}`);
           continue; // Retry
         }
         
@@ -497,7 +497,7 @@ export async function refreshTestUserToken(
       // Success - sign out immediately to reset client context
       await supabaseClient.auth.signOut().catch(() => {});
 
-      console.log(`✅ Token refreshed for ${email} (attempt ${attempt}/${maxRetries})`);
+      console.log(` Token refreshed for ${email} (attempt ${attempt}/${maxRetries})`);
       return data.session.access_token;
 
     } catch (error: any) {
@@ -508,7 +508,7 @@ export async function refreshTestUserToken(
       
       if (isNetworkError && attempt < maxRetries) {
         lastError = error;
-        console.warn(`⚠️  Network error on attempt ${attempt}/${maxRetries}`);
+        console.warn(`️  Network error on attempt ${attempt}/${maxRetries}`);
         continue; // Retry
       }
       
@@ -535,7 +535,7 @@ export async function resetUserState(
   supabaseClient: SupabaseClient,
   userId: string
 ): Promise<void> {
-  console.log(`🔄 Resetting user state for ${userId}...`);
+  console.log(` Resetting user state for ${userId}...`);
 
   try {
     // Unlock account if locked
@@ -562,9 +562,9 @@ export async function resetUserState(
       .update({ is_active: false })
       .eq('user_id', userId);
 
-    console.log(`✅ User state reset for ${userId}`);
+    console.log(` User state reset for ${userId}`);
   } catch (error: any) {
-    console.error(`⚠️  Failed to reset user state for ${userId}:`, error.message);
+    console.error(`️  Failed to reset user state for ${userId}:`, error.message);
     // Don't throw - best effort cleanup
   }
 }
@@ -581,16 +581,16 @@ export async function resetUserPassword(
   userId: string,
   newPassword: string
 ): Promise<void> {
-  console.log(`🔑 Resetting password for user ${userId}...`);
+  console.log(` Resetting password for user ${userId}...`);
 
   try {
     await supabaseClient.auth.admin.updateUserById(userId, {
       password: newPassword
     });
 
-    console.log(`✅ Password reset for ${userId}`);
+    console.log(` Password reset for ${userId}`);
   } catch (error: any) {
-    console.error(`⚠️  Failed to reset password for ${userId}:`, error.message);
+    console.error(`️  Failed to reset password for ${userId}:`, error.message);
     throw error;
   }
 }

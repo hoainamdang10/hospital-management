@@ -66,7 +66,7 @@ describe('Session Management Integration Tests', () => {
     // Get cached test user pool (seeds once, reuses for all tests)
     userPool = await testUserPoolCache.getPool(supabaseClient);
     
-    console.log('✅ Test setup complete with user pool');
+    console.log(' Test setup complete with user pool');
   }, 120000);
 
   afterAll(async () => {

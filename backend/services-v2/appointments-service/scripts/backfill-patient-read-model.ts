@@ -342,7 +342,7 @@ async function main(): Promise<void> {
     `[Backfill] Cleanup complete. Removed ${deleted} orphaned read model rows.`,
   );
 
-  console.log("[Backfill] Done ✅");
+  console.log("[Backfill] Done ");
 }
 
 main()

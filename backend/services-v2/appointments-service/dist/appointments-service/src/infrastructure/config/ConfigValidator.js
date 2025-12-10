@@ -162,10 +162,10 @@ function validateConfig(config) {
             config.services.schedulerApiKey.trim().length === 0) {
             throw new Error("Scheduler API key is required but empty. Please set SCHEDULER_API_KEY environment variable.");
         }
-        console.log("[Config] ✅ Scheduler API key validated");
+        console.log("[Config]  Scheduler API key validated");
     }
     else {
-        console.log("[Config] ⚠️ Scheduler integration disabled (ENABLE_SCHEDULER=false)");
+        console.log("[Config] ️ Scheduler integration disabled (ENABLE_SCHEDULER=false)");
     }
 }
 /**

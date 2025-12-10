@@ -448,15 +448,15 @@ async function shutdownEventConsumers(): Promise<void> {
 // Start server
 const server = app.listen(PORT, async () => {
   console.log("=".repeat(60));
-  console.log(`🏥 ${SERVICE_NAME.toUpperCase()}`);
+  console.log(` ${SERVICE_NAME.toUpperCase()}`);
   console.log("=".repeat(60));
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`✅ Environment: ${config.nodeEnv}`);
-  console.log(`✅ Health check: http://localhost:${PORT}/health`);
-  console.log(`✅ Liveness probe: http://localhost:${PORT}/health/live`);
-  console.log(`✅ Readiness probe: http://localhost:${PORT}/health/ready`);
+  console.log(` Server running on port ${PORT}`);
+  console.log(` Environment: ${config.nodeEnv}`);
+  console.log(` Health check: http://localhost:${PORT}/health`);
+  console.log(` Liveness probe: http://localhost:${PORT}/health/live`);
+  console.log(` Readiness probe: http://localhost:${PORT}/health/ready`);
   console.log("=".repeat(60));
-  console.log("📋 API V1 - Command Endpoints (Write Model):");
+  console.log(" API V1 - Command Endpoints (Write Model):");
   console.log(`   POST   /api/v1/appointments - Schedule appointment`);
   console.log(
     `   POST   /api/v1/appointments/:id/confirm - Confirm appointment`,

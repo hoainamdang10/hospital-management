@@ -14,14 +14,14 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function applyOutboxMigration() {
-  console.log('🚀 Starting Outbox Pattern Migration...\n');
+  console.log(' Starting Outbox Pattern Migration...\n');
 
   // Validate environment
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error('❌ Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+    console.error(' Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
     process.exit(1);
   }
 
@@ -33,7 +33,7 @@ async function applyOutboxMigration() {
     },
   });
 
-  console.log('✅ Connected to Supabase');
+  console.log(' Connected to Supabase');
   console.log(`   URL: ${supabaseUrl}\n`);
 
   try {
@@ -41,11 +41,11 @@ async function applyOutboxMigration() {
     const migrationPath = path.join(__dirname, '../migrations/007_create_outbox_pattern.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
 
-    console.log('📄 Read migration file: 007_create_outbox_pattern.sql');
+    console.log(' Read migration file: 007_create_outbox_pattern.sql');
     console.log(`   Size: ${migrationSQL.length} bytes\n`);
 
     // Execute migration
-    console.log('⚙️  Executing migration...');
+    console.log('️  Executing migration...');
     
     const { data, error } = await supabase.rpc('exec_sql', {
       sql: migrationSQL,
@@ -61,8 +61,8 @@ async function applyOutboxMigration() {
         .limit(1);
 
       if (queryError) {
-        console.error('❌ Migration failed:', error.message);
-        console.error('\n⚠️  Manual steps required:');
+        console.error(' Migration failed:', error.message);
+        console.error('\n️  Manual steps required:');
         console.error('   1. Go to Supabase Dashboard → SQL Editor');
         console.error('   2. Copy content from migrations/007_create_outbox_pattern.sql');
         console.error('   3. Paste and run in SQL Editor');
@@ -71,10 +71,10 @@ async function applyOutboxMigration() {
       }
     }
 
-    console.log('✅ Migration executed successfully!\n');
+    console.log(' Migration executed successfully!\n');
 
     // Verify tables created
-    console.log('🔍 Verifying table creation...');
+    console.log(' Verifying table creation...');
 
     const tables = ['outbox_events', 'outbox_processing_lock', 'outbox_dead_letter_queue'];
     
@@ -85,14 +85,14 @@ async function applyOutboxMigration() {
         .select('*', { count: 'exact', head: true });
 
       if (error) {
-        console.error(`   ❌ Table ${table} not found`);
+        console.error(`    Table ${table} not found`);
       } else {
-        console.log(`   ✅ Table ${table} created`);
+        console.log(`    Table ${table} created`);
       }
     }
 
     // Verify functions
-    console.log('\n🔍 Verifying functions created...');
+    console.log('\n Verifying functions created...');
     const functions = [
       'acquire_outbox_lock',
       'release_outbox_lock',
@@ -104,15 +104,15 @@ async function applyOutboxMigration() {
     console.log(`   ℹ️  ${functions.length} functions should be created`);
     functions.forEach(fn => console.log(`      - ${fn}`));
 
-    console.log('\n✅ Outbox Pattern Migration Complete!\n');
-    console.log('📋 Next Steps:');
+    console.log('\n Outbox Pattern Migration Complete!\n');
+    console.log(' Next Steps:');
     console.log('   1. Restart clinical-emr-service');
     console.log('   2. Verify worker starts: "Outbox Publisher Worker started"');
     console.log('   3. Test event publishing through outbox');
     console.log('   4. Monitor outbox_events table for pending events\n');
 
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    console.error(' Migration failed:', error);
     process.exit(1);
   }
 }

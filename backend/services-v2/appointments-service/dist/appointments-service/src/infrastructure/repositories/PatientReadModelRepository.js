@@ -59,7 +59,7 @@ class PatientReadModelRepository {
         if (error) {
             throw new Error(`Failed to upsert patient read model: ${error.message}`);
         }
-        console.debug(`[PatientReadModelRepo] ✓ Upserted patient ${patient.patientId}`);
+        console.debug(`[PatientReadModelRepo]  Upserted patient ${patient.patientId}`);
     }
     /**
      * Find patient by ID
@@ -213,7 +213,7 @@ class PatientReadModelRepository {
         if (error) {
             throw new Error(`Failed to delete patient read model: ${error.message}`);
         }
-        console.debug(`[PatientReadModelRepo] ✓ Deleted patient ${patientId}`);
+        console.debug(`[PatientReadModelRepo]  Deleted patient ${patientId}`);
     }
     /**
      * Get sync statistics

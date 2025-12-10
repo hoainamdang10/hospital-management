@@ -30,7 +30,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
  */
 async function initializeEventConsumers(container: DIContainer): Promise<void> {
   try {
-    console.log("🔄 Initializing event consumers...");
+    console.log(" Initializing event consumers...");
 
     // Resolve event consumers from container (THESIS SCOPE)
     const appointmentEventConsumer = container.resolve(
@@ -51,8 +51,8 @@ async function initializeEventConsumers(container: DIContainer): Promise<void> {
       billingEventConsumer.connect(),
     ]);
 
-    console.log("✅ All event consumers connected successfully");
-    console.log("📋 Active event consumers (THESIS SCOPE):");
+    console.log(" All event consumers connected successfully");
+    console.log(" Active event consumers (THESIS SCOPE):");
     console.log(
       "   - Appointment Event Consumer (scheduled, confirmed, cancelled, rescheduled, completed, reminder.*)",
     );
@@ -64,7 +64,7 @@ async function initializeEventConsumers(container: DIContainer): Promise<void> {
       "🎯 Event-driven architecture enabled - Focused on booking + payment flow!",
     );
   } catch (error) {
-    console.error("❌ Failed to initialize event consumers:", error);
+    console.error(" Failed to initialize event consumers:", error);
     throw error;
   }
 }
@@ -83,10 +83,10 @@ async function initializeReminderCronJob(
     ) as any;
     reminderCronJob.start();
 
-    console.log("✅ Reminder Cron Job started successfully");
-    console.log("📋 Cron job will check for due reminders every 5 minutes");
+    console.log(" Reminder Cron Job started successfully");
+    console.log(" Cron job will check for due reminders every 5 minutes");
   } catch (error) {
-    console.error("❌ Failed to initialize Reminder Cron Job:", error);
+    console.error(" Failed to initialize Reminder Cron Job:", error);
     throw error;
   }
 }
@@ -96,7 +96,7 @@ async function initializeReminderCronJob(
  */
 async function shutdownEventConsumers(container: DIContainer): Promise<void> {
   try {
-    console.log("🔄 Shutting down event consumers...");
+    console.log(" Shutting down event consumers...");
 
     // Resolve all event consumers from container
     const appointmentEventConsumer = container.resolve(
@@ -117,9 +117,9 @@ async function shutdownEventConsumers(container: DIContainer): Promise<void> {
       billingEventConsumer.disconnect(),
     ]);
 
-    console.log("✅ All event consumers disconnected successfully");
+    console.log(" All event consumers disconnected successfully");
   } catch (error) {
-    console.error("❌ Failed to shutdown event consumers:", error);
+    console.error(" Failed to shutdown event consumers:", error);
     // Continue with shutdown even if some consumers fail to disconnect
   }
 }
@@ -136,9 +136,9 @@ async function shutdownReminderCronJob(container: DIContainer): Promise<void> {
     ) as any;
     reminderCronJob.stop();
 
-    console.log("✅ Reminder Cron Job stopped successfully");
+    console.log(" Reminder Cron Job stopped successfully");
   } catch (error) {
-    console.error("❌ Failed to shutdown Reminder Cron Job:", error);
+    console.error(" Failed to shutdown Reminder Cron Job:", error);
     // Continue with shutdown even if cron job fails to stop
   }
 }
@@ -148,7 +148,7 @@ async function shutdownReminderCronJob(container: DIContainer): Promise<void> {
  */
 async function bootstrap() {
   try {
-    console.log("🚀 Starting Notifications Service HTTP Server...");
+    console.log(" Starting Notifications Service HTTP Server...");
 
     // Validate environment variables
     const requiredEnvVars = [
@@ -163,7 +163,7 @@ async function bootstrap() {
       }
     }
 
-    console.log("✅ Environment variables validated");
+    console.log(" Environment variables validated");
 
     // Create Express app
     const app: Express = express();
@@ -200,7 +200,7 @@ async function bootstrap() {
       app.use(morgan("combined"));
     }
 
-    console.log("✅ Middleware configured");
+    console.log(" Middleware configured");
 
     // Create DI container
     const container = new DIContainer({
@@ -212,32 +212,32 @@ async function bootstrap() {
     // Setup dependencies
     setupDependencies(container);
 
-    console.log("✅ DI container initialized");
+    console.log(" DI container initialized");
 
     // OUT OF SCOPE - Controllers and API routes archived for thesis
     // Only event consumers + cron job active
     const notificationController = container.resolve<NotificationController>(
       ServiceTokens.NOTIFICATION_CONTROLLER,
     );
-    console.log("✅ Controllers resolved");
+    console.log(" Controllers resolved");
 
     // Connect EventBus
     const eventBus = container.resolve(ServiceTokens.EVENT_BUS) as any;
     await eventBus.connect();
-    console.log("✅ EventBus connected");
+    console.log(" EventBus connected");
 
     // Initialize Event Consumers
     await initializeEventConsumers(container);
-    console.log("✅ Event consumers initialized");
+    console.log(" Event consumers initialized");
 
     // Initialize Reminder Cron Job
     await initializeReminderCronJob(container);
-    console.log("✅ Reminder Cron Job initialized");
+    console.log(" Reminder Cron Job initialized");
 
     // OUT OF SCOPE - API routes disabled
     const notificationRoutes = createNotificationRoutes(notificationController);
     app.use("/api/v1/notifications", notificationRoutes);
-    console.log("✅ Routes mounted at /api/v1/notifications");
+    console.log(" Routes mounted at /api/v1/notifications");
 
     // Swagger API Documentation
     app.use(
@@ -358,12 +358,12 @@ async function bootstrap() {
       console.log(
         `✅ Notifications Service HTTP Server listening on port ${PORT}`,
       );
-      console.log(`📍 Environment: ${NODE_ENV}`);
+      console.log(` Environment: ${NODE_ENV}`);
       console.log(
         `🔗 API Base URL: http://localhost:${PORT}/api/v1/notifications`,
       );
-      console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-      console.log(`📊 Metrics: http://localhost:${PORT}/metrics`);
+      console.log(` Health Check: http://localhost:${PORT}/health`);
+      console.log(` Metrics: http://localhost:${PORT}/metrics`);
     });
 
     // Graceful shutdown
@@ -374,11 +374,11 @@ async function bootstrap() {
 
       // Shutdown Reminder Cron Job first
       await shutdownReminderCronJob(container);
-      console.log("✅ Reminder Cron Job shutdown");
+      console.log(" Reminder Cron Job shutdown");
 
       // Shutdown event consumers
       await shutdownEventConsumers(container);
-      console.log("✅ Event consumers shutdown");
+      console.log(" Event consumers shutdown");
 
       server.close(() => {
         console.log("HTTP server closed");
@@ -393,11 +393,11 @@ async function bootstrap() {
 
       // Shutdown Reminder Cron Job first
       await shutdownReminderCronJob(container);
-      console.log("✅ Reminder Cron Job shutdown");
+      console.log(" Reminder Cron Job shutdown");
 
       // Shutdown event consumers
       await shutdownEventConsumers(container);
-      console.log("✅ Event consumers shutdown");
+      console.log(" Event consumers shutdown");
 
       server.close(() => {
         console.log("HTTP server closed");
@@ -405,7 +405,7 @@ async function bootstrap() {
       });
     });
   } catch (error) {
-    console.error("❌ Failed to start Notifications Service:", error);
+    console.error(" Failed to start Notifications Service:", error);
     process.exit(1);
   }
 }

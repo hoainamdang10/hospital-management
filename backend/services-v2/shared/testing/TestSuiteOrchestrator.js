@@ -30,8 +30,8 @@ class TestSuiteOrchestrator {
      * Execute comprehensive test plan
      */
     async executeTestPlan(plan) {
-        console.log('🎯 Starting Hospital Management System V2 Comprehensive Testing');
-        console.log(`📋 Executing test plan: ${plan.planName}`);
+        console.log(' Starting Hospital Management System V2 Comprehensive Testing');
+        console.log(` Executing test plan: ${plan.planName}`);
         const startTime = new Date();
         const executionStartTime = Date.now();
         try {
@@ -44,18 +44,18 @@ class TestSuiteOrchestrator {
                 .filter(suite => suite.enabled)
                 .sort((a, b) => a.priority - b.priority);
             for (const suiteConfig of enabledSuites) {
-                console.log(`🧪 Executing ${suiteConfig.suiteType} test suite...`);
+                console.log(` Executing ${suiteConfig.suiteType} test suite...`);
                 try {
                     const suiteResult = await this.executeSuite(suiteConfig);
                     suiteResults.push(suiteResult);
                     // Stop on failure if configured
                     if (plan.executionSettings.stopOnFailure && suiteResult.status === 'FAILED') {
-                        console.log('❌ Stopping execution due to suite failure');
+                        console.log(' Stopping execution due to suite failure');
                         break;
                     }
                 }
                 catch (error) {
-                    console.error(`❌ Suite ${suiteConfig.suiteType} failed:`, error);
+                    console.error(` Suite ${suiteConfig.suiteType} failed:`, error);
                     suiteResults.push({
                         suiteType: suiteConfig.suiteType,
                         suiteName: `${suiteConfig.suiteType} Test Suite`,
@@ -110,13 +110,13 @@ class TestSuiteOrchestrator {
             if (plan.executionSettings.notifyOnCompletion) {
                 await this.notifyTestCompletion(executionResult);
             }
-            console.log(`✅ Test plan execution completed: ${status}`);
-            console.log(`📊 Overall results: ${overallMetrics.passedTests}/${overallMetrics.totalTests} tests passed`);
+            console.log(` Test plan execution completed: ${status}`);
+            console.log(` Overall results: ${overallMetrics.passedTests}/${overallMetrics.totalTests} tests passed`);
             return executionResult;
         }
         catch (error) {
             this.activeExecutions.delete(plan.planId);
-            console.error('❌ Test plan execution failed:', error);
+            console.error(' Test plan execution failed:', error);
             throw error;
         }
     }
@@ -187,12 +187,12 @@ class TestSuiteOrchestrator {
             }
             const executionTime = Date.now() - suiteStartTime;
             result.executionTime = executionTime;
-            console.log(`  ✅ ${suiteConfig.suiteType} suite completed: ${result.status} (${executionTime}ms)`);
+            console.log(`   ${suiteConfig.suiteType} suite completed: ${result.status} (${executionTime}ms)`);
             return result;
         }
         catch (error) {
             const executionTime = Date.now() - suiteStartTime;
-            console.error(`  ❌ ${suiteConfig.suiteType} suite failed (${executionTime}ms):`, error);
+            console.error(`   ${suiteConfig.suiteType} suite failed (${executionTime}ms):`, error);
             return {
                 suiteType: suiteConfig.suiteType,
                 suiteName: `${suiteConfig.suiteType} Test Suite`,
@@ -209,7 +209,7 @@ class TestSuiteOrchestrator {
      * Execute security tests (placeholder)
      */
     async executeSecurityTests() {
-        console.log('🔒 Executing Security Tests...');
+        console.log(' Executing Security Tests...');
         // Simulate security testing
         await new Promise(resolve => setTimeout(resolve, 3000));
         return {
@@ -232,7 +232,7 @@ class TestSuiteOrchestrator {
      * Execute compliance tests (placeholder)
      */
     async executeComplianceTests() {
-        console.log('📋 Executing Compliance Tests...');
+        console.log(' Executing Compliance Tests...');
         // Simulate compliance testing
         await new Promise(resolve => setTimeout(resolve, 4000));
         return {
@@ -255,7 +255,7 @@ class TestSuiteOrchestrator {
      * Validate test environment
      */
     async validateTestEnvironment() {
-        console.log('🔧 Validating test environment...');
+        console.log(' Validating test environment...');
         // Check service availability
         const services = [
             'http://localhost:3100', // API Gateway
@@ -279,9 +279,9 @@ class TestSuiteOrchestrator {
         const results = await Promise.all(serviceChecks);
         const unavailableServices = results.filter(r => !r.available);
         if (unavailableServices.length > 0) {
-            console.warn('⚠️ Some services are unavailable:', unavailableServices.map(s => s.url));
+            console.warn('️ Some services are unavailable:', unavailableServices.map(s => s.url));
         }
-        console.log('✅ Test environment validation completed');
+        console.log(' Test environment validation completed');
     }
     /**
      * Calculate overall metrics
@@ -362,7 +362,7 @@ class TestSuiteOrchestrator {
      * Generate comprehensive report
      */
     async generateComprehensiveReport(result) {
-        console.log('📊 Generating comprehensive test report...');
+        console.log(' Generating comprehensive test report...');
         const report = {
             title: 'Hospital Management System V2 - Comprehensive Test Report',
             vietnamese: {
@@ -383,31 +383,31 @@ class TestSuiteOrchestrator {
             }
         };
         // In a real implementation, this would save the report to files
-        console.log('✅ Comprehensive test report generated');
+        console.log(' Comprehensive test report generated');
     }
     /**
      * Cleanup test environment
      */
     async cleanupTestEnvironment() {
-        console.log('🧹 Cleaning up test environment...');
+        console.log(' Cleaning up test environment...');
         // In a real implementation, this would:
         // - Clean up test data
         // - Reset service states
         // - Clear temporary files
         // - Reset database to clean state
-        console.log('✅ Test environment cleaned up');
+        console.log(' Test environment cleaned up');
     }
     /**
      * Notify test completion
      */
     async notifyTestCompletion(result) {
-        console.log('📢 Sending test completion notification...');
+        console.log(' Sending test completion notification...');
         // In a real implementation, this would send notifications via:
         // - Email to development team
         // - Slack/Teams integration
         // - Dashboard updates
         // - CI/CD pipeline notifications
-        console.log('✅ Test completion notification sent');
+        console.log(' Test completion notification sent');
     }
     /**
      * Create default test execution plan

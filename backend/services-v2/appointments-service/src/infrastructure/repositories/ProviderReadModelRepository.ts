@@ -315,7 +315,7 @@ export class ProviderReadModelRepository {
       throw new Error(`Failed to delete provider read model: ${error.message}`);
     }
 
-    console.debug(`[ProviderReadModelRepo] ✓ Deleted provider ${providerId}`);
+    console.debug(`[ProviderReadModelRepo]  Deleted provider ${providerId}`);
   }
 
   /**

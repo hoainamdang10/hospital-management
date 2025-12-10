@@ -120,7 +120,7 @@ export class ReschedulingService {
         }
       });
 
-      console.log(`✅ Conflict handled for appointment ${request.appointment.getAppointmentId().value}, queue entry: ${queueEntry.id}`);
+      console.log(` Conflict handled for appointment ${request.appointment.getAppointmentId().value}, queue entry: ${queueEntry.id}`);
       return queueEntry;
     } catch (error) {
       console.error('Failed to handle appointment conflict:', error);
@@ -181,7 +181,7 @@ export class ReschedulingService {
         }
       });
 
-      console.log(`✅ Patient response processed for queue entry ${response.queueEntryId}`);
+      console.log(` Patient response processed for queue entry ${response.queueEntryId}`);
       return updatedEntry;
     } catch (error) {
       console.error('Failed to process patient response:', error);
@@ -273,7 +273,7 @@ export class ReschedulingService {
         }
       });
 
-      console.log(`✅ Rescheduling completed for queue entry ${queueEntryId}`);
+      console.log(` Rescheduling completed for queue entry ${queueEntryId}`);
       return completedEntry;
     } catch (error) {
       console.error('Failed to complete rescheduling:', error);
@@ -310,7 +310,7 @@ export class ReschedulingService {
             );
             // Save the updated appointment
             await this.appointmentRepository.save(appointment);
-            console.log(`✅ Cancelled appointment ${entry.appointmentId} due to rescheduling expiration`);
+            console.log(` Cancelled appointment ${entry.appointmentId} due to rescheduling expiration`);
           }
         } catch (error) {
           console.warn(`Failed to cancel appointment ${entry.appointmentId}:`, error instanceof Error ? error.message : 'Unknown error');
@@ -335,7 +335,7 @@ export class ReschedulingService {
         });
       }
 
-      console.log(`✅ Processed ${expiredEntries.length} expired rescheduling entries`);
+      console.log(` Processed ${expiredEntries.length} expired rescheduling entries`);
     } catch (error) {
       console.error('Failed to process expired entries:', error);
       throw new Error(`Failed to process expired entries: ${error instanceof Error ? error.message : 'Unknown error'}`);

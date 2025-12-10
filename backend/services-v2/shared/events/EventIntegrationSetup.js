@@ -38,8 +38,8 @@ class EventIntegrationSetup {
      */
     async initializeAllServices() {
         try {
-            console.log('🚀 Initializing Event-Driven Architecture for Hospital Management System V2');
-            console.log('🏥 Vietnamese Healthcare Standards Compliance Enabled');
+            console.log(' Initializing Event-Driven Architecture for Hospital Management System V2');
+            console.log(' Vietnamese Healthcare Standards Compliance Enabled');
             const serviceConfigs = this.getServiceConfigurations();
             this.status.totalServices = serviceConfigs.length;
             // Initialize services in priority order
@@ -49,11 +49,11 @@ class EventIntegrationSetup {
                     try {
                         await this.initializeService(config);
                         this.status.connectedServices++;
-                        console.log(`✅ ${config.serviceName} event handler initialized successfully`);
+                        console.log(` ${config.serviceName} event handler initialized successfully`);
                     }
                     catch (error) {
                         this.status.failedServices++;
-                        console.error(`❌ Failed to initialize ${config.serviceName} event handler:`, error);
+                        console.error(` Failed to initialize ${config.serviceName} event handler:`, error);
                     }
                 }
                 else {
@@ -62,14 +62,14 @@ class EventIntegrationSetup {
             }
             // Start health monitoring
             this.startHealthMonitoring();
-            console.log(`🎉 Event Integration Setup Complete:`);
-            console.log(`   📊 Total Services: ${this.status.totalServices}`);
-            console.log(`   ✅ Connected: ${this.status.connectedServices}`);
-            console.log(`   ❌ Failed: ${this.status.failedServices}`);
-            console.log(`   🔄 Health Monitoring: Active`);
+            console.log(` Event Integration Setup Complete:`);
+            console.log(`    Total Services: ${this.status.totalServices}`);
+            console.log(`    Connected: ${this.status.connectedServices}`);
+            console.log(`    Failed: ${this.status.failedServices}`);
+            console.log(`    Health Monitoring: Active`);
         }
         catch (error) {
-            console.error('❌ Failed to initialize event integration:', error);
+            console.error(' Failed to initialize event integration:', error);
             throw error;
         }
     }
@@ -151,7 +151,7 @@ class EventIntegrationSetup {
      */
     async initializeService(config) {
         try {
-            console.log(`🔧 Initializing ${config.serviceName} event handler...`);
+            console.log(` Initializing ${config.serviceName} event handler...`);
             // In a real implementation, you would:
             // 1. Import the handler class dynamically
             // 2. Resolve dependencies from DI container
@@ -161,10 +161,10 @@ class EventIntegrationSetup {
             const mockHandler = new MockEventHandler(config.serviceName);
             await mockHandler.initialize();
             this.handlers.set(config.serviceName, mockHandler);
-            console.log(`✅ ${config.serviceName} event handler ready`);
+            console.log(` ${config.serviceName} event handler ready`);
         }
         catch (error) {
-            console.error(`❌ Failed to initialize ${config.serviceName}:`, error);
+            console.error(` Failed to initialize ${config.serviceName}:`, error);
             throw error;
         }
     }
@@ -175,7 +175,7 @@ class EventIntegrationSetup {
         this.healthCheckInterval = setInterval(async () => {
             await this.performHealthCheck();
         }, 30000); // Every 30 seconds
-        console.log('🔍 Health monitoring started (30s intervals)');
+        console.log(' Health monitoring started (30s intervals)');
     }
     /**
      * Perform health check on all handlers
@@ -200,7 +200,7 @@ class EventIntegrationSetup {
                     totalProcessingTime += metrics.averageProcessingTime * metrics.totalProcessed;
                 }
                 catch (error) {
-                    console.warn(`⚠️ Health check failed for ${serviceName}:`, error);
+                    console.warn(`️ Health check failed for ${serviceName}:`, error);
                 }
             }
             // Update status
@@ -213,14 +213,14 @@ class EventIntegrationSetup {
             this.status.lastHealthCheck = new Date();
             // Log health status
             if (this.status.connectedServices === this.status.totalServices) {
-                console.log(`💚 All services healthy - Events: ${totalEvents}, Success Rate: ${((successfulEvents / totalEvents) * 100).toFixed(1)}%`);
+                console.log(` All services healthy - Events: ${totalEvents}, Success Rate: ${((successfulEvents / totalEvents) * 100).toFixed(1)}%`);
             }
             else {
-                console.warn(`⚠️ Service health issues - Connected: ${connectedServices}/${this.status.totalServices}`);
+                console.warn(`️ Service health issues - Connected: ${connectedServices}/${this.status.totalServices}`);
             }
         }
         catch (error) {
-            console.error('❌ Health check failed:', error);
+            console.error(' Health check failed:', error);
         }
     }
     /**
@@ -254,20 +254,20 @@ class EventIntegrationSetup {
      */
     async shutdown() {
         try {
-            console.log('🔌 Shutting down event integration...');
+            console.log(' Shutting down event integration...');
             // Stop health monitoring
             if (this.healthCheckInterval) {
                 clearInterval(this.healthCheckInterval);
                 this.healthCheckInterval = null;
             }
             // Close all handlers
-            const shutdownPromises = Array.from(this.handlers.values()).map(handler => handler.close().catch(error => console.error(`❌ Error closing handler:`, error)));
+            const shutdownPromises = Array.from(this.handlers.values()).map(handler => handler.close().catch(error => console.error(` Error closing handler:`, error)));
             await Promise.all(shutdownPromises);
             this.handlers.clear();
-            console.log('✅ Event integration shutdown complete');
+            console.log(' Event integration shutdown complete');
         }
         catch (error) {
-            console.error('❌ Error during shutdown:', error);
+            console.error(' Error during shutdown:', error);
         }
     }
     /**
@@ -315,7 +315,7 @@ class MockEventHandler extends BaseEventHandler_1.BaseEventHandler {
     async initialize() {
         // Mock initialization
         this.isConnected = true;
-        console.log(`🔧 Mock handler initialized for ${this.serviceName}`);
+        console.log(` Mock handler initialized for ${this.serviceName}`);
     }
 }
 // Export singleton instance

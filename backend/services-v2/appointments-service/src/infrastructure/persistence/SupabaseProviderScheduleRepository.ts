@@ -225,7 +225,7 @@ export class SupabaseProviderScheduleRepository implements IProviderScheduleRepo
         throw new Error(`Failed to update provider availability: ${error.message || JSON.stringify(error)}`);
       }
 
-      console.log(`✅ Updated availability for provider ${providerId}`);
+      console.log(` Updated availability for provider ${providerId}`);
     } catch (error) {
       console.error('Error updating provider availability:', error);
       throw error;
@@ -269,7 +269,7 @@ export class SupabaseProviderScheduleRepository implements IProviderScheduleRepo
         throw new Error(`Failed to add shift: ${error.message || JSON.stringify(error)}`);
       }
 
-      console.log(`✅ Added shift for provider ${providerId}`);
+      console.log(` Added shift for provider ${providerId}`);
     } catch (error) {
       console.error('Error adding shift:', error);
       throw error;
@@ -312,7 +312,7 @@ export class SupabaseProviderScheduleRepository implements IProviderScheduleRepo
         throw new Error(`Failed to remove shift: ${error.message || JSON.stringify(error)}`);
       }
 
-      console.log(`✅ Removed shift ${shiftId} for provider ${providerId}`);
+      console.log(` Removed shift ${shiftId} for provider ${providerId}`);
     } catch (error) {
       console.error('Error removing shift:', error);
       throw error;
@@ -353,7 +353,7 @@ export class SupabaseProviderScheduleRepository implements IProviderScheduleRepo
         throw new Error(`Failed to update pattern: ${error.message || JSON.stringify(error)}`);
       }
 
-      console.log(`✅ Updated pattern for provider ${providerId}`);
+      console.log(` Updated pattern for provider ${providerId}`);
     } catch (error) {
       console.error('Error updating pattern:', error);
       throw error;

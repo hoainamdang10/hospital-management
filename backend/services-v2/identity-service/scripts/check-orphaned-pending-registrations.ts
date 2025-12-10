@@ -20,9 +20,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('❌ Missing required environment variables:');
-  console.error('   - SUPABASE_URL:', SUPABASE_URL ? '✅' : '❌');
-  console.error('   - SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_KEY ? '✅' : '❌');
+  console.error(' Missing required environment variables:');
+  console.error('   - SUPABASE_URL:', SUPABASE_URL ? '' : '');
+  console.error('   - SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_KEY ? '' : '');
   process.exit(1);
 }
 
@@ -53,9 +53,9 @@ interface OrphanedRecord {
 }
 
 async function checkOrphanedRecords(): Promise<void> {
-  console.log('🔍 Checking for orphaned pending registrations...\n');
-  console.log(`📍 Supabase URL: ${SUPABASE_URL}`);
-  console.log(`📍 Project ID: ${SUPABASE_URL?.split('//')[1]?.split('.')[0]}\n`);
+  console.log(' Checking for orphaned pending registrations...\n');
+  console.log(` Supabase URL: ${SUPABASE_URL}`);
+  console.log(` Project ID: ${SUPABASE_URL?.split('//')[1]?.split('.')[0]}\n`);
 
   // Initialize Supabase client
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
@@ -67,7 +67,7 @@ async function checkOrphanedRecords(): Promise<void> {
 
   try {
     // 1. Get all pending registrations
-    console.log('📊 Fetching all pending registrations...');
+    console.log(' Fetching all pending registrations...');
     const { data: allRecords, error: fetchError } = await supabase
       .schema('auth_schema')
       .from('pending_registrations')
@@ -79,11 +79,11 @@ async function checkOrphanedRecords(): Promise<void> {
     }
 
     if (!allRecords || allRecords.length === 0) {
-      console.log('✅ No pending registrations found in database.');
+      console.log(' No pending registrations found in database.');
       return;
     }
 
-    console.log(`📦 Total records found: ${allRecords.length}\n`);
+    console.log(` Total records found: ${allRecords.length}\n`);
 
     // 2. Analyze each record
     const now = new Date();
@@ -144,18 +144,18 @@ async function checkOrphanedRecords(): Promise<void> {
 
     // 3. Display results
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log('📊 SUMMARY');
+    console.log(' SUMMARY');
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`Total Records:        ${allRecords.length}`);
-    console.log(`✅ Active (Valid):    ${activeRecords.length}`);
-    console.log(`⚠️  Orphaned (Stuck): ${orphanedRecords.length}`);
+    console.log(` Active (Valid):    ${activeRecords.length}`);
+    console.log(`️  Orphaned (Stuck): ${orphanedRecords.length}`);
     console.log(`⏰ Expired:           ${expiredRecords.length}`);
-    console.log(`✔️  Used (Not Deleted): ${usedRecords.length}`);
+    console.log(`️  Used (Not Deleted): ${usedRecords.length}`);
     console.log('═══════════════════════════════════════════════════════════════\n');
 
     // 4. Display active records
     if (activeRecords.length > 0) {
-      console.log('✅ ACTIVE PENDING REGISTRATIONS (Valid)');
+      console.log(' ACTIVE PENDING REGISTRATIONS (Valid)');
       console.log('───────────────────────────────────────────────────────────────');
       activeRecords.forEach((record, index) => {
         console.log(`${index + 1}. Email: ${record.email}`);
@@ -169,7 +169,7 @@ async function checkOrphanedRecords(): Promise<void> {
 
     // 5. Display orphaned records (CRITICAL)
     if (orphanedRecords.length > 0) {
-      console.log('⚠️  ORPHANED PENDING REGISTRATIONS (Blocking Re-registration)');
+      console.log('️  ORPHANED PENDING REGISTRATIONS (Blocking Re-registration)');
       console.log('───────────────────────────────────────────────────────────────');
       orphanedRecords.forEach((record, index) => {
         console.log(`${index + 1}. Email: ${record.email}`);
@@ -177,7 +177,7 @@ async function checkOrphanedRecords(): Promise<void> {
         console.log(`   Created: ${record.createdAt.toLocaleString()}`);
         console.log(`   Expires: ${record.expiresAt.toLocaleString()}`);
         console.log(`   Age: ${record.ageInHours.toFixed(1)} hours`);
-        console.log(`   ⚠️  Reason: ${record.reason}`);
+        console.log(`   ️  Reason: ${record.reason}`);
         console.log(`   ID: ${record.id}`);
         console.log('');
       });
@@ -200,7 +200,7 @@ async function checkOrphanedRecords(): Promise<void> {
 
     // 7. Display used records
     if (usedRecords.length > 0) {
-      console.log('✔️  USED PENDING REGISTRATIONS (Should be deleted)');
+      console.log('️  USED PENDING REGISTRATIONS (Should be deleted)');
       console.log('───────────────────────────────────────────────────────────────');
       usedRecords.forEach((record, index) => {
         console.log(`${index + 1}. Email: ${record.email}`);
@@ -213,11 +213,11 @@ async function checkOrphanedRecords(): Promise<void> {
 
     // 8. Recommendations
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log('💡 RECOMMENDATIONS');
+    console.log(' RECOMMENDATIONS');
     console.log('═══════════════════════════════════════════════════════════════');
 
     if (orphanedRecords.length > 0) {
-      console.log('⚠️  CRITICAL: Found orphaned records blocking re-registration!');
+      console.log('️  CRITICAL: Found orphaned records blocking re-registration!');
       console.log('   These records are preventing users from registering again.');
       console.log('   Recommended actions:');
       console.log('   1. Run cleanup script to delete orphaned records');
@@ -233,14 +233,14 @@ async function checkOrphanedRecords(): Promise<void> {
     }
 
     if (usedRecords.length > 0) {
-      console.log('✔️  Found used records that should be deleted.');
+      console.log('️  Found used records that should be deleted.');
       console.log('   These records were verified but not cleaned up.');
       console.log('   Run: npm run cleanup:pending-registrations');
       console.log('');
     }
 
     if (orphanedRecords.length === 0 && expiredRecords.length === 0 && usedRecords.length === 0) {
-      console.log('✅ No issues found! All pending registrations are valid.');
+      console.log(' No issues found! All pending registrations are valid.');
       console.log('');
     }
 
@@ -263,10 +263,10 @@ async function checkOrphanedRecords(): Promise<void> {
     const reportPath = path.join(__dirname, `orphaned-report-${Date.now()}.json`);
     const fs = require('fs');
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-    console.log(`📄 Full report saved to: ${reportPath}\n`);
+    console.log(` Full report saved to: ${reportPath}\n`);
 
   } catch (error: any) {
-    console.error('❌ Error checking orphaned records:', error.message);
+    console.error(' Error checking orphaned records:', error.message);
     process.exit(1);
   }
 }
@@ -274,10 +274,10 @@ async function checkOrphanedRecords(): Promise<void> {
 // Run the check
 checkOrphanedRecords()
   .then(() => {
-    console.log('✅ Check completed successfully!');
+    console.log(' Check completed successfully!');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('❌ Check failed:', error);
+    console.error(' Check failed:', error);
     process.exit(1);
   });

@@ -277,7 +277,7 @@ class SupabaseQueueRepository {
                 console.error('Supabase addToReschedulingQueue error:', error);
                 throw new Error(`Failed to add to rescheduling queue: ${error.message || JSON.stringify(error)}`);
             }
-            console.log(`✅ Added appointment ${appointment.appointmentId || appointment.id} to rescheduling queue`);
+            console.log(` Added appointment ${appointment.appointmentId || appointment.id} to rescheduling queue`);
         }
         catch (error) {
             console.error('Error adding to rescheduling queue:', error);

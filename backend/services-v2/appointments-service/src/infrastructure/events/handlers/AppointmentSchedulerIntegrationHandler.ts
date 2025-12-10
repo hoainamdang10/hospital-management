@@ -366,14 +366,14 @@ export class AppointmentScheduledSchedulerHandler implements EventHandler<Domain
             }
           });
 
-          console.log(`[SchedulerHandler] ✅ Enqueued reminder schedule: ${dedupKey} at ${reminderTime.toISOString()}`);
+          console.log(`[SchedulerHandler]  Enqueued reminder schedule: ${dedupKey} at ${reminderTime.toISOString()}`);
         } catch (error) {
-          console.error(`[SchedulerHandler] ❌ Failed to enqueue reminder ${dedupKey}:`, error);
+          console.error(`[SchedulerHandler]  Failed to enqueue reminder ${dedupKey}:`, error);
           // Continue with other reminders even if one fails
         }
       }
 
-      console.log(`[SchedulerHandler] ✅ Completed scheduling ${reminderWindows.length} reminders for ${eventData.appointmentId}`);
+      console.log(`[SchedulerHandler]  Completed scheduling ${reminderWindows.length} reminders for ${eventData.appointmentId}`);
     } catch (error) {
       console.error('[SchedulerHandler] Error handling AppointmentScheduled event:', error);
       throw error;
@@ -424,7 +424,7 @@ export class AppointmentCancelledSchedulerHandler implements EventHandler<Domain
         }
       });
 
-      console.log(`[SchedulerHandler] ✅ Enqueued cancellation for ${appointmentId}`);
+      console.log(`[SchedulerHandler]  Enqueued cancellation for ${appointmentId}`);
     } catch (error) {
       console.error('[SchedulerHandler] Error handling AppointmentCancelled event:', error);
       throw error;
@@ -510,7 +510,7 @@ export class AppointmentRescheduledSchedulerHandler implements EventHandler<Doma
         }
       });
 
-      console.log(`[SchedulerHandler] ✅ Enqueued reschedule (cancel + create) for ${appointmentId}`);
+      console.log(`[SchedulerHandler]  Enqueued reschedule (cancel + create) for ${appointmentId}`);
     } catch (error) {
       console.error('[SchedulerHandler] Error handling AppointmentRescheduled event:', error);
       throw error;

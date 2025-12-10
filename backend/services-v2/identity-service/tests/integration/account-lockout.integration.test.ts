@@ -135,7 +135,7 @@ describe('Account Lockout & Brute Force Protection Integration Tests', () => {
 
     // Get cached test user pool (seeds once, reuses for all tests)
     userPool = await testUserPoolCache.getPool(supabaseClient);
-    console.log('✅ Test user pool ready for account lockout tests');
+    console.log(' Test user pool ready for account lockout tests');
   }, 120000); // Increased timeout for user pool seeding
 
   afterAll(async () => {

@@ -14,19 +14,19 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 async function applyOutboxMigration() {
-  console.log('🚀 Starting Outbox Pattern Migration (Direct SQL)...\n');
+  console.log(' Starting Outbox Pattern Migration (Direct SQL)...\n');
 
   // Validate environment
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error('❌ Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+    console.error(' Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
     console.error('   Checked path: ' + path.join(__dirname, '../../.env'));
     process.exit(1);
   }
 
-  console.log('✅ Environment loaded');
+  console.log(' Environment loaded');
   console.log(`   URL: ${supabaseUrl}`);
   console.log(`   Key: ${serviceRoleKey.substring(0, 20)}...\n`);
 
@@ -34,7 +34,7 @@ async function applyOutboxMigration() {
   const migrationPath = path.join(__dirname, '../migrations/007_create_outbox_pattern.sql');
   const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
 
-  console.log('📄 Read migration file: 007_create_outbox_pattern.sql');
+  console.log(' Read migration file: 007_create_outbox_pattern.sql');
   console.log(`   Size: ${migrationSQL.length} bytes\n`);
 
   // Split SQL into individual statements (basic splitting)
@@ -43,8 +43,8 @@ async function applyOutboxMigration() {
     .map(s => s.trim())
     .filter(s => s.length > 0 && !s.startsWith('--'));
 
-  console.log(`📊 Found ${statements.length} SQL statements\n`);
-  console.log('⚙️  Executing migration via psql...\n');
+  console.log(` Found ${statements.length} SQL statements\n`);
+  console.log('️  Executing migration via psql...\n');
 
   // Use psql to execute the entire migration file
   const { execSync } = require('child_process');
@@ -57,12 +57,12 @@ async function applyOutboxMigration() {
     // Construct PostgreSQL connection string
     const connectionString = `postgresql://postgres.${projectRef}:${serviceRoleKey.replace('eyJ', '[FILTERED]')}@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres`;
     
-    console.log('📝 Connection info:');
+    console.log(' Connection info:');
     console.log(`   Project: ${projectRef}`);
     console.log(`   Host: aws-0-ap-southeast-1.pooler.supabase.com`);
     console.log(`   Port: 6543\n`);
 
-    console.log('⚠️  Note: Direct psql execution not available in this environment');
+    console.log('️  Note: Direct psql execution not available in this environment');
     console.log('   Using alternative approach via REST API...\n');
 
     // Use Supabase REST API to execute SQL
@@ -81,23 +81,23 @@ async function applyOutboxMigration() {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
-    console.log('✅ Migration executed successfully via REST API!\n');
+    console.log(' Migration executed successfully via REST API!\n');
 
   } catch (error: any) {
-    console.log('⚠️  REST API approach failed, using manual verification...\n');
+    console.log('️  REST API approach failed, using manual verification...\n');
     console.log('   Error:', error.message);
-    console.log('\n📋 Manual Steps:');
+    console.log('\n Manual Steps:');
     console.log('   1. Open: https://supabase.com/dashboard/project/ciasxktujslgsdgylimv/sql/new');
     console.log('   2. Copy and paste the SQL from: migrations/007_create_outbox_pattern.sql');
     console.log('   3. Click "Run" to execute');
     console.log('   4. Come back here and I will verify the tables\n');
 
     // Ask to continue
-    console.log('📝 After running SQL manually, we will verify the tables...\n');
+    console.log(' After running SQL manually, we will verify the tables...\n');
   }
 
   // Verify tables (regardless of how they were created)
-  console.log('🔍 Verifying table creation...\n');
+  console.log(' Verifying table creation...\n');
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: {
@@ -122,27 +122,27 @@ async function applyOutboxMigration() {
         .select('*', { count: 'exact', head: true });
 
       if (error) {
-        console.log(`   ❌ ${table.name}: ${error.message}`);
+        console.log(`    ${table.name}: ${error.message}`);
       } else {
-        console.log(`   ✅ ${table.name}: Ready (${count || 0} rows) - ${table.description}`);
+        console.log(`    ${table.name}: Ready (${count || 0} rows) - ${table.description}`);
         successCount++;
       }
     } catch (err: any) {
-      console.log(`   ❌ ${table.name}: ${err.message}`);
+      console.log(`    ${table.name}: ${err.message}`);
     }
   }
 
-  console.log(`\n📊 Verification Summary: ${successCount}/${tables.length} tables verified\n`);
+  console.log(`\n Verification Summary: ${successCount}/${tables.length} tables verified\n`);
 
   if (successCount === tables.length) {
-    console.log('✅ All tables created successfully!\n');
-    console.log('📋 Next Steps:');
-    console.log('   1. ✅ Tables created');
+    console.log(' All tables created successfully!\n');
+    console.log(' Next Steps:');
+    console.log('   1.  Tables created');
     console.log('   2. ⏳ Start clinical-emr-service');
     console.log('   3. ⏳ Verify worker starts: "Outbox Publisher Worker started"');
     console.log('   4. ⏳ Test event flow\n');
   } else {
-    console.log('⚠️  Some tables not found. Please run SQL manually:\n');
+    console.log('️  Some tables not found. Please run SQL manually:\n');
     console.log('   Dashboard: https://supabase.com/dashboard/project/ciasxktujslgsdgylimv/sql/new');
     console.log('   SQL File: migrations/007_create_outbox_pattern.sql\n');
   }

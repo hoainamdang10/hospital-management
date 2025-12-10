@@ -59,14 +59,14 @@ class EventBusIntegration {
      */
     async initialize() {
         try {
-            console.log('🚌 Initializing Event Bus connection...');
+            console.log(' Initializing Event Bus connection...');
             await this.connect();
             await this.setupExchangeAndQueue();
             await this.startConsuming();
-            console.log('✅ Event Bus initialized successfully');
+            console.log(' Event Bus initialized successfully');
         }
         catch (error) {
-            console.error('❌ Failed to initialize Event Bus:', error);
+            console.error(' Failed to initialize Event Bus:', error);
             throw new Error(`Event Bus initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
@@ -81,19 +81,19 @@ class EventBusIntegration {
             this.reconnectAttempts = 0;
             // Handle connection events
             this.connection.on('error', (error) => {
-                console.error('🚌 RabbitMQ connection error:', error);
+                console.error(' RabbitMQ connection error:', error);
                 this.isConnected = false;
                 this.scheduleReconnect();
             });
             this.connection.on('close', () => {
-                console.warn('🚌 RabbitMQ connection closed');
+                console.warn(' RabbitMQ connection closed');
                 this.isConnected = false;
                 this.scheduleReconnect();
             });
-            console.log('🔗 Connected to RabbitMQ');
+            console.log(' Connected to RabbitMQ');
         }
         catch (error) {
-            console.error('❌ Failed to connect to RabbitMQ:', error);
+            console.error(' Failed to connect to RabbitMQ:', error);
             throw error;
         }
     }
@@ -120,14 +120,14 @@ class EventBusIntegration {
             // Bind queue to exchange with routing keys
             for (const routingKey of this.config.routingKeys) {
                 await this.channel.bindQueue(this.config.queueName, this.config.exchangeName, routingKey);
-                console.log(`📮 Queue bound to routing key: ${routingKey}`);
+                console.log(` Queue bound to routing key: ${routingKey}`);
             }
             // Setup dead letter queue for failed messages
             await this.setupDeadLetterQueue();
-            console.log('🏗️ Exchange and queue setup completed');
+            console.log('️ Exchange and queue setup completed');
         }
         catch (error) {
-            console.error('❌ Failed to setup exchange and queue:', error);
+            console.error(' Failed to setup exchange and queue:', error);
             throw error;
         }
     }
@@ -146,10 +146,10 @@ class EventBusIntegration {
             await this.channel.assertQueue(dlqName, { durable: true });
             // Bind dead letter queue
             await this.channel.bindQueue(dlqName, dlxName, 'failed');
-            console.log('💀 Dead letter queue setup completed');
+            console.log(' Dead letter queue setup completed');
         }
         catch (error) {
-            console.error('❌ Failed to setup dead letter queue:', error);
+            console.error(' Failed to setup dead letter queue:', error);
         }
     }
     /**
@@ -170,10 +170,10 @@ class EventBusIntegration {
             }, {
                 noAck: false // Manual acknowledgment
             });
-            console.log('👂 Started consuming messages from queue');
+            console.log(' Started consuming messages from queue');
         }
         catch (error) {
-            console.error('❌ Failed to start consuming:', error);
+            console.error(' Failed to start consuming:', error);
             throw error;
         }
     }
@@ -187,7 +187,7 @@ class EventBusIntegration {
             // Parse message
             const messageContent = message.content.toString();
             event = JSON.parse(messageContent);
-            console.log(`📨 Received event: ${event.eventType} from ${event.serviceName}`);
+            console.log(` Received event: ${event.eventType} from ${event.serviceName}`);
             // Validate event structure
             if (!this.isValidEvent(event)) {
                 throw new Error('Invalid event structure');
@@ -199,10 +199,10 @@ class EventBusIntegration {
             // Acknowledge message
             this.channel?.ack(message);
             const processingTime = Date.now() - startTime;
-            console.log(`✅ Event processed successfully in ${processingTime}ms: ${event.eventType}`);
+            console.log(` Event processed successfully in ${processingTime}ms: ${event.eventType}`);
         }
         catch (error) {
-            console.error(`❌ Failed to process event ${event?.eventType || 'unknown'}:`, error);
+            console.error(` Failed to process event ${event?.eventType || 'unknown'}:`, error);
             // Handle retry logic
             await this.handleMessageError(message, error);
         }
@@ -231,7 +231,7 @@ class EventBusIntegration {
             }
         }
         catch (error) {
-            console.error('❌ Failed to send real-time notification:', error);
+            console.error(' Failed to send real-time notification:', error);
             // Don't throw error here to avoid affecting main event processing
         }
     }
@@ -324,20 +324,20 @@ class EventBusIntegration {
             const retryCount = this.getRetryCount(message);
             if (retryCount < this.config.retryAttempts) {
                 // Retry message
-                console.log(`🔄 Retrying message (attempt ${retryCount + 1}/${this.config.retryAttempts})`);
+                console.log(` Retrying message (attempt ${retryCount + 1}/${this.config.retryAttempts})`);
                 setTimeout(() => {
                     this.channel?.nack(message, false, true);
                 }, this.config.retryDelay * Math.pow(2, retryCount)); // Exponential backoff
             }
             else {
                 // Send to dead letter queue
-                console.log('💀 Sending message to dead letter queue');
+                console.log(' Sending message to dead letter queue');
                 await this.sendToDeadLetterQueue(message, error);
                 this.channel?.ack(message);
             }
         }
         catch (retryError) {
-            console.error('❌ Failed to handle message error:', retryError);
+            console.error(' Failed to handle message error:', retryError);
             this.channel?.nack(message, false, false);
         }
     }
@@ -365,7 +365,7 @@ class EventBusIntegration {
             });
         }
         catch (dlqError) {
-            console.error('❌ Failed to send to dead letter queue:', dlqError);
+            console.error(' Failed to send to dead letter queue:', dlqError);
         }
     }
     /**
@@ -384,18 +384,18 @@ class EventBusIntegration {
      */
     scheduleReconnect() {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error('❌ Max reconnection attempts reached');
+            console.error(' Max reconnection attempts reached');
             return;
         }
         this.reconnectAttempts++;
         const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000); // Max 30 seconds
-        console.log(`🔄 Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`);
+        console.log(` Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`);
         setTimeout(async () => {
             try {
                 await this.initialize();
             }
             catch (error) {
-                console.error('❌ Reconnection failed:', error);
+                console.error(' Reconnection failed:', error);
             }
         }, delay);
     }
@@ -416,10 +416,10 @@ class EventBusIntegration {
                     'source-service': 'notifications-service'
                 }
             });
-            console.log(`📤 Event published: ${event.eventType} with routing key: ${routingKey}`);
+            console.log(` Event published: ${event.eventType} with routing key: ${routingKey}`);
         }
         catch (error) {
-            console.error('❌ Failed to publish event:', error);
+            console.error(' Failed to publish event:', error);
             throw error;
         }
     }
@@ -435,10 +435,10 @@ class EventBusIntegration {
                 await this.connection.close();
             }
             this.isConnected = false;
-            console.log('🚌 Event bus connection closed');
+            console.log(' Event bus connection closed');
         }
         catch (error) {
-            console.error('❌ Error closing event bus connection:', error);
+            console.error(' Error closing event bus connection:', error);
         }
     }
     /**

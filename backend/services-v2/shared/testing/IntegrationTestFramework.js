@@ -65,7 +65,7 @@ class IntegrationTestFramework {
      * Run complete integration test suite
      */
     async runIntegrationTests() {
-        console.log('🧪 Starting Hospital Management System V2 Integration Tests');
+        console.log(' Starting Hospital Management System V2 Integration Tests');
         const suiteStartTime = Date.now();
         const suiteId = `integration_suite_${Date.now()}`;
         try {
@@ -119,11 +119,11 @@ class IntegrationTestFramework {
             if (this.config.testing.cleanupAfterTests) {
                 await this.cleanupTestEnvironment();
             }
-            console.log(`✅ Integration tests completed: ${passedTests}/${totalTests} passed`);
+            console.log(` Integration tests completed: ${passedTests}/${totalTests} passed`);
             return testSuite;
         }
         catch (error) {
-            console.error('❌ Integration test suite failed:', error);
+            console.error(' Integration test suite failed:', error);
             throw error;
         }
     }
@@ -131,7 +131,7 @@ class IntegrationTestFramework {
      * Initialize test environment
      */
     async initializeTestEnvironment() {
-        console.log('🔧 Initializing test environment...');
+        console.log(' Initializing test environment...');
         try {
             // Setup test authentication
             await this.setupTestAuthentication();
@@ -139,10 +139,10 @@ class IntegrationTestFramework {
             await this.verifyServiceConnectivity();
             // Setup test data
             await this.setupTestData();
-            console.log('✅ Test environment initialized');
+            console.log(' Test environment initialized');
         }
         catch (error) {
-            console.error('❌ Failed to initialize test environment:', error);
+            console.error(' Failed to initialize test environment:', error);
             throw error;
         }
     }
@@ -164,11 +164,11 @@ class IntegrationTestFramework {
                 });
                 if (response.data.success && response.data.token) {
                     this.authTokens.set(user.role, response.data.token);
-                    console.log(`✅ Authenticated test user: ${user.role}`);
+                    console.log(` Authenticated test user: ${user.role}`);
                 }
             }
             catch (error) {
-                console.warn(`⚠️ Failed to authenticate test user ${user.role}:`, error);
+                console.warn(`️ Failed to authenticate test user ${user.role}:`, error);
             }
         }
     }
@@ -181,14 +181,14 @@ class IntegrationTestFramework {
             try {
                 const response = await axios_1.default.get(`${serviceUrl}/health`, { timeout: 5000 });
                 if (response.status === 200) {
-                    console.log(`✅ Service connectivity verified: ${serviceName}`);
+                    console.log(` Service connectivity verified: ${serviceName}`);
                 }
                 else {
-                    console.warn(`⚠️ Service health check failed: ${serviceName}`);
+                    console.warn(`️ Service health check failed: ${serviceName}`);
                 }
             }
             catch (error) {
-                console.error(`❌ Service connectivity failed: ${serviceName}`, error);
+                console.error(` Service connectivity failed: ${serviceName}`, error);
             }
         }
     }
@@ -198,20 +198,20 @@ class IntegrationTestFramework {
     async setupTestData() {
         // This would setup test data in the database
         // For now, we'll just log the setup
-        console.log('📊 Setting up Vietnamese healthcare test data...');
+        console.log(' Setting up Vietnamese healthcare test data...');
         // Test data would include:
         // - Test patients with Vietnamese names and addresses
         // - Test doctors with Vietnamese medical licenses
         // - Test appointments with Vietnamese healthcare contexts
         // - Test insurance data (BHYT/BHTN)
         // - Test medical records with Vietnamese medical terminology
-        console.log('✅ Test data setup completed');
+        console.log(' Test data setup completed');
     }
     /**
      * Run service health tests
      */
     async runServiceHealthTests() {
-        console.log('🏥 Running service health tests...');
+        console.log(' Running service health tests...');
         const tests = [];
         const services = Object.entries(this.config.services);
         for (const [serviceName, serviceUrl] of services) {
@@ -252,7 +252,7 @@ class IntegrationTestFramework {
      * Run authentication tests
      */
     async runAuthenticationTests() {
-        console.log('🔐 Running authentication tests...');
+        console.log(' Running authentication tests...');
         const tests = [];
         // Test user login
         const loginTest = await this.executeTest({
@@ -328,7 +328,7 @@ class IntegrationTestFramework {
      * Run patient journey tests
      */
     async runPatientJourneyTests() {
-        console.log('🏥 Running patient journey tests...');
+        console.log(' Running patient journey tests...');
         const tests = [];
         // Test patient registration
         const patientRegistrationTest = await this.executeTest({
@@ -385,7 +385,7 @@ class IntegrationTestFramework {
      * Run appointment billing tests
      */
     async runAppointmentBillingTests() {
-        console.log('💰 Running appointment billing tests...');
+        console.log(' Running appointment billing tests...');
         const tests = [];
         // Test invoice generation
         const invoiceGenerationTest = await this.executeTest({
@@ -444,7 +444,7 @@ class IntegrationTestFramework {
      * Run notification tests
      */
     async runNotificationTests() {
-        console.log('📢 Running notification tests...');
+        console.log(' Running notification tests...');
         const tests = [];
         // Test notification sending
         const notificationTest = await this.executeTest({
@@ -506,7 +506,7 @@ class IntegrationTestFramework {
      * Run workflow integration tests
      */
     async runWorkflowIntegrationTests() {
-        console.log('🔄 Running workflow integration tests...');
+        console.log(' Running workflow integration tests...');
         const tests = [];
         // Test workflow orchestration
         const workflowTest = await this.executeTest({
@@ -554,7 +554,7 @@ class IntegrationTestFramework {
      * Run Vietnamese healthcare tests
      */
     async runVietnameseHealthcareTests() {
-        console.log('🇻🇳 Running Vietnamese healthcare tests...');
+        console.log(' Running Vietnamese healthcare tests...');
         const tests = [];
         // Test Vietnamese language support
         const vietnameseLanguageTest = await this.executeTest({
@@ -612,7 +612,7 @@ class IntegrationTestFramework {
      * Run cross-service communication tests
      */
     async runCrossServiceCommunicationTests() {
-        console.log('🔗 Running cross-service communication tests...');
+        console.log(' Running cross-service communication tests...');
         const tests = [];
         // Test API Gateway routing
         const apiGatewayTest = await this.executeTest({
@@ -681,7 +681,7 @@ class IntegrationTestFramework {
         const startTime = new Date();
         const testStartTime = Date.now();
         try {
-            console.log(`  🧪 Running: ${testConfig.testName}`);
+            console.log(`   Running: ${testConfig.testName}`);
             const result = await testConfig.testFunction();
             const executionTime = Date.now() - testStartTime;
             const endTime = new Date();
@@ -705,17 +705,17 @@ class IntegrationTestFramework {
             };
             this.testResults.set(testConfig.testId, testResult);
             if (status === 'PASSED') {
-                console.log(`    ✅ ${testConfig.testName} - PASSED (${executionTime}ms)`);
+                console.log(`     ${testConfig.testName} - PASSED (${executionTime}ms)`);
             }
             else {
-                console.log(`    ❌ ${testConfig.testName} - FAILED (${executionTime}ms)`);
+                console.log(`     ${testConfig.testName} - FAILED (${executionTime}ms)`);
             }
             return testResult;
         }
         catch (error) {
             const executionTime = Date.now() - testStartTime;
             const endTime = new Date();
-            console.log(`    💥 ${testConfig.testName} - ERROR (${executionTime}ms)`);
+            console.log(`     ${testConfig.testName} - ERROR (${executionTime}ms)`);
             console.error(`       Error: ${error}`);
             const testResult = {
                 testId: testConfig.testId,
@@ -765,7 +765,7 @@ class IntegrationTestFramework {
      * Generate test report
      */
     async generateTestReport(testSuite) {
-        console.log('📊 Generating integration test report...');
+        console.log(' Generating integration test report...');
         const report = {
             title: 'Hospital Management System V2 - Integration Test Report',
             vietnamese: {
@@ -781,20 +781,20 @@ class IntegrationTestFramework {
             }
         };
         // In a real implementation, this would save the report to a file
-        console.log('✅ Test report generated');
+        console.log(' Test report generated');
     }
     /**
      * Cleanup test environment
      */
     async cleanupTestEnvironment() {
-        console.log('🧹 Cleaning up test environment...');
+        console.log(' Cleaning up test environment...');
         // Clear auth tokens
         this.authTokens.clear();
         // In a real implementation, this would:
         // - Delete test data from database
         // - Reset service states
         // - Clean up temporary files
-        console.log('✅ Test environment cleaned up');
+        console.log(' Test environment cleaned up');
     }
     /**
      * Get integration test framework status

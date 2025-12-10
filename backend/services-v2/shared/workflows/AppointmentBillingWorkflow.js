@@ -25,7 +25,7 @@ class AppointmentBillingWorkflow {
      * Register all appointment-billing workflows
      */
     registerAppointmentBillingWorkflows() {
-        console.log("💰 Registering Appointment-Billing Integration Workflows");
+        console.log(" Registering Appointment-Billing Integration Workflows");
         this.registerAppointmentInvoiceGenerationWorkflow();
         this.registerInsuranceClaimProcessingWorkflow();
         this.registerPaymentProcessingWorkflow();
@@ -33,7 +33,7 @@ class AppointmentBillingWorkflow {
         this.registerRefundProcessingWorkflow();
         this.registerBHYTIntegrationWorkflow();
         this.registerPayOSIntegrationWorkflow();
-        console.log("✅ All Appointment-Billing Workflows registered");
+        console.log(" All Appointment-Billing Workflows registered");
     }
     /**
      * Appointment Invoice Generation Workflow
@@ -689,7 +689,7 @@ class AppointmentBillingWorkflow {
      * Execute appointment invoice generation
      */
     async executeAppointmentInvoiceGeneration(billingContext) {
-        console.log(`💰 Starting Invoice Generation for appointment: ${billingContext.appointmentId}`);
+        console.log(` Starting Invoice Generation for appointment: ${billingContext.appointmentId}`);
         return await this.orchestrator.startWorkflow("appointment-invoice-generation", billingContext, {
             appointmentId: billingContext.appointmentId,
             patientId: billingContext.patientId,
@@ -701,7 +701,7 @@ class AppointmentBillingWorkflow {
      * Execute insurance claim processing
      */
     async executeInsuranceClaimProcessing(billingContext) {
-        console.log(`🏥 Starting Insurance Claim Processing for patient: ${billingContext.patientId}`);
+        console.log(` Starting Insurance Claim Processing for patient: ${billingContext.patientId}`);
         return await this.orchestrator.startWorkflow("insurance-claim-processing", billingContext, {
             patientId: billingContext.patientId,
             appointmentId: billingContext.appointmentId,
@@ -713,7 +713,7 @@ class AppointmentBillingWorkflow {
      * Execute payment processing
      */
     async executePaymentProcessing(billingContext, paymentContext) {
-        console.log(`💳 Starting Payment Processing for invoice: ${paymentContext.invoiceId}`);
+        console.log(` Starting Payment Processing for invoice: ${paymentContext.invoiceId}`);
         return await this.orchestrator.startWorkflow("payment-processing", { ...billingContext, ...paymentContext }, {
             invoiceId: paymentContext.invoiceId,
             patientId: billingContext.patientId,
@@ -725,7 +725,7 @@ class AppointmentBillingWorkflow {
      * Execute complete appointment-billing workflow
      */
     async executeCompleteAppointmentBilling(billingContext) {
-        console.log(`🏥 Starting Complete Appointment-Billing Workflow for: ${billingContext.appointmentId}`);
+        console.log(` Starting Complete Appointment-Billing Workflow for: ${billingContext.appointmentId}`);
         const results = [];
         try {
             // 1. Generate Invoice
@@ -751,7 +751,7 @@ class AppointmentBillingWorkflow {
             };
         }
         catch (error) {
-            console.error("❌ Appointment-billing workflow failed:", error);
+            console.error(" Appointment-billing workflow failed:", error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : "Unknown error",

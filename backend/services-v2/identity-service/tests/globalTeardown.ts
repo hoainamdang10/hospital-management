@@ -10,7 +10,7 @@ import { createTestSupabaseClient } from './helpers/integrationHelpers';
 import { cleanupTestUserPool, TestUserPool } from './helpers/test-user-pool';
 
 export default async function globalTeardown() {
-  console.log('\n🧹 Global Teardown: Cleaning up test user pool...');
+  console.log('\n Global Teardown: Cleaning up test user pool...');
 
   try {
     const userPool = (global as any).__TEST_USER_POOL__ as TestUserPool;
@@ -18,12 +18,12 @@ export default async function globalTeardown() {
     if (userPool) {
       const supabaseClient = createTestSupabaseClient();
       await cleanupTestUserPool(supabaseClient, userPool);
-      console.log('✅ Global Teardown: Test user pool cleaned up\n');
+      console.log(' Global Teardown: Test user pool cleaned up\n');
     } else {
       console.log('ℹ️  No test user pool to clean up\n');
     }
   } catch (error) {
-    console.warn('⚠️  Global Teardown warning:', error);
+    console.warn('️  Global Teardown warning:', error);
   }
 }
 

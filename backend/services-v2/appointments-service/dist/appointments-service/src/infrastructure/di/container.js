@@ -143,11 +143,11 @@ class DIContainer {
         this.circuitBreaker = new CircuitBreakerService_1.CircuitBreakerService();
         try {
             await this.cacheService.connect();
-            console.log("[DI] ✅ Cache service initialized");
-            console.log("[DI] ✅ Circuit breaker initialized");
+            console.log("[DI]  Cache service initialized");
+            console.log("[DI]  Circuit breaker initialized");
         }
         catch (error) {
-            console.warn("[DI] ⚠️ Cache service failed to connect - continuing without cache");
+            console.warn("[DI] ️ Cache service failed to connect - continuing without cache");
         }
     }
     /**
@@ -157,7 +157,7 @@ class DIContainer {
         // Note: EventSubscriptions might not be initialized yet, so pass undefined initially
         // It will be updated later via updateHealthCheckDependencies()
         this.healthCheckService = new HealthCheckService_1.HealthCheckService(this.config, this.cacheService, undefined);
-        console.log("[DI] ✅ Health check service initialized (EventSubscriptions will be injected later)");
+        console.log("[DI]  Health check service initialized (EventSubscriptions will be injected later)");
     }
     /**
      * Update health check service with EventSubscriptions dependency
@@ -166,7 +166,7 @@ class DIContainer {
     updateHealthCheckDependencies() {
         if (this.healthCheckService && this.eventSubscriptions) {
             this.healthCheckService.attachEventSubscriptions(this.eventSubscriptions);
-            console.log("[DI] ✅ Health check service updated with EventSubscriptions");
+            console.log("[DI]  Health check service updated with EventSubscriptions");
         }
     }
     /**
@@ -174,7 +174,7 @@ class DIContainer {
      */
     initializeMetricsService() {
         this.metricsService = new MetricsService_1.MetricsService();
-        console.log("[DI] ✅ Metrics service initialized");
+        console.log("[DI]  Metrics service initialized");
     }
     /**
      * Initialize repositories
@@ -200,7 +200,7 @@ class DIContainer {
         this.patientReadModelRepository = new PatientReadModelRepository_1.PatientReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.providerReadModelRepository = new ProviderReadModelRepository_1.ProviderReadModelRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
         this.inboxRepository = new InboxRepository_1.InboxRepository(this.config.supabase.url, this.config.supabase.serviceRoleKey);
-        console.log("[DI] ✅ Repositories initialized (7 total, Waitlist archived)");
+        console.log("[DI]  Repositories initialized (7 total, Waitlist archived)");
         console.log("[DI]    - Appointment, ReadModel, Queue, ProviderSchedule, Reminder");
         console.log("[DI]    - PatientReadModel, ProviderReadModel, Inbox (Pure Outbox)");
     }
@@ -221,7 +221,7 @@ class DIContainer {
         if (this.paymentCompletedHandler) {
             this.paymentCompletedHandler.setEventBus(eventBus);
         }
-        console.log("[DI] ✅ Event publisher initialized and wired to repository");
+        console.log("[DI]  Event publisher initialized and wired to repository");
     }
     /**
      * Initialize external services
@@ -241,12 +241,12 @@ class DIContainer {
             });
             this.schedulerAdapter = new SchedulerAdapterWrapper_1.SchedulerAdapterWrapper(remoteAdapter, this.config.tenantId || "default");
             console.log(`[DI]    - Scheduler Service: ${this.config.services.schedulerServiceUrl}`);
-            console.log("[DI]    - Reminder Service: Scheduler integration enabled 🔔");
+            console.log("[DI]    - Reminder Service: Scheduler integration enabled ");
         }
         else {
             this.schedulerAdapter = new NoopSchedulerAdapter_1.NoopSchedulerAdapter();
             console.log("[DI]    - Scheduler Service: DISABLED");
-            console.log("[DI]    - Reminder Service: Scheduler integration disabled (noop) ⚠️");
+            console.log("[DI]    - Reminder Service: Scheduler integration disabled (noop) ️");
         }
         // NEW: Authorization, Conflict Resolution & Reminder Services
         this.authorizationService = new AuthorizationService_1.AuthorizationService(this.config.supabase.url, this.config.supabase.serviceRoleKey);
@@ -262,11 +262,11 @@ class DIContainer {
         });
         // Rescheduling Service
         this.reschedulingService = new ReschedulingService_1.ReschedulingService(this.reschedulingQueueRepository, this.appointmentRepository, this.reminderService);
-        console.log("[DI] ✅ Services initialized (Pure Outbox Pattern)");
-        console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡");
-        console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡");
-        console.log(`[DI]    - Billing Service: ${this.config.services.billingServiceUrl} 💳`);
-        console.log("[DI]    - Authorization Service: RBAC enabled 🔐");
+        console.log("[DI]  Services initialized (Pure Outbox Pattern)");
+        console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ");
+        console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ");
+        console.log(`[DI]    - Billing Service: ${this.config.services.billingServiceUrl} `);
+        console.log("[DI]    - Authorization Service: RBAC enabled ");
         console.log("[DI]    - Performance: <10ms queries vs 150ms HTTP (15x faster)");
         console.log("[DI]    - Availability: 100% (zero network dependencies)");
     }
@@ -341,7 +341,7 @@ class DIContainer {
             new DeleteAppointmentReminderUseCase_1.DeleteAppointmentReminderUseCase(this.reminderRepository);
         // Reminder Controller
         this.reminderController = new ReminderController_1.ReminderController(this.createAppointmentReminderUseCase, this.getAppointmentRemindersUseCase, this.updateAppointmentReminderUseCase, this.deleteAppointmentReminderUseCase);
-        console.log("[DI] ✅ Use cases initialized (35 total)");
+        console.log("[DI]  Use cases initialized (35 total)");
     }
     /**
      * Initialize queries
@@ -349,7 +349,7 @@ class DIContainer {
     initializeQueries() {
         this.getAppointmentDetailsQuery = new GetAppointmentDetailsQuery_1.GetAppointmentDetailsQuery(this.appointmentReadModelRepository);
         this.listAppointmentsQuery = new ListAppointmentsQuery_1.ListAppointmentsQuery(this.appointmentReadModelRepository);
-        console.log("[DI] ✅ Queries initialized");
+        console.log("[DI]  Queries initialized");
     }
     /**
      * Initialize event handlers
@@ -419,14 +419,14 @@ class DIContainer {
                 "billing.invoice.expired",
             ],
         }, this.appointmentRepository, this.queueRepository, this.reminderService, this.conflictResolutionService, this.inboxRepository, this.paymentCompletedHandler);
-        console.log("[DI] ✅ Event handlers initialized (5 total - Prepaid Billing Enabled)");
+        console.log("[DI]  Event handlers initialized (5 total - Prepaid Billing Enabled)");
         console.log("[DI]    - AppointmentReadModelEventHandler");
         console.log("[DI]    - PatientEventConsumer (Pure Outbox)");
         console.log("[DI]    - ProviderEventConsumer (Pure Outbox)");
         console.log("[DI]    - StaffEventConsumer (RabbitMQ)");
         console.log("[DI]    - DepartmentEventConsumer (RabbitMQ)");
-        console.log("[DI]    - BillingEventConsumer (RabbitMQ) ✅ ENABLED for Prepaid Flow");
-        console.log("[DI]    ⚠️  ClinicalEMREventConsumer REMOVED FOR MVP");
+        console.log("[DI]    - BillingEventConsumer (RabbitMQ)  ENABLED for Prepaid Flow");
+        console.log("[DI]    ️  ClinicalEMREventConsumer REMOVED FOR MVP");
     }
     /**
      * Initialize event subscriptions
@@ -434,7 +434,7 @@ class DIContainer {
     initializeEventSubscriptions() {
         // Pass Pure Outbox Pattern event consumers to EventSubscriptions
         this.eventSubscriptions = (0, EventSubscriptions_1.createEventSubscriptions)(this.appointmentReadModelEventHandler, this.patientEventConsumer, this.providerEventConsumer);
-        console.log("[DI] ✅ Event subscriptions initialized with Pure Outbox Pattern consumers");
+        console.log("[DI]  Event subscriptions initialized with Pure Outbox Pattern consumers");
     }
     /**
      * Initialize controllers
@@ -460,7 +460,7 @@ class DIContainer {
             reschedulingService: this.reschedulingService,
             reschedulingQueueRepository: this.reschedulingQueueRepository,
         });
-        console.log("[DI] ✅ Controllers initialized (4 total, Waitlist archived)");
+        console.log("[DI]  Controllers initialized (4 total, Waitlist archived)");
     }
     /**
      * Get appointment controller
@@ -721,9 +721,9 @@ let containerInstance = null;
  */
 function getContainer() {
     if (!containerInstance) {
-        console.log("[DI] 🔧 Initializing DI Container...");
+        console.log("[DI]  Initializing DI Container...");
         containerInstance = new DIContainer();
-        console.log("[DI] ✅ DI Container ready");
+        console.log("[DI]  DI Container ready");
     }
     return containerInstance;
 }

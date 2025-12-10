@@ -22,7 +22,7 @@ const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables:');
+  console.error(' Missing required environment variables:');
   console.error('   - SUPABASE_URL');
   console.error('   - SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
@@ -31,14 +31,14 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function seedDatabase() {
-  console.log('🌱 Starting database seeding...\n');
+  console.log(' Starting database seeding...\n');
 
   try {
     // Read seed SQL file
     const seedSqlPath = path.join(__dirname, '../database/seed.sql');
     const seedSql = fs.readFileSync(seedSqlPath, 'utf-8');
 
-    console.log('📄 Loaded seed.sql file');
+    console.log(' Loaded seed.sql file');
 
     // Split SQL into individual statements
     const statements = seedSql
@@ -46,7 +46,7 @@ async function seedDatabase() {
       .map(s => s.trim())
       .filter(s => s.length > 0 && !s.startsWith('--'));
 
-    console.log(`📝 Found ${statements.length} SQL statements\n`);
+    console.log(` Found ${statements.length} SQL statements\n`);
 
     // Execute each statement
     let successCount = 0;
@@ -68,34 +68,34 @@ async function seedDatabase() {
         if (error) {
           // Check if error is due to duplicate (which is OK)
           if (error.message.includes('duplicate') || error.message.includes('already exists')) {
-            console.log(`⚠️  Skipped (already exists): Statement ${i + 1}`);
+            console.log(`️  Skipped (already exists): Statement ${i + 1}`);
             skipCount++;
           } else {
-            console.error(`❌ Error in statement ${i + 1}:`, error.message);
+            console.error(` Error in statement ${i + 1}:`, error.message);
             errorCount++;
           }
         } else {
           successCount++;
-          console.log(`✅ Executed statement ${i + 1}`);
+          console.log(` Executed statement ${i + 1}`);
         }
       } catch (error) {
-        console.error(`❌ Exception in statement ${i + 1}:`, error);
+        console.error(` Exception in statement ${i + 1}:`, error);
         errorCount++;
       }
     }
 
-    console.log('\n📊 Seeding Summary:');
-    console.log(`   ✅ Success: ${successCount}`);
-    console.log(`   ⚠️  Skipped: ${skipCount}`);
-    console.log(`   ❌ Errors: ${errorCount}`);
+    console.log('\n Seeding Summary:');
+    console.log(`    Success: ${successCount}`);
+    console.log(`   ️  Skipped: ${skipCount}`);
+    console.log(`    Errors: ${errorCount}`);
 
     // Verify seeded data
-    console.log('\n🔍 Verifying seeded data...\n');
+    console.log('\n Verifying seeded data...\n');
     await verifySeededData();
 
-    console.log('\n✅ Database seeding completed successfully!');
+    console.log('\n Database seeding completed successfully!');
   } catch (error) {
-    console.error('\n❌ Database seeding failed:', error);
+    console.error('\n Database seeding failed:', error);
     process.exit(1);
   }
 }
@@ -108,9 +108,9 @@ async function verifySeededData() {
       .select('*', { count: 'exact', head: true });
 
     if (patientsError) {
-      console.error('❌ Error counting patients:', patientsError.message);
+      console.error(' Error counting patients:', patientsError.message);
     } else {
-      console.log(`✅ Total patients: ${patients?.length || 0}`);
+      console.log(` Total patients: ${patients?.length || 0}`);
     }
 
     // Count active patients
@@ -120,9 +120,9 @@ async function verifySeededData() {
       .eq('status', 'active');
 
     if (activeError) {
-      console.error('❌ Error counting active patients:', activeError.message);
+      console.error(' Error counting active patients:', activeError.message);
     } else {
-      console.log(`✅ Active patients: ${activePatients?.length || 0}`);
+      console.log(` Active patients: ${activePatients?.length || 0}`);
     }
 
     // Count insurance records
@@ -132,9 +132,9 @@ async function verifySeededData() {
       .eq('is_active', true);
 
     if (insuranceError) {
-      console.error('❌ Error counting insurance:', insuranceError.message);
+      console.error(' Error counting insurance:', insuranceError.message);
     } else {
-      console.log(`✅ Active insurance records: ${insurance?.length || 0}`);
+      console.log(` Active insurance records: ${insurance?.length || 0}`);
     }
 
     // Count emergency contacts
@@ -143,9 +143,9 @@ async function verifySeededData() {
       .select('*', { count: 'exact', head: true });
 
     if (contactsError) {
-      console.error('❌ Error counting emergency contacts:', contactsError.message);
+      console.error(' Error counting emergency contacts:', contactsError.message);
     } else {
-      console.log(`✅ Emergency contacts: ${contacts?.length || 0}`);
+      console.log(` Emergency contacts: ${contacts?.length || 0}`);
     }
 
     // Count consents
@@ -154,20 +154,20 @@ async function verifySeededData() {
       .select('*', { count: 'exact', head: true });
 
     if (consentsError) {
-      console.error('❌ Error counting consents:', consentsError.message);
+      console.error(' Error counting consents:', consentsError.message);
     } else {
-      console.log(`✅ Patient consents: ${consents?.length || 0}`);
+      console.log(` Patient consents: ${consents?.length || 0}`);
     }
 
     // List sample patients
-    console.log('\n📋 Sample Patients:');
+    console.log('\n Sample Patients:');
     const { data: samplePatients, error: sampleError } = await supabase
       .from('patients')
       .select('patient_id, personal_info, status')
       .limit(5);
 
     if (sampleError) {
-      console.error('❌ Error fetching sample patients:', sampleError.message);
+      console.error(' Error fetching sample patients:', sampleError.message);
     } else if (samplePatients) {
       samplePatients.forEach((patient: any) => {
         const fullName = patient.personal_info?.fullName || 'Unknown';
@@ -175,12 +175,12 @@ async function verifySeededData() {
       });
     }
   } catch (error) {
-    console.error('❌ Error verifying data:', error);
+    console.error(' Error verifying data:', error);
   }
 }
 
 async function cleanDatabase() {
-  console.log('🧹 Cleaning existing seed data...\n');
+  console.log(' Cleaning existing seed data...\n');
 
   try {
     // Delete in reverse order of dependencies
@@ -199,15 +199,15 @@ async function cleanDatabase() {
         .eq('created_by', 'system');
 
       if (error) {
-        console.warn(`⚠️  Could not clean ${table}:`, error.message);
+        console.warn(`️  Could not clean ${table}:`, error.message);
       } else {
-        console.log(`✅ Cleaned ${table}`);
+        console.log(` Cleaned ${table}`);
       }
     }
 
-    console.log('\n✅ Database cleaned successfully!\n');
+    console.log('\n Database cleaned successfully!\n');
   } catch (error) {
-    console.error('❌ Error cleaning database:', error);
+    console.error(' Error cleaning database:', error);
   }
 }
 

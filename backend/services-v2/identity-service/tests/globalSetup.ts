@@ -14,7 +14,7 @@ import { seedTestUserPool, TestUserPool } from './helpers/test-user-pool';
 config({ path: '.env.test' });
 
 export default async function globalSetup() {
-  console.log('\n🌍 Global Setup: Seeding test user pool once for all tests...');
+  console.log('\n Global Setup: Seeding test user pool once for all tests...');
 
   try {
     const supabaseClient = createTestSupabaseClient();
@@ -25,9 +25,9 @@ export default async function globalSetup() {
     // Store in global state để các tests có thể access
     (global as any).__TEST_USER_POOL__ = userPool;
 
-    console.log('✅ Global Setup: Test user pool seeded successfully\n');
+    console.log(' Global Setup: Test user pool seeded successfully\n');
   } catch (error) {
-    console.error('❌ Global Setup failed:', error);
+    console.error(' Global Setup failed:', error);
     throw error;
   }
 }

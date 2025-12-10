@@ -549,14 +549,14 @@ describe('Identity Service Integration Tests', () => {
 
       validToken = receptionistToken;
 
-      console.log('✅ Test users setup complete');
+      console.log(' Test users setup complete');
       console.log(`   Admin: ${adminUserId}`);
       console.log(`   Receptionist: ${receptionistUserId}`);
       console.log(`   Doctor: ${doctorUserId}`);
       console.log(`   Nurse: ${nurseUserId}`);
       console.log(`   Patient: ${patientUserId}`);
     } catch (error) {
-      console.error('❌ Failed to setup test users:', error);
+      console.error(' Failed to setup test users:', error);
       throw error;
     }
   }

@@ -95,7 +95,7 @@ export class PatientJourneyWorkflow {
    * Register all patient journey workflows
    */
   private registerPatientJourneyWorkflows(): void {
-    console.log('📋 Registering Patient Journey Workflows');
+    console.log(' Registering Patient Journey Workflows');
 
     // Register individual workflows
     this.registerPatientRegistrationWorkflow();
@@ -107,7 +107,7 @@ export class PatientJourneyWorkflow {
     this.registerFollowUpWorkflow();
     this.registerEmergencyWorkflow();
 
-    console.log('✅ All Patient Journey Workflows registered');
+    console.log(' All Patient Journey Workflows registered');
   }
 
   /**
@@ -846,7 +846,7 @@ export class PatientJourneyWorkflow {
    * Execute patient registration workflow
    */
   public async executePatientRegistration(context: PatientJourneyContext): Promise<any> {
-    console.log(`🏥 Starting Patient Registration for: ${context.patientInfo.fullName}`);
+    console.log(` Starting Patient Registration for: ${context.patientInfo.fullName}`);
 
     return await this.orchestrator.startWorkflow(
       'patient-registration',
@@ -866,7 +866,7 @@ export class PatientJourneyWorkflow {
     patientContext: PatientJourneyContext,
     appointmentContext: AppointmentContext
   ): Promise<any> {
-    console.log(`📅 Starting Appointment Scheduling for: ${patientContext.patientInfo.fullName}`);
+    console.log(` Starting Appointment Scheduling for: ${patientContext.patientInfo.fullName}`);
 
     return await this.orchestrator.startWorkflow(
       'appointment-scheduling',
@@ -889,7 +889,7 @@ export class PatientJourneyWorkflow {
     appointmentContext: AppointmentContext,
     treatmentContext?: TreatmentContext
   ): Promise<any> {
-    console.log(`🏥 Starting Complete Patient Journey for: ${patientContext.patientInfo.fullName}`);
+    console.log(` Starting Complete Patient Journey for: ${patientContext.patientInfo.fullName}`);
 
     const results = [];
 
@@ -933,7 +933,7 @@ export class PatientJourneyWorkflow {
       };
 
     } catch (error) {
-      console.error('❌ Patient journey failed:', error);
+      console.error(' Patient journey failed:', error);
       
       return {
         success: false,

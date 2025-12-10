@@ -292,8 +292,8 @@ export class DIContainer {
 
     try {
       await this.cacheService.connect();
-      console.log("[DI] ✅ Cache service initialized");
-      console.log("[DI] ✅ Circuit breaker initialized");
+      console.log("[DI]  Cache service initialized");
+      console.log("[DI]  Circuit breaker initialized");
     } catch (error) {
       console.warn(
         "[DI] ⚠️ Cache service failed to connect - continuing without cache",
@@ -335,7 +335,7 @@ export class DIContainer {
    */
   private initializeMetricsService(): void {
     this.metricsService = new MetricsService();
-    console.log("[DI] ✅ Metrics service initialized");
+    console.log("[DI]  Metrics service initialized");
   }
 
   /**
@@ -434,7 +434,7 @@ export class DIContainer {
       this.paymentCompletedHandler.setEventBus(eventBus);
     }
 
-    console.log("[DI] ✅ Event publisher initialized and wired to repository");
+    console.log("[DI]  Event publisher initialized and wired to repository");
   }
 
   /**
@@ -507,13 +507,13 @@ export class DIContainer {
       this.reminderService,
     );
 
-    console.log("[DI] ✅ Services initialized (Pure Outbox Pattern)");
-    console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ⚡");
-    console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ⚡");
+    console.log("[DI]  Services initialized (Pure Outbox Pattern)");
+    console.log("[DI]    - Patient Service: LOCAL READ MODEL (No HTTP) ");
+    console.log("[DI]    - Provider Service: LOCAL READ MODEL (No HTTP) ");
     console.log(
       `[DI]    - Billing Service: ${this.config.services.billingServiceUrl} 💳`,
     );
-    console.log("[DI]    - Authorization Service: RBAC enabled 🔐");
+    console.log("[DI]    - Authorization Service: RBAC enabled ");
     console.log(
       "[DI]    - Performance: <10ms queries vs 150ms HTTP (15x faster)",
     );
@@ -696,7 +696,7 @@ export class DIContainer {
       this.deleteAppointmentReminderUseCase,
     );
 
-    console.log("[DI] ✅ Use cases initialized (35 total)");
+    console.log("[DI]  Use cases initialized (35 total)");
   }
 
   /**
@@ -711,7 +711,7 @@ export class DIContainer {
       this.appointmentReadModelRepository,
     );
 
-    console.log("[DI] ✅ Queries initialized");
+    console.log("[DI]  Queries initialized");
   }
 
   /**
@@ -838,7 +838,7 @@ export class DIContainer {
     console.log(
       "[DI]    - BillingEventConsumer (RabbitMQ) ✅ ENABLED for Prepaid Flow",
     );
-    console.log("[DI]    ⚠️  ClinicalEMREventConsumer REMOVED FOR MVP");
+    console.log("[DI]    ️  ClinicalEMREventConsumer REMOVED FOR MVP");
   }
 
   /**
@@ -906,7 +906,7 @@ export class DIContainer {
       reschedulingQueueRepository: this.reschedulingQueueRepository,
     });
 
-    console.log("[DI] ✅ Controllers initialized (4 total, Waitlist archived)");
+    console.log("[DI]  Controllers initialized (4 total, Waitlist archived)");
   }
 
   /**
@@ -1209,9 +1209,9 @@ let containerInstance: DIContainer | null = null;
  */
 export function getContainer(): DIContainer {
   if (!containerInstance) {
-    console.log("[DI] 🔧 Initializing DI Container...");
+    console.log("[DI]  Initializing DI Container...");
     containerInstance = new DIContainer();
-    console.log("[DI] ✅ DI Container ready");
+    console.log("[DI]  DI Container ready");
   }
   return containerInstance;
 }

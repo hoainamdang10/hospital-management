@@ -32,7 +32,7 @@ class EndToEndTestSuite {
      * Run complete E2E test suite
      */
     async runEndToEndTests() {
-        console.log("🎭 Starting Hospital Management System V2 End-to-End Tests");
+        console.log(" Starting Hospital Management System V2 End-to-End Tests");
         const suiteStartTime = Date.now();
         const suiteId = `e2e_suite_${Date.now()}`;
         try {
@@ -95,11 +95,11 @@ class EndToEndTestSuite {
                     healthcareScenarios: results.length,
                 },
             };
-            console.log(`✅ E2E tests completed: ${passedTests}/${totalTests} scenarios passed`);
+            console.log(` E2E tests completed: ${passedTests}/${totalTests} scenarios passed`);
             return testSuite;
         }
         catch (error) {
-            console.error("❌ E2E test suite failed:", error);
+            console.error(" E2E test suite failed:", error);
             throw error;
         }
     }
@@ -865,7 +865,7 @@ class EndToEndTestSuite {
      * Execute E2E scenario
      */
     async executeE2EScenario(scenario) {
-        console.log(`🎭 Executing E2E scenario: ${scenario.scenarioName}`);
+        console.log(` Executing E2E scenario: ${scenario.scenarioName}`);
         const startTime = new Date();
         const scenarioStartTime = Date.now();
         try {
@@ -873,7 +873,7 @@ class EndToEndTestSuite {
             let scenarioContext = {};
             // Execute steps sequentially
             for (const step of scenario.steps) {
-                console.log(`  🔧 Executing step: ${step.stepName}`);
+                console.log(`   Executing step: ${step.stepName}`);
                 const stepStartTime = Date.now();
                 try {
                     // Simulate step execution
@@ -888,7 +888,7 @@ class EndToEndTestSuite {
                     });
                     // Update scenario context with step output
                     scenarioContext[step.stepId] = stepOutput;
-                    console.log(`    ✅ Step completed: ${step.stepName} (${stepExecutionTime}ms)`);
+                    console.log(`     Step completed: ${step.stepName} (${stepExecutionTime}ms)`);
                 }
                 catch (error) {
                     const stepExecutionTime = Date.now() - stepStartTime;
@@ -899,7 +899,7 @@ class EndToEndTestSuite {
                         executionTime: stepExecutionTime,
                         error: error instanceof Error ? error.message : "Unknown error",
                     });
-                    console.log(`    ❌ Step failed: ${step.stepName} (${stepExecutionTime}ms)`);
+                    console.log(`     Step failed: ${step.stepName} (${stepExecutionTime}ms)`);
                     // Stop scenario execution on step failure
                     break;
                 }
@@ -925,17 +925,17 @@ class EndToEndTestSuite {
             };
             this.e2eResults.set(scenario.scenarioId, result);
             if (status === "PASSED") {
-                console.log(`  ✅ Scenario completed: ${scenario.scenarioName} (${executionTime}ms)`);
+                console.log(`   Scenario completed: ${scenario.scenarioName} (${executionTime}ms)`);
             }
             else {
-                console.log(`  ❌ Scenario failed: ${scenario.scenarioName} (${executionTime}ms)`);
+                console.log(`   Scenario failed: ${scenario.scenarioName} (${executionTime}ms)`);
             }
             return result;
         }
         catch (error) {
             const executionTime = Date.now() - scenarioStartTime;
             const endTime = new Date();
-            console.log(`  💥 Scenario error: ${scenario.scenarioName} (${executionTime}ms)`);
+            console.log(`   Scenario error: ${scenario.scenarioName} (${executionTime}ms)`);
             const result = {
                 scenarioId: scenario.scenarioId,
                 scenarioName: scenario.scenarioName,

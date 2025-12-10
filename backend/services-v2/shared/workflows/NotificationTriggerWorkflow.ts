@@ -89,7 +89,7 @@ export class NotificationTriggerWorkflow {
    * Register all notification trigger workflows
    */
   private registerNotificationTriggerWorkflows(): void {
-    console.log('📢 Registering Notification Trigger Workflows');
+    console.log(' Registering Notification Trigger Workflows');
 
     this.registerAppointmentNotificationWorkflow();
     this.registerMedicationReminderWorkflow();
@@ -100,7 +100,7 @@ export class NotificationTriggerWorkflow {
     this.registerInsuranceNotificationWorkflow();
     this.registerMultiChannelNotificationWorkflow();
 
-    console.log('✅ All Notification Trigger Workflows registered');
+    console.log(' All Notification Trigger Workflows registered');
   }
 
   /**
@@ -752,7 +752,7 @@ export class NotificationTriggerWorkflow {
   public async executeAppointmentNotification(
     notificationContext: NotificationContext
   ): Promise<any> {
-    console.log(`📢 Starting Appointment Notification for: ${notificationContext.recipientId}`);
+    console.log(` Starting Appointment Notification for: ${notificationContext.recipientId}`);
 
     return await this.orchestrator.startWorkflow(
       'appointment-notification',
@@ -773,7 +773,7 @@ export class NotificationTriggerWorkflow {
     notificationContext: NotificationContext,
     reminderContext: ReminderContext
   ): Promise<any> {
-    console.log(`💊 Starting Medication Reminder for: ${notificationContext.recipientId}`);
+    console.log(` Starting Medication Reminder for: ${notificationContext.recipientId}`);
 
     return await this.orchestrator.startWorkflow(
       'medication-reminder',
@@ -794,7 +794,7 @@ export class NotificationTriggerWorkflow {
   public async executeEmergencyNotification(
     emergencyContext: EmergencyNotificationContext
   ): Promise<any> {
-    console.log(`🚨 Starting Emergency Notification for: ${emergencyContext.emergencyId}`);
+    console.log(` Starting Emergency Notification for: ${emergencyContext.emergencyId}`);
 
     return await this.orchestrator.startWorkflow(
       'emergency-notification',
@@ -813,7 +813,7 @@ export class NotificationTriggerWorkflow {
   public async executeMultiChannelNotification(
     notificationContext: NotificationContext
   ): Promise<any> {
-    console.log(`📱 Starting Multi-channel Notification for: ${notificationContext.recipientId}`);
+    console.log(` Starting Multi-channel Notification for: ${notificationContext.recipientId}`);
 
     return await this.orchestrator.startWorkflow(
       'multi-channel-notification',

@@ -61,7 +61,7 @@ class RabbitMQConsumer {
      */
     async start() {
         try {
-            console.log('🔌 Connecting to RabbitMQ...', {
+            console.log(' Connecting to RabbitMQ...', {
                 url: this.config.url.replace(/\/\/.*@/, '//***@'),
                 queue: this.config.queueName
             });
@@ -91,15 +91,15 @@ class RabbitMQConsumer {
             // Bind queue to exchange with routing keys
             for (const routingKey of this.config.routingKeys) {
                 await this.channel.bindQueue(this.config.queueName, this.config.exchange, routingKey);
-                console.log(`✅ Queue bound to routing key: ${routingKey}`);
+                console.log(` Queue bound to routing key: ${routingKey}`);
             }
             // Setup connection error handlers
             this.connection.on('error', (err) => {
-                console.error('❌ RabbitMQ connection error:', err.message);
+                console.error(' RabbitMQ connection error:', err.message);
                 this.isConnected = false;
             });
             this.connection.on('close', () => {
-                console.warn('⚠️ RabbitMQ connection closed');
+                console.warn('️ RabbitMQ connection closed');
                 this.isConnected = false;
                 this.reconnect();
             });
@@ -114,14 +114,14 @@ class RabbitMQConsumer {
             this.consumerTag = consumerTag;
             this.isConnected = true;
             this.reconnectAttempts = 0;
-            console.log('✅ RabbitMQ consumer started successfully', {
+            console.log(' RabbitMQ consumer started successfully', {
                 queue: this.config.queueName,
                 consumerTag: this.consumerTag,
                 prefetchCount: this.config.prefetchCount
             });
         }
         catch (error) {
-            console.error('❌ Failed to start RabbitMQ consumer:', error);
+            console.error(' Failed to start RabbitMQ consumer:', error);
             throw error;
         }
     }
@@ -134,7 +134,7 @@ class RabbitMQConsumer {
         const routingKey = msg.fields.routingKey;
         const idempotencyKey = headers.idempotency_key || msg.properties.messageId || `${routingKey}-${Date.now()}`;
         try {
-            console.log('📥 Received message', {
+            console.log(' Received message', {
                 routingKey,
                 idempotencyKey,
                 timestamp: new Date().toISOString()
@@ -190,7 +190,7 @@ class RabbitMQConsumer {
                 this.channel.ack(msg);
             }
             const processingTime = Date.now() - startTime;
-            console.log('✅ Message processed successfully', {
+            console.log(' Message processed successfully', {
                 routingKey,
                 idempotencyKey,
                 processingTime: `${processingTime}ms`
@@ -198,7 +198,7 @@ class RabbitMQConsumer {
         }
         catch (error) {
             const processingTime = Date.now() - startTime;
-            console.error('❌ Error processing message', {
+            console.error(' Error processing message', {
                 routingKey,
                 idempotencyKey,
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -211,14 +211,14 @@ class RabbitMQConsumer {
                 if (this.channel) {
                     this.channel.nack(msg, false, true);
                 }
-                console.log('🔄 Message requeued for retry', { idempotencyKey });
+                console.log(' Message requeued for retry', { idempotencyKey });
             }
             else {
                 // Nack without requeue (send to DLQ if configured)
                 if (this.channel) {
                     this.channel.nack(msg, false, false);
                 }
-                console.log('💀 Message sent to dead letter queue', { idempotencyKey });
+                console.log(' Message sent to dead letter queue', { idempotencyKey });
             }
         }
     }
@@ -292,17 +292,17 @@ class RabbitMQConsumer {
      */
     async reconnect() {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error('❌ Max reconnect attempts reached. Giving up.');
+            console.error(' Max reconnect attempts reached. Giving up.');
             return;
         }
         this.reconnectAttempts++;
-        console.log(`🔄 Reconnecting to RabbitMQ (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        console.log(` Reconnecting to RabbitMQ (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
         await new Promise(resolve => setTimeout(resolve, this.reconnectDelay));
         try {
             await this.start();
         }
         catch (error) {
-            console.error('❌ Reconnect failed:', error);
+            console.error(' Reconnect failed:', error);
             await this.reconnect();
         }
     }
@@ -313,21 +313,21 @@ class RabbitMQConsumer {
         try {
             if (this.channel && this.consumerTag) {
                 await this.channel.cancel(this.consumerTag);
-                console.log('✅ Consumer cancelled');
+                console.log(' Consumer cancelled');
             }
             if (this.channel) {
                 await this.channel.close();
-                console.log('✅ Channel closed');
+                console.log(' Channel closed');
             }
             if (this.connection) {
                 await this.connection.close();
-                console.log('✅ Connection closed');
+                console.log(' Connection closed');
             }
             this.isConnected = false;
-            console.log('✅ RabbitMQ consumer stopped successfully');
+            console.log(' RabbitMQ consumer stopped successfully');
         }
         catch (error) {
-            console.error('❌ Error stopping RabbitMQ consumer:', error);
+            console.error(' Error stopping RabbitMQ consumer:', error);
         }
     }
     /**
@@ -351,7 +351,7 @@ class RabbitMQConsumer {
             };
         }
         catch (error) {
-            console.error('❌ Error getting queue stats:', error);
+            console.error(' Error getting queue stats:', error);
             return null;
         }
     }

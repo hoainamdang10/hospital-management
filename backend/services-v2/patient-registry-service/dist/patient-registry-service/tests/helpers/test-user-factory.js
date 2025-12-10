@@ -29,7 +29,7 @@ class TestUserFactory {
         phoneNumber = '0912345678', address = '123 Test Street, Hanoi', dateOfBirth = '1990-01-01', gender = 'male', citizenId = '001234567890' } = data;
         try {
             // 1. Create user in auth.users (Supabase Auth)
-            console.log(`🔧 Creating auth user for ${email}...`);
+            console.log(` Creating auth user for ${email}...`);
             const { data: authUser, error: authError } = await this.supabaseClient.auth.admin.createUser({
                 email,
                 password,
@@ -43,7 +43,7 @@ class TestUserFactory {
                 throw new Error(`Failed to create auth user: ${authError?.message || 'User object is null'}`);
             }
             const userId = authUser.user.id;
-            console.log(`✅ Auth user created: ${userId}`);
+            console.log(` Auth user created: ${userId}`);
             // 2. Create user profile in auth_schema.user_profiles
             const { error: profileError } = await this.supabaseClient
                 .schema('auth_schema')
@@ -64,11 +64,11 @@ class TestUserFactory {
                 updated_at: new Date().toISOString()
             });
             if (profileError) {
-                console.warn(`⚠️  Failed to create user profile: ${profileError.message}`);
+                console.warn(`️  Failed to create user profile: ${profileError.message}`);
                 // Continue anyway, profile might be created by trigger
             }
             else {
-                console.log(`✅ User profile created for ${email}`);
+                console.log(` User profile created for ${email}`);
             }
             // 3. Assign role in auth_schema.user_roles (optional, for compatibility)
             const { error: roleError } = await this.supabaseClient
@@ -81,10 +81,10 @@ class TestUserFactory {
                 assigned_at: new Date().toISOString() // Use assigned_at instead of created_at
             });
             if (roleError) {
-                console.warn(`⚠️  Failed to assign role: ${roleError.message}`);
+                console.warn(`️  Failed to assign role: ${roleError.message}`);
             }
             else {
-                console.log(`✅ Role ${roleType} assigned to ${email}`);
+                console.log(` Role ${roleType} assigned to ${email}`);
             }
             // Track for cleanup
             this.createdUserIds.push(userId);
@@ -98,7 +98,7 @@ class TestUserFactory {
             };
         }
         catch (error) {
-            console.error('❌ Error creating verified user:', error);
+            console.error(' Error creating verified user:', error);
             throw error;
         }
     }
@@ -146,7 +146,7 @@ class TestUserFactory {
      * Cleanup all created users
      */
     async cleanup() {
-        console.log('🧹 Cleaning up test users...');
+        console.log(' Cleaning up test users...');
         for (const userId of this.createdUserIds) {
             try {
                 // Delete user roles
@@ -163,14 +163,14 @@ class TestUserFactory {
                     .eq('id', userId);
                 // Delete from auth.users
                 await this.supabaseClient.auth.admin.deleteUser(userId);
-                console.log(`✅ Deleted test user: ${userId}`);
+                console.log(` Deleted test user: ${userId}`);
             }
             catch (error) {
-                console.warn(`⚠️  Error deleting test user ${userId}:`, error);
+                console.warn(`️  Error deleting test user ${userId}:`, error);
             }
         }
         this.createdUserIds = [];
-        console.log('✅ Test users cleaned up');
+        console.log(' Test users cleaned up');
     }
     /**
      * Get created user IDs

@@ -455,7 +455,7 @@ describe('Vietnamese Healthcare Workflows E2E', () => {
       // Verify performance (should complete within reasonable time)
       expect(totalTime).toBeLessThan(5000); // 5 seconds for 10 concurrent requests
 
-      console.log(`✅ Processed ${concurrentRequests} concurrent notifications in ${totalTime}ms`);
+      console.log(` Processed ${concurrentRequests} concurrent notifications in ${totalTime}ms`);
     });
 
     it('should maintain Vietnamese content quality under load', async () => {
@@ -494,7 +494,7 @@ describe('Vietnamese Healthcare Workflows E2E', () => {
         expect(testUtils.isVietnameseText(originalName)).toBe(true);
       });
 
-      console.log(`✅ Processed ${loadTestRequests} Vietnamese healthcare notifications with content validation`);
+      console.log(` Processed ${loadTestRequests} Vietnamese healthcare notifications with content validation`);
     });
   });
 });

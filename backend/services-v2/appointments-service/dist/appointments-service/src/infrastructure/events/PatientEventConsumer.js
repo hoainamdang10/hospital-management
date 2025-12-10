@@ -68,7 +68,7 @@ class PatientEventConsumer {
                 sourceService: "patient-registry",
                 payloadJson: event,
             });
-            console.log(`[PatientEventConsumer] ✓ Event ${eventId} processed successfully`);
+            console.log(`[PatientEventConsumer]  Event ${eventId} processed successfully`);
         }
         catch (error) {
             console.error(`[PatientEventConsumer] Error processing event ${eventId}:`, error);
@@ -96,7 +96,7 @@ class PatientEventConsumer {
             insuranceType: this.extractInsuranceType(payload),
             address: this.extractAddress(payload),
         });
-        console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} registered in read model`);
+        console.log(`[PatientEventConsumer]  Patient ${payload.patientId} registered in read model`);
     }
     /**
      * Handle patient updated event
@@ -119,7 +119,7 @@ class PatientEventConsumer {
             insuranceType: this.extractInsuranceType(payload),
             address: this.extractAddress(payload),
         });
-        console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} updated in read model`);
+        console.log(`[PatientEventConsumer]  Patient ${payload.patientId} updated in read model`);
     }
     /**
      * Handle patient deactivated event
@@ -132,7 +132,7 @@ class PatientEventConsumer {
         // Option 1: Keep in read model with deactivated flag (if needed in future)
         // Option 2: Delete from read model
         // For now, we keep the data (appointments history still needs it)
-        console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} deactivated (kept in read model)`);
+        console.log(`[PatientEventConsumer]  Patient ${payload.patientId} deactivated (kept in read model)`);
     }
     /**
      * Handle patient deleted event
@@ -143,7 +143,7 @@ class PatientEventConsumer {
             throw new Error("Invalid patient.deleted event: missing patientId");
         }
         await this.patientReadRepo.delete(payload.patientId);
-        console.log(`[PatientEventConsumer] ✓ Patient ${payload.patientId} deleted from read model`);
+        console.log(`[PatientEventConsumer]  Patient ${payload.patientId} deleted from read model`);
     }
     // ==========================================================================
     // Helper Methods - Extract data from various event payload structures

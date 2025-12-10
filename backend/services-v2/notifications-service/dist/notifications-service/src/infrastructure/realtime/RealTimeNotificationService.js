@@ -44,7 +44,7 @@ class RealTimeNotificationService {
                 console.log('Client disconnected from real-time notifications');
             });
         });
-        console.log('🔌 Real-time notification service initialized');
+        console.log(' Real-time notification service initialized');
     }
     /**
      * Send notification to specific user
@@ -52,7 +52,7 @@ class RealTimeNotificationService {
     async sendToUser(userId, notification) {
         try {
             this.io.to(`user_${userId}`).emit('notification', notification);
-            console.log(`📱 Real-time notification sent to user ${userId}`);
+            console.log(` Real-time notification sent to user ${userId}`);
         }
         catch (error) {
             console.error('Error sending real-time notification:', error);
@@ -64,7 +64,7 @@ class RealTimeNotificationService {
     async sendEmergencyAlert(notification) {
         try {
             this.io.emit('emergency_alert', notification);
-            console.log('🚨 Emergency alert broadcasted');
+            console.log(' Emergency alert broadcasted');
         }
         catch (error) {
             console.error('Error sending emergency alert:', error);

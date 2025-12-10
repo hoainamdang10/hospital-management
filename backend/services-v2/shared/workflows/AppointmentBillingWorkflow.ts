@@ -99,7 +99,7 @@ export class AppointmentBillingWorkflow {
    * Register all appointment-billing workflows
    */
   private registerAppointmentBillingWorkflows(): void {
-    console.log("💰 Registering Appointment-Billing Integration Workflows");
+    console.log(" Registering Appointment-Billing Integration Workflows");
 
     this.registerAppointmentInvoiceGenerationWorkflow();
     this.registerInsuranceClaimProcessingWorkflow();
@@ -109,7 +109,7 @@ export class AppointmentBillingWorkflow {
     this.registerBHYTIntegrationWorkflow();
     this.registerPayOSIntegrationWorkflow();
 
-    console.log("✅ All Appointment-Billing Workflows registered");
+    console.log(" All Appointment-Billing Workflows registered");
   }
 
   /**
@@ -896,7 +896,7 @@ export class AppointmentBillingWorkflow {
         },
       };
     } catch (error) {
-      console.error("❌ Appointment-billing workflow failed:", error);
+      console.error(" Appointment-billing workflow failed:", error);
 
       return {
         success: false,

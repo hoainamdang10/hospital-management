@@ -47,17 +47,17 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
      * Initialize workflow definitions
      */
     initializeWorkflowDefinitions() {
-        console.log('🔄 Initializing Vietnamese Healthcare Workflow Definitions');
+        console.log(' Initializing Vietnamese Healthcare Workflow Definitions');
         // Workflow definitions will be loaded from separate files
         // This is just the initialization placeholder
-        console.log('✅ Workflow definitions initialized');
+        console.log(' Workflow definitions initialized');
     }
     /**
      * Register workflow definition
      */
     registerWorkflow(definition) {
         this.workflowDefinitions.set(definition.workflowId, definition);
-        console.log(`📋 Registered workflow: ${definition.workflowName} (${definition.vietnameseWorkflowName})`);
+        console.log(` Registered workflow: ${definition.workflowName} (${definition.vietnameseWorkflowName})`);
     }
     /**
      * Start workflow execution
@@ -65,7 +65,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
     async startWorkflow(workflowId, context, metadata) {
         const startTime = Date.now();
         try {
-            console.log(`🚀 Starting workflow: ${workflowId}`);
+            console.log(` Starting workflow: ${workflowId}`);
             // Get workflow definition
             const definition = this.workflowDefinitions.get(workflowId);
             if (!definition) {
@@ -79,12 +79,12 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
             const result = await this.executeWorkflow(instance);
             // Update metrics
             this.updateWorkflowMetrics(workflowId, result);
-            console.log(`✅ Workflow ${workflowId} completed: ${result.status}`);
+            console.log(` Workflow ${workflowId} completed: ${result.status}`);
             return result;
         }
         catch (error) {
             const executionTime = Date.now() - startTime;
-            console.error(`❌ Workflow ${workflowId} failed:`, error);
+            console.error(` Workflow ${workflowId} failed:`, error);
             return {
                 success: false,
                 instanceId: '',
@@ -134,7 +134,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
         const startTime = Date.now();
         try {
             instance.status = WorkflowStatus.RUNNING;
-            console.log(`🔄 Executing workflow instance: ${instance.instanceId}`);
+            console.log(` Executing workflow instance: ${instance.instanceId}`);
             // Execute steps sequentially
             for (let i = 0; i < instance.steps.length; i++) {
                 instance.currentStepIndex = i;
@@ -146,7 +146,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
                     }
                 }
                 catch (stepError) {
-                    console.error(`❌ Step ${step.stepName} failed:`, stepError);
+                    console.error(` Step ${step.stepName} failed:`, stepError);
                     // Try compensation
                     await this.compensateWorkflow(instance);
                     instance.status = WorkflowStatus.FAILED;
@@ -168,7 +168,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
             // Move to completed workflows
             this.activeWorkflows.delete(instance.instanceId);
             this.completedWorkflows.set(instance.instanceId, instance);
-            console.log(`✅ Workflow instance completed: ${instance.instanceId}`);
+            console.log(` Workflow instance completed: ${instance.instanceId}`);
             return {
                 success: true,
                 instanceId: instance.instanceId,
@@ -183,7 +183,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
             instance.status = WorkflowStatus.FAILED;
             instance.endTime = new Date();
             instance.error = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`❌ Workflow execution failed: ${instance.instanceId}`, error);
+            console.error(` Workflow execution failed: ${instance.instanceId}`, error);
             return {
                 success: false,
                 instanceId: instance.instanceId,
@@ -199,7 +199,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
      * Execute individual step
      */
     async executeStep(instance, step) {
-        console.log(`🔧 Executing step: ${step.stepName} (${step.vietnameseDescription})`);
+        console.log(` Executing step: ${step.stepName} (${step.vietnameseDescription})`);
         step.status = WorkflowStepStatus.RUNNING;
         step.startTime = new Date();
         try {
@@ -211,18 +211,18 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
             if (result.success) {
                 step.status = WorkflowStepStatus.COMPLETED;
                 step.output = result.data;
-                console.log(`✅ Step completed: ${step.stepName}`);
+                console.log(` Step completed: ${step.stepName}`);
             }
             else {
                 step.status = WorkflowStepStatus.FAILED;
                 step.error = result.error;
-                console.error(`❌ Step failed: ${step.stepName} - ${result.error}`);
+                console.error(` Step failed: ${step.stepName} - ${result.error}`);
             }
         }
         catch (error) {
             step.status = WorkflowStepStatus.FAILED;
             step.error = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`❌ Step execution error: ${step.stepName}`, error);
+            console.error(` Step execution error: ${step.stepName}`, error);
         }
         finally {
             step.endTime = new Date();
@@ -290,7 +290,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
      * Compensate workflow (Saga pattern)
      */
     async compensateWorkflow(instance) {
-        console.log(`🔄 Starting compensation for workflow: ${instance.instanceId}`);
+        console.log(` Starting compensation for workflow: ${instance.instanceId}`);
         instance.status = WorkflowStatus.COMPENSATING;
         try {
             // Execute compensation steps in reverse order
@@ -316,10 +316,10 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
                 }
             }
             instance.status = WorkflowStatus.COMPENSATED;
-            console.log(`✅ Workflow compensation completed: ${instance.instanceId}`);
+            console.log(` Workflow compensation completed: ${instance.instanceId}`);
         }
         catch (error) {
-            console.error(`❌ Workflow compensation failed: ${instance.instanceId}`, error);
+            console.error(` Workflow compensation failed: ${instance.instanceId}`, error);
             instance.status = WorkflowStatus.FAILED;
         }
     }
@@ -378,7 +378,7 @@ class WorkflowOrchestrator extends BaseEventHandler_1.BaseEventHandler {
     async processEvent(event) {
         // Handle workflow-related events
         if (event.eventType.startsWith('workflow.')) {
-            console.log(`🔄 Processing workflow event: ${event.eventType}`);
+            console.log(` Processing workflow event: ${event.eventType}`);
             return {
                 success: true,
                 processingTime: 50,

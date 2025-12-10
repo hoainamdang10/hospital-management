@@ -56,7 +56,7 @@ export class TestDatabase {
    * Called before test suite runs
    */
   async setup(): Promise<void> {
-    console.log('🔧 Setting up test database...');
+    console.log(' Setting up test database...');
 
     // Verify connection using schema-qualified table name
     const { error } = await this.supabaseClient
@@ -69,7 +69,7 @@ export class TestDatabase {
       throw new Error(`Failed to connect to test database: ${error.message}`);
     }
 
-    console.log('✅ Test database connected');
+    console.log(' Test database connected');
   }
 
   /**
@@ -77,7 +77,7 @@ export class TestDatabase {
    * Called after each test or test suite
    */
   async cleanup(): Promise<void> {
-    console.log('🧹 Cleaning up test data...');
+    console.log(' Cleaning up test data...');
 
     try {
       // Delete in reverse order of dependencies
@@ -126,9 +126,9 @@ export class TestDatabase {
         insuranceInfo: []
       };
 
-      console.log('✅ Test data cleaned up');
+      console.log(' Test data cleaned up');
     } catch (error) {
-      console.error('❌ Error cleaning up test data:', error);
+      console.error(' Error cleaning up test data:', error);
       throw error;
     }
   }
@@ -174,12 +174,12 @@ export class TestDatabase {
         .like('personal_info->>nationalId', pattern);
 
       if (error) {
-        console.warn(`⚠️  Could not cleanup test patients: ${error.message}`);
+        console.warn(`️  Could not cleanup test patients: ${error.message}`);
       } else {
-        console.log('✅ Test patients cleaned up');
+        console.log(' Test patients cleaned up');
       }
     } catch (error) {
-      console.warn('⚠️  Error cleaning up test patients:', error);
+      console.warn('️  Error cleaning up test patients:', error);
     }
   }
 
@@ -224,7 +224,7 @@ export class TestDatabase {
    */
   async close(): Promise<void> {
     // Supabase client doesn't need explicit closing
-    console.log('✅ Test database connection closed');
+    console.log(' Test database connection closed');
   }
 }
 

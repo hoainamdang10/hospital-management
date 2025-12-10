@@ -122,7 +122,7 @@ export class TestPatientFactory {
       // Track for cleanup
       this.createdPatientIds.push(patientId);
 
-      console.log(`✅ Test patient created: ${patientId}`);
+      console.log(` Test patient created: ${patientId}`);
 
       return {
         patientId,
@@ -136,7 +136,7 @@ export class TestPatientFactory {
         address: contactInfo.address
       };
     } catch (error) {
-      console.error('❌ Error creating test patient:', error);
+      console.error(' Error creating test patient:', error);
       throw error;
     }
   }
@@ -175,10 +175,10 @@ export class TestPatientFactory {
         throw new Error(`Failed to create emergency contact: ${error.message}`);
       }
 
-      console.log(`✅ Emergency contact created: ${contactId}`);
+      console.log(` Emergency contact created: ${contactId}`);
       return contactId;
     } catch (error) {
-      console.error('❌ Error creating emergency contact:', error);
+      console.error(' Error creating emergency contact:', error);
       throw error;
     }
   }
@@ -215,9 +215,9 @@ export class TestPatientFactory {
         throw new Error(`Failed to update medical info: ${error.message}`);
       }
 
-      console.log(`✅ Medical info updated for patient: ${data.patientId}`);
+      console.log(` Medical info updated for patient: ${data.patientId}`);
     } catch (error) {
-      console.error('❌ Error updating medical info:', error);
+      console.error(' Error updating medical info:', error);
       throw error;
     }
   }
@@ -262,10 +262,10 @@ export class TestPatientFactory {
         throw new Error(`Failed to create insurance info: ${error.message}`);
       }
 
-      console.log(`✅ Insurance info created: ${insuranceId}`);
+      console.log(` Insurance info created: ${insuranceId}`);
       return insuranceId;
     } catch (error) {
-      console.error('❌ Error creating insurance info:', error);
+      console.error(' Error creating insurance info:', error);
       throw error;
     }
   }
@@ -274,7 +274,7 @@ export class TestPatientFactory {
    * Cleanup all created patients
    */
   async cleanup(): Promise<void> {
-    console.log('🧹 Cleaning up test patients...');
+    console.log(' Cleaning up test patients...');
 
     for (const patientId of this.createdPatientIds) {
       try {
@@ -285,14 +285,14 @@ export class TestPatientFactory {
           .delete()
           .eq('patient_id', patientId);
 
-        console.log(`✅ Deleted test patient: ${patientId}`);
+        console.log(` Deleted test patient: ${patientId}`);
       } catch (error) {
-        console.warn(`⚠️  Error deleting test patient ${patientId}:`, error);
+        console.warn(`️  Error deleting test patient ${patientId}:`, error);
       }
     }
 
     this.createdPatientIds = [];
-    console.log('✅ Test patients cleaned up');
+    console.log(' Test patients cleaned up');
   }
 
   /**

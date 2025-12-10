@@ -285,7 +285,7 @@ export class PatientReadModelRepository {
       throw new Error(`Failed to delete patient read model: ${error.message}`);
     }
 
-    console.debug(`[PatientReadModelRepo] ✓ Deleted patient ${patientId}`);
+    console.debug(`[PatientReadModelRepo]  Deleted patient ${patientId}`);
   }
 
   /**

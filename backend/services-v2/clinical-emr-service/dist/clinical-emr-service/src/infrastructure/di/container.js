@@ -135,7 +135,7 @@ exports.DIContainer = exports.container;
 async function initializeContainer() {
     const errors = [];
     try {
-        console.log("📦 Initializing DI Container...");
+        console.log(" Initializing DI Container...");
         // =====================================================
         // CONFIGURATION
         // =====================================================
@@ -418,14 +418,14 @@ async function initializeContainer() {
             .bind(types_1.TYPES.AuthenticationMiddleware)
             .to(AuthenticationMiddleware_1.AuthenticationMiddleware)
             .inSingletonScope();
-        console.log("✅ DI Container initialized successfully");
+        console.log(" DI Container initialized successfully");
         console.log(`   - Registered ${exports.container.getBindings().length} bindings`);
         return { success: true, errors: [] };
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         errors.push(errorMessage);
-        console.error("❌ DI Container initialization failed:", errorMessage);
+        console.error(" DI Container initialization failed:", errorMessage);
         return { success: false, errors };
     }
 }
@@ -457,13 +457,13 @@ async function checkContainerHealth() {
  */
 async function cleanupContainer() {
     try {
-        console.log("🧹 Cleaning up DI container...");
+        console.log(" Cleaning up DI container...");
         // Unbind all
         exports.container.unbindAll();
-        console.log("✅ DI container cleaned up");
+        console.log(" DI container cleaned up");
     }
     catch (error) {
-        console.error("❌ Error cleaning up container:", error);
+        console.error(" Error cleaning up container:", error);
     }
 }
 /**

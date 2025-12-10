@@ -94,7 +94,7 @@ export class EndToEndTestSuite {
    * Run complete E2E test suite
    */
   public async runEndToEndTests(): Promise<TestSuite> {
-    console.log("🎭 Starting Hospital Management System V2 End-to-End Tests");
+    console.log(" Starting Hospital Management System V2 End-to-End Tests");
 
     const suiteStartTime = Date.now();
     const suiteId = `e2e_suite_${Date.now()}`;
@@ -171,7 +171,7 @@ export class EndToEndTestSuite {
       );
       return testSuite;
     } catch (error) {
-      console.error("❌ E2E test suite failed:", error);
+      console.error(" E2E test suite failed:", error);
       throw error;
     }
   }
@@ -953,7 +953,7 @@ export class EndToEndTestSuite {
    * Execute E2E scenario
    */
   private async executeE2EScenario(scenario: E2EScenario): Promise<E2EResult> {
-    console.log(`🎭 Executing E2E scenario: ${scenario.scenarioName}`);
+    console.log(` Executing E2E scenario: ${scenario.scenarioName}`);
 
     const startTime = new Date();
     const scenarioStartTime = Date.now();
@@ -964,7 +964,7 @@ export class EndToEndTestSuite {
 
       // Execute steps sequentially
       for (const step of scenario.steps) {
-        console.log(`  🔧 Executing step: ${step.stepName}`);
+        console.log(`   Executing step: ${step.stepName}`);
 
         const stepStartTime = Date.now();
 

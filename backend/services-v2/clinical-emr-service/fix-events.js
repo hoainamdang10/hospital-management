@@ -39,7 +39,7 @@ constructorFixFiles.forEach(fileName => {
   const filePath = path.join(eventsDir, fileName);
   
   if (!fs.existsSync(filePath)) {
-    console.log(`⚠️  File not found: ${fileName}`);
+    console.log(`️  File not found: ${fileName}`);
     return;
   }
 
@@ -47,7 +47,7 @@ constructorFixFiles.forEach(fileName => {
   
   // Check if constructor needs fixing (using object pattern in super call)
   if (content.includes('super({')) {
-    console.log(`🔧 Fixing constructor: ${fileName}`);
+    console.log(` Fixing constructor: ${fileName}`);
     
     // Extract event type from super call
     const eventTypeMatch = content.match(/eventType:\s*'([^']+)'/);
@@ -100,7 +100,7 @@ constructorFixFiles.forEach(fileName => {
       }
       
       fs.writeFileSync(filePath, content, 'utf8');
-      console.log(`✅ Fixed constructor: ${fileName}`);
+      console.log(` Fixed constructor: ${fileName}`);
     }
   }
 });
@@ -118,7 +118,7 @@ files.forEach(fileName => {
   const filePath = path.join(eventsDir, fileName);
   
   if (!fs.existsSync(filePath)) {
-    console.log(`⚠️  File not found: ${fileName}`);
+    console.log(`️  File not found: ${fileName}`);
     return;
   }
 
@@ -126,17 +126,17 @@ files.forEach(fileName => {
   
   // Check if already fixed
   if (content.includes('public getEventData()') && content.includes('public containsPHI()') && content.includes('public getPatientId()')) {
-    console.log(`✅ Already has methods: ${fileName}`);
+    console.log(` Already has methods: ${fileName}`);
     return;
   }
 
-  console.log(`🔧 Adding methods: ${fileName}`);
+  console.log(` Adding methods: ${fileName}`);
   
   // Add required methods before last closing brace
   const lastBraceIndex = content.lastIndexOf('}');
   
   if (lastBraceIndex === -1) {
-    console.log(`❌ Cannot find closing brace in ${fileName}`);
+    console.log(` Cannot find closing brace in ${fileName}`);
     return;
   }
 
@@ -164,7 +164,7 @@ files.forEach(fileName => {
   content = content.slice(0, lastBraceIndex) + methodsToAdd + '\n' + content.slice(lastBraceIndex);
   
   fs.writeFileSync(filePath, content, 'utf8');
-  console.log(`✅ Added methods: ${fileName}`);
+  console.log(` Added methods: ${fileName}`);
 });
 
-console.log('\n✅ All event files have been processed!');
+console.log('\n All event files have been processed!');

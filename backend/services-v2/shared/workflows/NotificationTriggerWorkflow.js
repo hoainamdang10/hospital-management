@@ -25,7 +25,7 @@ class NotificationTriggerWorkflow {
      * Register all notification trigger workflows
      */
     registerNotificationTriggerWorkflows() {
-        console.log('📢 Registering Notification Trigger Workflows');
+        console.log(' Registering Notification Trigger Workflows');
         this.registerAppointmentNotificationWorkflow();
         this.registerMedicationReminderWorkflow();
         this.registerEmergencyNotificationWorkflow();
@@ -34,7 +34,7 @@ class NotificationTriggerWorkflow {
         this.registerFollowUpReminderWorkflow();
         this.registerInsuranceNotificationWorkflow();
         this.registerMultiChannelNotificationWorkflow();
-        console.log('✅ All Notification Trigger Workflows registered');
+        console.log(' All Notification Trigger Workflows registered');
     }
     /**
      * Appointment Notification Workflow
@@ -667,7 +667,7 @@ class NotificationTriggerWorkflow {
      * Execute appointment notification workflow
      */
     async executeAppointmentNotification(notificationContext) {
-        console.log(`📢 Starting Appointment Notification for: ${notificationContext.recipientId}`);
+        console.log(` Starting Appointment Notification for: ${notificationContext.recipientId}`);
         return await this.orchestrator.startWorkflow('appointment-notification', notificationContext, {
             recipientId: notificationContext.recipientId,
             appointmentId: notificationContext.healthcareContext.appointmentId,
@@ -679,7 +679,7 @@ class NotificationTriggerWorkflow {
      * Execute medication reminder workflow
      */
     async executeMedicationReminder(notificationContext, reminderContext) {
-        console.log(`💊 Starting Medication Reminder for: ${notificationContext.recipientId}`);
+        console.log(` Starting Medication Reminder for: ${notificationContext.recipientId}`);
         return await this.orchestrator.startWorkflow('medication-reminder', { ...notificationContext, ...reminderContext }, {
             recipientId: notificationContext.recipientId,
             patientId: notificationContext.healthcareContext.patientId,
@@ -692,7 +692,7 @@ class NotificationTriggerWorkflow {
      * Execute emergency notification workflow
      */
     async executeEmergencyNotification(emergencyContext) {
-        console.log(`🚨 Starting Emergency Notification for: ${emergencyContext.emergencyId}`);
+        console.log(` Starting Emergency Notification for: ${emergencyContext.emergencyId}`);
         return await this.orchestrator.startWorkflow('emergency-notification', emergencyContext, {
             emergencyId: emergencyContext.emergencyId,
             correlationId: `emergency_${Date.now()}`,
@@ -703,7 +703,7 @@ class NotificationTriggerWorkflow {
      * Execute multi-channel notification workflow
      */
     async executeMultiChannelNotification(notificationContext) {
-        console.log(`📱 Starting Multi-channel Notification for: ${notificationContext.recipientId}`);
+        console.log(` Starting Multi-channel Notification for: ${notificationContext.recipientId}`);
         return await this.orchestrator.startWorkflow('multi-channel-notification', notificationContext, {
             recipientId: notificationContext.recipientId,
             correlationId: `multi_channel_${Date.now()}`,

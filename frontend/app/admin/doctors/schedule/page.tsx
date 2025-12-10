@@ -52,7 +52,7 @@ export default function DoctorSchedulePage() {
         const resp = await appointmentsClient.get('/v1/appointments', { params });
         const list = resp.data?.data?.appointments || [];
 
-        console.log('📅 Loaded appointments:', list.length, 'for doctor:', selectedDoctor);
+        console.log(' Loaded appointments:', list.length, 'for doctor:', selectedDoctor);
 
         const mapped: Appointment[] = list.map((apt: any) => {
           // Handle both snake_case (from API) and camelCase field names

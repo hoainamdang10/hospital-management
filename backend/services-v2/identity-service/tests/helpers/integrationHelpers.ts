@@ -109,7 +109,7 @@ export async function createStaffUser(
       .insert(profileRecord);
 
     if (insertResult.error && insertResult.error.code === '23505') {
-      console.log(`⚠️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
+      console.log(`️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
       await supabaseClient
         .from('user_profiles')
         .delete()
@@ -219,7 +219,7 @@ export async function createTestUser(
     
     // Warn if creating non-patient user (should use createStaffUser)
     if (normalizedRole !== 'patient') {
-      console.warn(`⚠️  Creating non-patient user '${normalizedRole}' via createTestUser(). Consider using createStaffUser() instead.`);
+      console.warn(`️  Creating non-patient user '${normalizedRole}' via createTestUser(). Consider using createStaffUser() instead.`);
     }
 
     // 0. Cleanup orphaned profiles with this email (from previous failed tests)
@@ -275,7 +275,7 @@ export async function createTestUser(
 
     // Check for duplicate key error
     if (insertResult.error && insertResult.error.code === '23505') {
-      console.log(`⚠️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
+      console.log(`️  Found orphaned profile ${authData.user.id}, deleting and retrying...`);
       await supabaseClient
         .from('user_profiles')
         .delete()
@@ -549,12 +549,12 @@ export async function cleanupTestUsers(
           console.log(`ℹ️  Auth user already deleted: ${email}`);
         }
 
-        console.log(`✅ Cleaned up test user: ${email}`);
+        console.log(` Cleaned up test user: ${email}`);
       } else {
         console.log(`ℹ️  User not found: ${email}`);
       }
     } catch (error) {
-      console.warn(`⚠️  Failed to cleanup user ${email}:`, error);
+      console.warn(`️  Failed to cleanup user ${email}:`, error);
     }
   }
 }
@@ -849,17 +849,17 @@ export async function cleanupAllTestUsers(
       .like('email', emailPattern);
 
     if (profiles && profiles.length > 0) {
-      console.log(`🧹 Cleaning up ${profiles.length} test users...`);
+      console.log(` Cleaning up ${profiles.length} test users...`);
 
       const emails = profiles.map(p => p.email);
       await cleanupTestUsers(supabaseClient, emails);
 
-      console.log(`✅ Cleanup complete`);
+      console.log(` Cleanup complete`);
     } else {
       console.log(`ℹ️  No test users to cleanup`);
     }
   } catch (error) {
-    console.warn(`⚠️  Failed to cleanup all test users:`, error);
+    console.warn(`️  Failed to cleanup all test users:`, error);
   }
 }
 

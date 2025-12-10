@@ -21,9 +21,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('❌ Missing required environment variables:');
-  console.error('   - SUPABASE_URL:', SUPABASE_URL ? '✅' : '❌');
-  console.error('   - SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_KEY ? '✅' : '❌');
+  console.error(' Missing required environment variables:');
+  console.error('   - SUPABASE_URL:', SUPABASE_URL ? '' : '');
+  console.error('   - SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_KEY ? '' : '');
   process.exit(1);
 }
 
@@ -38,9 +38,9 @@ interface CleanupResult {
 }
 
 async function cleanupPendingRegistrations(): Promise<CleanupResult> {
-  console.log('🧹 Starting cleanup of pending registrations...\n');
-  console.log(`📍 Supabase URL: ${SUPABASE_URL}`);
-  console.log(`📍 Project ID: ${SUPABASE_URL?.split('//')[1]?.split('.')[0]}\n`);
+  console.log(' Starting cleanup of pending registrations...\n');
+  console.log(` Supabase URL: ${SUPABASE_URL}`);
+  console.log(` Project ID: ${SUPABASE_URL?.split('//')[1]?.split('.')[0]}\n`);
 
   // Initialize Supabase client
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
@@ -62,7 +62,7 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
 
   try {
     // 1. Delete VERIFIED records
-    console.log('🔍 Deleting VERIFIED records...');
+    console.log(' Deleting VERIFIED records...');
     const { data: verifiedData, error: verifiedError } = await supabase
       .schema('auth_schema')
       .from('pending_registrations')
@@ -75,10 +75,10 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
     }
 
     result.byStatus.VERIFIED = verifiedData?.length || 0;
-    console.log(`✅ Deleted ${result.byStatus.VERIFIED} VERIFIED records\n`);
+    console.log(` Deleted ${result.byStatus.VERIFIED} VERIFIED records\n`);
 
     // 2. Delete EXPIRED records
-    console.log('🔍 Deleting EXPIRED records...');
+    console.log(' Deleting EXPIRED records...');
     const { data: expiredData, error: expiredError } = await supabase
       .schema('auth_schema')
       .from('pending_registrations')
@@ -91,10 +91,10 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
     }
 
     result.byStatus.EXPIRED = expiredData?.length || 0;
-    console.log(`✅ Deleted ${result.byStatus.EXPIRED} EXPIRED records\n`);
+    console.log(` Deleted ${result.byStatus.EXPIRED} EXPIRED records\n`);
 
     // 3. Delete FAILED records
-    console.log('🔍 Deleting FAILED records...');
+    console.log(' Deleting FAILED records...');
     const { data: failedData, error: failedError } = await supabase
       .schema('auth_schema')
       .from('pending_registrations')
@@ -107,10 +107,10 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
     }
 
     result.byStatus.FAILED = failedData?.length || 0;
-    console.log(`✅ Deleted ${result.byStatus.FAILED} FAILED records\n`);
+    console.log(` Deleted ${result.byStatus.FAILED} FAILED records\n`);
 
     // 4. Delete EMAIL_SENT records that have expired
-    console.log('🔍 Deleting EMAIL_SENT records that have expired...');
+    console.log(' Deleting EMAIL_SENT records that have expired...');
     const { data: emailSentExpiredData, error: emailSentExpiredError } = await supabase
       .schema('auth_schema')
       .from('pending_registrations')
@@ -124,7 +124,7 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
     }
 
     result.byStatus.EMAIL_SENT_EXPIRED = emailSentExpiredData?.length || 0;
-    console.log(`✅ Deleted ${result.byStatus.EMAIL_SENT_EXPIRED} EMAIL_SENT expired records\n`);
+    console.log(` Deleted ${result.byStatus.EMAIL_SENT_EXPIRED} EMAIL_SENT expired records\n`);
 
     // 5. Calculate total
     result.deletedCount = 
@@ -134,7 +134,7 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
       result.byStatus.EMAIL_SENT_EXPIRED;
 
     // 6. Log audit event
-    console.log('📝 Logging audit event...');
+    console.log(' Logging audit event...');
     const { error: auditError } = await supabase
       .schema('auth_schema')
       .from('audit_logs')
@@ -150,14 +150,14 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
       });
 
     if (auditError) {
-      console.warn('⚠️  Failed to log audit event:', auditError.message);
+      console.warn('️  Failed to log audit event:', auditError.message);
     } else {
-      console.log('✅ Audit event logged\n');
+      console.log(' Audit event logged\n');
     }
 
     // 7. Display summary
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log('📊 CLEANUP SUMMARY');
+    console.log(' CLEANUP SUMMARY');
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`Total Deleted:           ${result.deletedCount}`);
     console.log(`  - VERIFIED:            ${result.byStatus.VERIFIED}`);
@@ -167,15 +167,15 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
     console.log('═══════════════════════════════════════════════════════════════\n');
 
     if (result.deletedCount === 0) {
-      console.log('✅ No records to clean up. Database is clean!\n');
+      console.log(' No records to clean up. Database is clean!\n');
     } else {
-      console.log(`✅ Successfully cleaned up ${result.deletedCount} records!\n`);
+      console.log(` Successfully cleaned up ${result.deletedCount} records!\n`);
     }
 
     return result;
 
   } catch (error: any) {
-    console.error('❌ Error during cleanup:', error.message);
+    console.error(' Error during cleanup:', error.message);
     throw error;
   }
 }
@@ -183,10 +183,10 @@ async function cleanupPendingRegistrations(): Promise<CleanupResult> {
 // Run the cleanup
 cleanupPendingRegistrations()
   .then((result) => {
-    console.log('✅ Cleanup completed successfully!');
+    console.log(' Cleanup completed successfully!');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('❌ Cleanup failed:', error);
+    console.error(' Cleanup failed:', error);
     process.exit(1);
   });

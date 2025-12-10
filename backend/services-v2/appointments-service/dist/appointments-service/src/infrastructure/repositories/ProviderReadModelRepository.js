@@ -51,7 +51,7 @@ class ProviderReadModelRepository {
         if (error) {
             throw new Error(`Failed to upsert provider read model: ${error.message}`);
         }
-        console.debug(`[ProviderReadModelRepo] ✓ Upserted provider ${provider.providerId}`);
+        console.debug(`[ProviderReadModelRepo]  Upserted provider ${provider.providerId}`);
     }
     /**
      * Find provider by ID
@@ -229,7 +229,7 @@ class ProviderReadModelRepository {
         if (error) {
             throw new Error(`Failed to delete provider read model: ${error.message}`);
         }
-        console.debug(`[ProviderReadModelRepo] ✓ Deleted provider ${providerId}`);
+        console.debug(`[ProviderReadModelRepo]  Deleted provider ${providerId}`);
     }
     /**
      * Get sync statistics

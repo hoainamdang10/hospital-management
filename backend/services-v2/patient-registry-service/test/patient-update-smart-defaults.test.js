@@ -16,7 +16,7 @@ const TEST_PATIENT_ID = 'PAT-202511-921';
 
 // Helper functions
 const log = (message, data = null) => {
-  console.log(`\n🔍 ${message}`);
+  console.log(`\n ${message}`);
   if (data) console.log(JSON.stringify(data, null, 2));
 };
 

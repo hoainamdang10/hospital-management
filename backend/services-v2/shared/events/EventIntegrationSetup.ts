@@ -62,8 +62,8 @@ export class EventIntegrationSetup {
    */
   public async initializeAllServices(): Promise<void> {
     try {
-      console.log('🚀 Initializing Event-Driven Architecture for Hospital Management System V2');
-      console.log('🏥 Vietnamese Healthcare Standards Compliance Enabled');
+      console.log(' Initializing Event-Driven Architecture for Hospital Management System V2');
+      console.log(' Vietnamese Healthcare Standards Compliance Enabled');
       
       const serviceConfigs = this.getServiceConfigurations();
       this.status.totalServices = serviceConfigs.length;
@@ -76,10 +76,10 @@ export class EventIntegrationSetup {
           try {
             await this.initializeService(config);
             this.status.connectedServices++;
-            console.log(`✅ ${config.serviceName} event handler initialized successfully`);
+            console.log(` ${config.serviceName} event handler initialized successfully`);
           } catch (error) {
             this.status.failedServices++;
-            console.error(`❌ Failed to initialize ${config.serviceName} event handler:`, error);
+            console.error(` Failed to initialize ${config.serviceName} event handler:`, error);
           }
         } else {
           console.log(`⏭️ ${config.serviceName} event handler disabled`);
@@ -89,14 +89,14 @@ export class EventIntegrationSetup {
       // Start health monitoring
       this.startHealthMonitoring();
 
-      console.log(`🎉 Event Integration Setup Complete:`);
-      console.log(`   📊 Total Services: ${this.status.totalServices}`);
-      console.log(`   ✅ Connected: ${this.status.connectedServices}`);
-      console.log(`   ❌ Failed: ${this.status.failedServices}`);
-      console.log(`   🔄 Health Monitoring: Active`);
+      console.log(` Event Integration Setup Complete:`);
+      console.log(`    Total Services: ${this.status.totalServices}`);
+      console.log(`    Connected: ${this.status.connectedServices}`);
+      console.log(`    Failed: ${this.status.failedServices}`);
+      console.log(`    Health Monitoring: Active`);
 
     } catch (error) {
-      console.error('❌ Failed to initialize event integration:', error);
+      console.error(' Failed to initialize event integration:', error);
       throw error;
     }
   }
@@ -180,7 +180,7 @@ export class EventIntegrationSetup {
    */
   private async initializeService(config: ServiceEventHandlerConfig): Promise<void> {
     try {
-      console.log(`🔧 Initializing ${config.serviceName} event handler...`);
+      console.log(` Initializing ${config.serviceName} event handler...`);
 
       // In a real implementation, you would:
       // 1. Import the handler class dynamically
@@ -194,10 +194,10 @@ export class EventIntegrationSetup {
       
       this.handlers.set(config.serviceName, mockHandler);
 
-      console.log(`✅ ${config.serviceName} event handler ready`);
+      console.log(` ${config.serviceName} event handler ready`);
 
     } catch (error) {
-      console.error(`❌ Failed to initialize ${config.serviceName}:`, error);
+      console.error(` Failed to initialize ${config.serviceName}:`, error);
       throw error;
     }
   }
@@ -210,7 +210,7 @@ export class EventIntegrationSetup {
       await this.performHealthCheck();
     }, 30000); // Every 30 seconds
 
-    console.log('🔍 Health monitoring started (30s intervals)');
+    console.log(' Health monitoring started (30s intervals)');
   }
 
   /**
@@ -239,7 +239,7 @@ export class EventIntegrationSetup {
           totalProcessingTime += metrics.averageProcessingTime * metrics.totalProcessed;
 
         } catch (error) {
-          console.warn(`⚠️ Health check failed for ${serviceName}:`, error);
+          console.warn(`️ Health check failed for ${serviceName}:`, error);
         }
       }
 
@@ -254,13 +254,13 @@ export class EventIntegrationSetup {
 
       // Log health status
       if (this.status.connectedServices === this.status.totalServices) {
-        console.log(`💚 All services healthy - Events: ${totalEvents}, Success Rate: ${((successfulEvents / totalEvents) * 100).toFixed(1)}%`);
+        console.log(` All services healthy - Events: ${totalEvents}, Success Rate: ${((successfulEvents / totalEvents) * 100).toFixed(1)}%`);
       } else {
-        console.warn(`⚠️ Service health issues - Connected: ${connectedServices}/${this.status.totalServices}`);
+        console.warn(`️ Service health issues - Connected: ${connectedServices}/${this.status.totalServices}`);
       }
 
     } catch (error) {
-      console.error('❌ Health check failed:', error);
+      console.error(' Health check failed:', error);
     }
   }
 
@@ -301,7 +301,7 @@ export class EventIntegrationSetup {
    */
   public async shutdown(): Promise<void> {
     try {
-      console.log('🔌 Shutting down event integration...');
+      console.log(' Shutting down event integration...');
 
       // Stop health monitoring
       if (this.healthCheckInterval) {
@@ -312,17 +312,17 @@ export class EventIntegrationSetup {
       // Close all handlers
       const shutdownPromises = Array.from(this.handlers.values()).map(handler => 
         handler.close().catch(error => 
-          console.error(`❌ Error closing handler:`, error)
+          console.error(` Error closing handler:`, error)
         )
       );
 
       await Promise.all(shutdownPromises);
 
       this.handlers.clear();
-      console.log('✅ Event integration shutdown complete');
+      console.log(' Event integration shutdown complete');
 
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      console.error(' Error during shutdown:', error);
     }
   }
 
@@ -374,7 +374,7 @@ class MockEventHandler extends BaseEventHandler {
   public async initialize(): Promise<void> {
     // Mock initialization
     this.isConnected = true;
-    console.log(`🔧 Mock handler initialized for ${this.serviceName}`);
+    console.log(` Mock handler initialized for ${this.serviceName}`);
   }
 }
 

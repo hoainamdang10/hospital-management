@@ -242,7 +242,7 @@ export default function AdminPatientsPage() {
         merged: statsResponse.byStatus?.merged || 0,
       });
     } catch (err) {
-      console.error('❌ Error fetching stats:', err);
+      console.error(' Error fetching stats:', err);
       showErrorToast(err, {
         title: 'Không thể tải thống kê bệnh nhân',
         fallbackMessage: 'Không thể tải thống kê bệnh nhân. Vui lòng thử lại sau.',

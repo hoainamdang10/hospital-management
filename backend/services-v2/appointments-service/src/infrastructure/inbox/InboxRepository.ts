@@ -73,7 +73,7 @@ export class InboxRepository {
       throw new Error(`Inbox save failed: ${error.message}`);
     }
 
-    console.debug(`[InboxRepository] ✓ Event ${event.eventId} saved to inbox`);
+    console.debug(`[InboxRepository]  Event ${event.eventId} saved to inbox`);
   }
 
   /**
@@ -130,7 +130,7 @@ export class InboxRepository {
     }
 
     const deletedCount = data?.length || 0;
-    console.log(`[InboxRepository] ✓ Cleaned up ${deletedCount} old inbox events`);
+    console.log(`[InboxRepository]  Cleaned up ${deletedCount} old inbox events`);
     return deletedCount;
   }
 

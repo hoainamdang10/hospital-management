@@ -75,7 +75,7 @@ class ReschedulingService {
                     timestamp: new Date()
                 }
             });
-            console.log(`✅ Conflict handled for appointment ${request.appointment.getAppointmentId().value}, queue entry: ${queueEntry.id}`);
+            console.log(` Conflict handled for appointment ${request.appointment.getAppointmentId().value}, queue entry: ${queueEntry.id}`);
             return queueEntry;
         }
         catch (error) {
@@ -131,7 +131,7 @@ class ReschedulingService {
                     timestamp: new Date()
                 }
             });
-            console.log(`✅ Patient response processed for queue entry ${response.queueEntryId}`);
+            console.log(` Patient response processed for queue entry ${response.queueEntryId}`);
             return updatedEntry;
         }
         catch (error) {
@@ -198,7 +198,7 @@ class ReschedulingService {
                     timestamp: new Date()
                 }
             });
-            console.log(`✅ Rescheduling completed for queue entry ${queueEntryId}`);
+            console.log(` Rescheduling completed for queue entry ${queueEntryId}`);
             return completedEntry;
         }
         catch (error) {
@@ -225,7 +225,7 @@ class ReschedulingService {
                         appointment.cancel('Rescheduling request expired - appointment cancelled', 'system');
                         // Save the updated appointment
                         await this.appointmentRepository.save(appointment);
-                        console.log(`✅ Cancelled appointment ${entry.appointmentId} due to rescheduling expiration`);
+                        console.log(` Cancelled appointment ${entry.appointmentId} due to rescheduling expiration`);
                     }
                 }
                 catch (error) {
@@ -249,7 +249,7 @@ class ReschedulingService {
                     }
                 });
             }
-            console.log(`✅ Processed ${expiredEntries.length} expired rescheduling entries`);
+            console.log(` Processed ${expiredEntries.length} expired rescheduling entries`);
         }
         catch (error) {
             console.error('Failed to process expired entries:', error);

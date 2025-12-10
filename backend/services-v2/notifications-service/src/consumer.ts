@@ -21,7 +21,7 @@ dotenv.config();
  */
 async function bootstrap() {
   try {
-    console.log('🚀 Starting Notifications Service Consumer...');
+    console.log(' Starting Notifications Service Consumer...');
 
     // Validate environment variables
     const requiredEnvVars = [
@@ -36,7 +36,7 @@ async function bootstrap() {
       }
     }
 
-    console.log('✅ Environment variables validated');
+    console.log(' Environment variables validated');
 
     // Create DI container
     const container = new DIContainer({
@@ -45,19 +45,19 @@ async function bootstrap() {
       enableMetrics: true
     });
 
-    console.log('✅ DI container created');
+    console.log(' DI container created');
 
     // Setup dependencies
     setupDependencies(container);
 
-    console.log('✅ Dependencies registered');
+    console.log(' Dependencies registered');
 
     // Resolve event handlers from container
     const eventHandlers = container.resolve<NotificationEventHandlers>(
       ServiceTokens.NOTIFICATION_EVENT_HANDLERS
     );
 
-    console.log('✅ Event handlers resolved from DI container');
+    console.log(' Event handlers resolved from DI container');
 
     // Configure RabbitMQ consumer
     const consumerConfig: RabbitMQConsumerConfig = {
@@ -104,13 +104,13 @@ async function bootstrap() {
     // Initialize RabbitMQ consumer
     const consumer = new RabbitMQConsumer(consumerConfig, eventHandlers);
 
-    console.log('✅ RabbitMQ consumer initialized');
+    console.log(' RabbitMQ consumer initialized');
 
     // Start consumer
     await consumer.start();
 
-    console.log('✅ RabbitMQ consumer started successfully');
-    console.log('📊 Consumer configuration:', {
+    console.log(' RabbitMQ consumer started successfully');
+    console.log(' Consumer configuration:', {
       queue: consumerConfig.queueName,
       routingKeys: consumerConfig.routingKeys,
       prefetchCount: consumerConfig.prefetchCount
@@ -118,15 +118,15 @@ async function bootstrap() {
 
     // Graceful shutdown
     const shutdown = async (signal: string) => {
-      console.log(`\n⚠️ Received ${signal}, shutting down gracefully...`);
+      console.log(`\n️ Received ${signal}, shutting down gracefully...`);
 
       try {
         await consumer.stop();
-        console.log('✅ Consumer stopped');
+        console.log(' Consumer stopped');
 
         process.exit(0);
       } catch (error) {
-        console.error('❌ Error during shutdown:', error);
+        console.error(' Error during shutdown:', error);
         process.exit(1);
       }
     };
@@ -138,7 +138,7 @@ async function bootstrap() {
     setInterval(async () => {
       const stats = await consumer.getQueueStats();
       if (stats) {
-        console.log('📊 Queue stats:', {
+        console.log(' Queue stats:', {
           messageCount: stats.messageCount,
           consumerCount: stats.consumerCount,
           timestamp: new Date().toISOString()
@@ -147,7 +147,7 @@ async function bootstrap() {
     }, 60000); // Every 1 minute
 
   } catch (error) {
-    console.error('❌ Failed to start consumer:', error);
+    console.error(' Failed to start consumer:', error);
     process.exit(1);
   }
 }

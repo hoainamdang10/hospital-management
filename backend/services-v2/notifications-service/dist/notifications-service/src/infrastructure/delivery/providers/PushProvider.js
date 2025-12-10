@@ -15,10 +15,10 @@ class PushProvider {
         this.projectId = config.projectId;
         this.isConfigured = !!config.projectId && config.enabled;
         if (!this.isConfigured) {
-            console.warn('[PushProvider] ⚠️ Firebase not configured - push notifications disabled');
+            console.warn('[PushProvider] ️ Firebase not configured - push notifications disabled');
         }
         else {
-            console.log(`[PushProvider] ✅ Firebase configured for project ${this.projectId} (mock mode)`);
+            console.log(`[PushProvider]  Firebase configured for project ${this.projectId} (mock mode)`);
         }
     }
     getType() {

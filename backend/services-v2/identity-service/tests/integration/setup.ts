@@ -21,27 +21,27 @@ let supabaseClient: SupabaseClient;
  * Global setup - runs once before all integration tests
  */
 beforeAll(async () => {
-  console.log('\n🚀 Setting up integration tests...');
-  console.log(`📍 Supabase URL: ${process.env.SUPABASE_URL}`);
-  console.log(`📊 Node Environment: ${process.env.NODE_ENV}`);
+  console.log('\n Setting up integration tests...');
+  console.log(` Supabase URL: ${process.env.SUPABASE_URL}`);
+  console.log(` Node Environment: ${process.env.NODE_ENV}`);
 
   try {
     // Create Supabase client
     supabaseClient = createTestSupabaseClient();
 
     // Verify database connection
-    console.log('🔌 Verifying database connection...');
+    console.log(' Verifying database connection...');
     const { error } = await supabaseClient
       .from('user_profiles')
       .select('count')
       .limit(1);
 
     if (error) {
-      console.error('❌ Database connection failed:', error.message);
+      console.error(' Database connection failed:', error.message);
       throw new Error(`Database connection failed: ${error.message}`);
     }
 
-    console.log('✅ Database connection successful');
+    console.log(' Database connection successful');
 
     // Verify required schemas exist
     await verifySchemas();
@@ -49,9 +49,9 @@ beforeAll(async () => {
     // Verify test users exist (seeded by seed-test-data.ts)
     await verifyTestUsers();
 
-    console.log('✅ Integration tests setup complete\n');
+    console.log(' Integration tests setup complete\n');
   } catch (error) {
-    console.error('❌ Integration tests setup failed:', error);
+    console.error(' Integration tests setup failed:', error);
     throw error;
   }
 }, 30000); // 30 second timeout for setup
@@ -60,21 +60,21 @@ beforeAll(async () => {
  * Global teardown - runs once after all integration tests
  */
 afterAll(async () => {
-  console.log('\n🧹 Cleaning up integration tests...');
+  console.log('\n Cleaning up integration tests...');
 
   try {
     // Cleanup cached test user pool
     if (testUserPoolCache.isCached()) {
-      console.log('🗑️  Cleaning up cached test user pool...');
+      console.log('️  Cleaning up cached test user pool...');
       await testUserPoolCache.cleanup(supabaseClient);
     }
 
     // Cleanup dynamic test users (pattern: test-*@hospital.vn)
     await cleanupDynamicTestUsers();
 
-    console.log('✅ Integration tests cleanup complete\n');
+    console.log(' Integration tests cleanup complete\n');
   } catch (error) {
-    console.warn('⚠️  Integration tests cleanup warning:', error);
+    console.warn('️  Integration tests cleanup warning:', error);
   }
 });
 
@@ -82,7 +82,7 @@ afterAll(async () => {
  * Verify required database schemas exist
  */
 async function verifySchemas(): Promise<void> {
-  console.log('📋 Verifying database schemas...');
+  console.log(' Verifying database schemas...');
 
   const requiredTables = [
     'user_profiles',
@@ -106,21 +106,21 @@ async function verifySchemas(): Promise<void> {
         .limit(1);
 
       if (error) {
-        console.warn(`⚠️  Table ${table} not accessible: ${error.message}`);
+        console.warn(`️  Table ${table} not accessible: ${error.message}`);
       }
     } catch (error) {
-      console.warn(`⚠️  Could not verify table ${table}:`, error);
+      console.warn(`️  Could not verify table ${table}:`, error);
     }
   }
 
-  console.log('✅ Database schemas verified');
+  console.log(' Database schemas verified');
 }
 
 /**
  * Verify test users exist (seeded by seed-test-data.ts)
  */
 async function verifyTestUsers(): Promise<void> {
-  console.log('👥 Verifying test users...');
+  console.log(' Verifying test users...');
 
   const testEmails = [
     process.env.TEST_USER_EMAIL || 'test.admin@hospital.com',
@@ -140,21 +140,21 @@ async function verifyTestUsers(): Promise<void> {
 
       if (!error && data) {
         foundCount++;
-        console.log(`  ✅ Found test user: ${email} (${data.role_type})`);
+        console.log(`   Found test user: ${email} (${data.role_type})`);
       } else {
-        console.warn(`  ⚠️  Test user not found: ${email}`);
+        console.warn(`  ️  Test user not found: ${email}`);
       }
     } catch (error) {
-      console.warn(`  ⚠️  Could not verify test user ${email}:`, error);
+      console.warn(`  ️  Could not verify test user ${email}:`, error);
     }
   }
 
   if (foundCount === 0) {
-    console.warn('\n⚠️  WARNING: No test users found!');
+    console.warn('\n️  WARNING: No test users found!');
     console.warn('Run: npm run seed:test-data');
     console.warn('This will create test users for integration tests\n');
   } else {
-    console.log(`✅ Found ${foundCount}/${testEmails.length} test users`);
+    console.log(` Found ${foundCount}/${testEmails.length} test users`);
   }
 }
 
@@ -163,7 +163,7 @@ async function verifyTestUsers(): Promise<void> {
  * Pattern: test-*@hospital.vn
  */
 async function cleanupDynamicTestUsers(): Promise<void> {
-  console.log('🗑️  Cleaning up dynamic test users...');
+  console.log('️  Cleaning up dynamic test users...');
 
   try {
     // Get all users
@@ -203,15 +203,15 @@ async function cleanupDynamicTestUsers(): Promise<void> {
         // Delete auth user
         await supabaseClient.auth.admin.deleteUser(user.id);
 
-        console.log(`  ✅ Cleaned up: ${user.email}`);
+        console.log(`   Cleaned up: ${user.email}`);
       } catch (error) {
-        console.warn(`  ⚠️  Failed to cleanup ${user.email}:`, error);
+        console.warn(`  ️  Failed to cleanup ${user.email}:`, error);
       }
     }
 
-    console.log(`✅ Cleaned up ${dynamicTestUsers.length} dynamic test users`);
+    console.log(` Cleaned up ${dynamicTestUsers.length} dynamic test users`);
   } catch (error) {
-    console.warn('⚠️  Error during cleanup:', error);
+    console.warn('️  Error during cleanup:', error);
   }
 }
 

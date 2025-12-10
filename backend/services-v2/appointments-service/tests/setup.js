@@ -272,8 +272,8 @@ global.vietnameseTestUtils = {
         return hour >= 7 && hour < 17;
     }
 };
-console.log('✅ Test setup completed - Vietnamese Healthcare Compliance Enabled');
-console.log(`📅 Mock date: ${mockDate.toISOString()}`);
-console.log(`🧪 Test environment: ${process.env.NODE_ENV}`);
-console.log(`🇻🇳 Vietnamese timezone: ${process.env.TZ}`);
+console.log(' Test setup completed - Vietnamese Healthcare Compliance Enabled');
+console.log(` Mock date: ${mockDate.toISOString()}`);
+console.log(` Test environment: ${process.env.NODE_ENV}`);
+console.log(` Vietnamese timezone: ${process.env.TZ}`);
 //# sourceMappingURL=setup.js.map

@@ -56,7 +56,7 @@ export class TestUserFactory {
 
     try {
       // 1. Create user in auth.users (Supabase Auth)
-      console.log(`🔧 Creating auth user for ${email}...`);
+      console.log(` Creating auth user for ${email}...`);
       const { data: authUser, error: authError } = await this.supabaseClient.auth.admin.createUser({
         email,
         password,
@@ -72,7 +72,7 @@ export class TestUserFactory {
       }
 
       const userId = authUser.user.id;
-      console.log(`✅ Auth user created: ${userId}`);
+      console.log(` Auth user created: ${userId}`);
 
       // 2. Create user profile in auth_schema.user_profiles
       const { error: profileError } = await this.supabaseClient
@@ -95,10 +95,10 @@ export class TestUserFactory {
         });
 
       if (profileError) {
-        console.warn(`⚠️  Failed to create user profile: ${profileError.message}`);
+        console.warn(`️  Failed to create user profile: ${profileError.message}`);
         // Continue anyway, profile might be created by trigger
       } else {
-        console.log(`✅ User profile created for ${email}`);
+        console.log(` User profile created for ${email}`);
       }
 
       // 3. Assign role in auth_schema.user_roles (optional, for compatibility)
@@ -113,9 +113,9 @@ export class TestUserFactory {
         });
 
       if (roleError) {
-        console.warn(`⚠️  Failed to assign role: ${roleError.message}`);
+        console.warn(`️  Failed to assign role: ${roleError.message}`);
       } else {
-        console.log(`✅ Role ${roleType} assigned to ${email}`);
+        console.log(` Role ${roleType} assigned to ${email}`);
       }
 
       // Track for cleanup
@@ -130,7 +130,7 @@ export class TestUserFactory {
         isActive: true
       };
     } catch (error) {
-      console.error('❌ Error creating verified user:', error);
+      console.error(' Error creating verified user:', error);
       throw error;
     }
   }
@@ -197,7 +197,7 @@ export class TestUserFactory {
    * Cleanup all created users
    */
   async cleanup(): Promise<void> {
-    console.log('🧹 Cleaning up test users...');
+    console.log(' Cleaning up test users...');
 
     for (const userId of this.createdUserIds) {
       try {
@@ -218,14 +218,14 @@ export class TestUserFactory {
         // Delete from auth.users
         await this.supabaseClient.auth.admin.deleteUser(userId);
 
-        console.log(`✅ Deleted test user: ${userId}`);
+        console.log(` Deleted test user: ${userId}`);
       } catch (error) {
-        console.warn(`⚠️  Error deleting test user ${userId}:`, error);
+        console.warn(`️  Error deleting test user ${userId}:`, error);
       }
     }
 
     this.createdUserIds = [];
-    console.log('✅ Test users cleaned up');
+    console.log(' Test users cleaned up');
   }
 
   /**

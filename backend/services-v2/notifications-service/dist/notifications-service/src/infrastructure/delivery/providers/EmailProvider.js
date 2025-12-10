@@ -23,15 +23,15 @@ class EmailProvider {
             try {
                 mail_1.default.setApiKey(config.apiKey);
                 this.isSendGridReady = true;
-                console.log('[EmailProvider] ✅ SendGrid initialized successfully');
+                console.log('[EmailProvider]  SendGrid initialized successfully');
             }
             catch (error) {
-                console.error('[EmailProvider] ❌ Failed to initialize SendGrid:', error);
+                console.error('[EmailProvider]  Failed to initialize SendGrid:', error);
                 this.isSendGridReady = false;
             }
         }
         else {
-            console.warn('[EmailProvider] ⚠️ SendGrid not configured - email delivery disabled');
+            console.warn('[EmailProvider] ️ SendGrid not configured - email delivery disabled');
         }
     }
     getType() {
@@ -124,7 +124,7 @@ class EmailProvider {
         try {
             // Real SendGrid API call
             const [response] = await mail_1.default.send(emailData);
-            console.log('[EmailProvider] ✅ Email sent successfully', {
+            console.log('[EmailProvider]  Email sent successfully', {
                 statusCode: response.statusCode,
                 messageId: response.headers['x-message-id']
             });
@@ -135,7 +135,7 @@ class EmailProvider {
             };
         }
         catch (error) {
-            console.error('[EmailProvider] ❌ SendGrid API error:', {
+            console.error('[EmailProvider]  SendGrid API error:', {
                 code: error.code,
                 message: error.message,
                 response: error.response?.body

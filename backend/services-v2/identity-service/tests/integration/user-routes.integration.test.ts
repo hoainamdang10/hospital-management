@@ -65,7 +65,7 @@ describe('User Routes Integration Tests', () => {
     // Get cached test user pool (seeds once, reuses for all tests)
     userPool = await testUserPoolCache.getPool(supabaseClient);
     
-    console.log('✅ Test setup complete with user pool');
+    console.log(' Test setup complete with user pool');
     console.log('DEBUG - Admin token:', userPool.admin.token ? `${userPool.admin.token.substring(0, 20)}...` : 'NO TOKEN');
     console.log('DEBUG - Patient token:', userPool.patient.token ? `${userPool.patient.token.substring(0, 20)}...` : 'NO TOKEN');
   }, 90000); // 90 second timeout for setup

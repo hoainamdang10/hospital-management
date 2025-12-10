@@ -217,20 +217,20 @@ class EventBusConfiguration {
         const maxAttempts = 5;
         while (attempts < maxAttempts) {
             try {
-                console.log(`🔗 Attempting to connect to RabbitMQ (attempt ${attempts + 1}/${maxAttempts})`);
+                console.log(` Attempting to connect to RabbitMQ (attempt ${attempts + 1}/${maxAttempts})`);
                 const connection = await amqp.connect(this.config.connectionUrl);
                 connection.on('error', (error) => {
-                    console.error('🚨 RabbitMQ connection error:', error);
+                    console.error(' RabbitMQ connection error:', error);
                 });
                 connection.on('close', () => {
-                    console.warn('⚠️ RabbitMQ connection closed');
+                    console.warn('️ RabbitMQ connection closed');
                 });
-                console.log('✅ Connected to RabbitMQ successfully');
+                console.log(' Connected to RabbitMQ successfully');
                 return connection;
             }
             catch (error) {
                 attempts++;
-                console.error(`❌ Failed to connect to RabbitMQ (attempt ${attempts}):`, error);
+                console.error(` Failed to connect to RabbitMQ (attempt ${attempts}):`, error);
                 if (attempts >= maxAttempts) {
                     throw new Error(`Failed to connect to RabbitMQ after ${maxAttempts} attempts`);
                 }
@@ -247,7 +247,7 @@ class EventBusConfiguration {
      */
     async setupServiceInfrastructure(channel, serviceConfig) {
         try {
-            console.log(`🏗️ Setting up infrastructure for ${serviceConfig.serviceName}`);
+            console.log(`️ Setting up infrastructure for ${serviceConfig.serviceName}`);
             // Declare main exchange
             await channel.assertExchange(this.config.exchangeName, 'topic', {
                 durable: true
@@ -275,14 +275,14 @@ class EventBusConfiguration {
             // Bind main queue to routing keys
             for (const routingKey of serviceConfig.routingKeys) {
                 await channel.bindQueue(serviceConfig.queueName, this.config.exchangeName, routingKey);
-                console.log(`📮 Bound queue ${serviceConfig.queueName} to routing key: ${routingKey}`);
+                console.log(` Bound queue ${serviceConfig.queueName} to routing key: ${routingKey}`);
             }
             // Set prefetch count
             await channel.prefetch(this.config.prefetchCount);
-            console.log(`✅ Infrastructure setup completed for ${serviceConfig.serviceName}`);
+            console.log(` Infrastructure setup completed for ${serviceConfig.serviceName}`);
         }
         catch (error) {
-            console.error(`❌ Failed to setup infrastructure for ${serviceConfig.serviceName}:`, error);
+            console.error(` Failed to setup infrastructure for ${serviceConfig.serviceName}:`, error);
             throw error;
         }
     }
@@ -302,19 +302,19 @@ class EventBusConfiguration {
         ];
         for (const field of requiredFields) {
             if (!event[field]) {
-                console.error(`❌ Event validation failed: missing field '${field}'`);
+                console.error(` Event validation failed: missing field '${field}'`);
                 return false;
             }
         }
         // Validate event type format
         if (!/^[a-zA-Z][a-zA-Z0-9]*\.[a-zA-Z][a-zA-Z0-9]*$/.test(event.eventType)) {
-            console.error(`❌ Event validation failed: invalid eventType format '${event.eventType}'`);
+            console.error(` Event validation failed: invalid eventType format '${event.eventType}'`);
             return false;
         }
         // Validate priority
         const validPriorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
         if (event.priority && !validPriorities.includes(event.priority)) {
-            console.error(`❌ Event validation failed: invalid priority '${event.priority}'`);
+            console.error(` Event validation failed: invalid priority '${event.priority}'`);
             return false;
         }
         // Validate Vietnamese healthcare context
@@ -322,12 +322,12 @@ class EventBusConfiguration {
             const context = event.eventData.healthcareContext;
             // Validate patient ID format
             if (context.patientId && !/^PAT-\d{6}-\d{3}$/.test(context.patientId)) {
-                console.error(`❌ Event validation failed: invalid patientId format '${context.patientId}'`);
+                console.error(` Event validation failed: invalid patientId format '${context.patientId}'`);
                 return false;
             }
             // Validate doctor ID format
             if (context.doctorId && !/^[A-Z]{4}-DOC-\d{6}-\d{3}$/.test(context.doctorId)) {
-                console.error(`❌ Event validation failed: invalid doctorId format '${context.doctorId}'`);
+                console.error(` Event validation failed: invalid doctorId format '${context.doctorId}'`);
                 return false;
             }
         }

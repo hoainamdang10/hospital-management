@@ -62,7 +62,7 @@ interface DoctorData {
 
 async function backfillReadModel() {
   console.log('='.repeat(70));
-  console.log('🔄 BACKFILL READ MODEL - Sync Write Model → Read Model');
+  console.log(' BACKFILL READ MODEL - Sync Write Model → Read Model');
   console.log('='.repeat(70));
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -71,7 +71,7 @@ async function backfillReadModel() {
 
   try {
     // Step 1: Check current state
-    console.log('\n📊 Step 1: Checking current state...');
+    console.log('\n Step 1: Checking current state...');
     
     const { count: writeCount } = await supabase
       .from('appointments')
@@ -86,12 +86,12 @@ async function backfillReadModel() {
     console.log(`   Gap: ${(writeCount || 0) - (readCount || 0)} records need sync`);
 
     if (!writeCount || writeCount === 0) {
-      console.log('\n✅ No appointments to sync');
+      console.log('\n No appointments to sync');
       return;
     }
 
     // Step 2: Fetch all appointments in batches
-    console.log(`\n📥 Step 2: Fetching ${writeCount} appointments...`);
+    console.log(`\n Step 2: Fetching ${writeCount} appointments...`);
     let offset = 0;
     let totalProcessed = 0;
     let totalSuccess = 0;
@@ -104,7 +104,7 @@ async function backfillReadModel() {
         .range(offset, offset + BATCH_SIZE - 1);
 
       if (error) {
-        console.error(`   ❌ Failed to fetch batch at offset ${offset}:`, error.message);
+        console.error(`    Failed to fetch batch at offset ${offset}:`, error.message);
         break;
       }
 
@@ -186,7 +186,7 @@ async function backfillReadModel() {
             });
 
           if (insertError) {
-            console.error(`   ❌ Failed to sync appointment ${apt.id}:`, insertError.message);
+            console.error(`    Failed to sync appointment ${apt.id}:`, insertError.message);
             totalFailed++;
           } else {
             totalSuccess++;
@@ -199,7 +199,7 @@ async function backfillReadModel() {
             process.stdout.write(`\r   Progress: ${totalProcessed}/${writeCount} (${Math.round(totalProcessed / (writeCount || 1) * 100)}%)`);
           }
         } catch (err) {
-          console.error(`   ❌ Error processing appointment ${apt.id}:`, err);
+          console.error(`    Error processing appointment ${apt.id}:`, err);
           totalFailed++;
         }
       }
@@ -209,7 +209,7 @@ async function backfillReadModel() {
 
     console.log('\n');
     console.log('='.repeat(70));
-    console.log('✅ BACKFILL COMPLETED');
+    console.log(' BACKFILL COMPLETED');
     console.log('='.repeat(70));
     console.log(`   Total Processed: ${totalProcessed}`);
     console.log(`   Success: ${totalSuccess}`);
@@ -217,7 +217,7 @@ async function backfillReadModel() {
     console.log('='.repeat(70));
 
   } catch (error) {
-    console.error('\n❌ BACKFILL FAILED:', error);
+    console.error('\n BACKFILL FAILED:', error);
     process.exit(1);
   }
 }
@@ -225,10 +225,10 @@ async function backfillReadModel() {
 // Run backfill
 backfillReadModel()
   .then(() => {
-    console.log('\n✅ Backfill script completed successfully');
+    console.log('\n Backfill script completed successfully');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('\n❌ Backfill script failed:', error);
+    console.error('\n Backfill script failed:', error);
     process.exit(1);
   });

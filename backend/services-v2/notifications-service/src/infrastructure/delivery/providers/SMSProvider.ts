@@ -31,13 +31,13 @@ export class SMSProvider implements ChannelProvider {
     if (this.isConfigured) {
       try {
         this.twilioClient = twilio(config.accountSid, config.authToken);
-        console.log('[SMSProvider] ✅ Twilio initialized successfully');
+        console.log('[SMSProvider]  Twilio initialized successfully');
       } catch (error) {
-        console.error('[SMSProvider] ❌ Failed to initialize Twilio:', error);
+        console.error('[SMSProvider]  Failed to initialize Twilio:', error);
         this.twilioClient = null;
       }
     } else {
-      console.warn('[SMSProvider] ⚠️ Twilio not configured - SMS delivery disabled');
+      console.warn('[SMSProvider] ️ Twilio not configured - SMS delivery disabled');
     }
   }
 
@@ -159,7 +159,7 @@ export class SMSProvider implements ChannelProvider {
       // Real Twilio API call
       const message = await this.twilioClient.messages.create(smsData);
       
-      console.log('[SMSProvider] ✅ SMS sent successfully', {
+      console.log('[SMSProvider]  SMS sent successfully', {
         sid: message.sid,
         status: message.status,
         to: message.to
@@ -176,7 +176,7 @@ export class SMSProvider implements ChannelProvider {
         priceUnit: message.priceUnit
       };
     } catch (error: any) {
-      console.error('[SMSProvider] ❌ Twilio API error:', {
+      console.error('[SMSProvider]  Twilio API error:', {
         code: error.code,
         message: error.message,
         moreInfo: error.moreInfo

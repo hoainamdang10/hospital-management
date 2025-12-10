@@ -22,16 +22,16 @@ class Logger {
         }
         // Console logging with different levels
         if (entry.error) {
-            console.error('🚨 [ERROR]', this.formatLogEntry(entry));
+            console.error(' [ERROR]', this.formatLogEntry(entry));
         }
         else if (entry.statusCode && entry.statusCode >= 400) {
-            console.warn('⚠️ [WARN]', this.formatLogEntry(entry));
+            console.warn('️ [WARN]', this.formatLogEntry(entry));
         }
         else if (entry.sensitiveDataAccessed) {
-            console.info('🔒 [AUDIT]', this.formatLogEntry(entry));
+            console.info(' [AUDIT]', this.formatLogEntry(entry));
         }
         else {
-            console.log('📝 [INFO]', this.formatLogEntry(entry));
+            console.log(' [INFO]', this.formatLogEntry(entry));
         }
         // In production, you would send logs to external logging service
         // this.sendToExternalLogger(entry);
@@ -303,7 +303,7 @@ const auditLoggingMiddleware = (req, res, next) => {
         requestId: req.headers['x-request-id']
     };
     // In production, send to secure audit log storage
-    console.log('🔒 [AUDIT]', JSON.stringify(auditEntry));
+    console.log(' [AUDIT]', JSON.stringify(auditEntry));
     next();
 };
 exports.auditLoggingMiddleware = auditLoggingMiddleware;

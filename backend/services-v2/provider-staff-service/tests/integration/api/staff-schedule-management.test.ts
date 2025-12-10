@@ -42,7 +42,7 @@ describe('Staff Schedule Management Integration Tests', () => {
     adminUserId = adminUser.userId;
     adminToken = adminUser.token;
 
-    console.log('✅ Admin user created:', adminUserId);
+    console.log(' Admin user created:', adminUserId);
   }, 60000);
 
   afterAll(async () => {

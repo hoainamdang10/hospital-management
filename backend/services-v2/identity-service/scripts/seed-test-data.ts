@@ -31,7 +31,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
+  console.error(' Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
   process.exit(1);
 }
 
@@ -80,7 +80,7 @@ const userRepository = new SupabaseUserRepository(
  * Delete all existing test users
  */
 async function cleanupTestUsers() {
-  console.log('\n🗑️  Cleaning up existing test users...');
+  console.log('\n️  Cleaning up existing test users...');
   
   const { data: users } = await supabase.auth.admin.listUsers();
   
@@ -90,9 +90,9 @@ async function cleanupTestUsers() {
     if (existingUser) {
       const { error } = await supabase.auth.admin.deleteUser(existingUser.id);
       if (error) {
-        console.error(`   ❌ Failed to delete ${testUser.email}:`, error.message);
+        console.error(`    Failed to delete ${testUser.email}:`, error.message);
       } else {
-        console.log(`   ✅ Deleted ${testUser.email}`);
+        console.log(`    Deleted ${testUser.email}`);
       }
     }
   }
@@ -107,7 +107,7 @@ async function cleanupTestUsers() {
  * - ✅ Rollback on failure
  */
 async function createTestUsers() {
-  console.log('\n👤 Creating test users via SupabaseUserRepository...');
+  console.log('\n Creating test users via SupabaseUserRepository...');
   console.log('   Method: createAuthUser() - creates both auth user + profile\n');
 
   const createdUsers: Record<string, string> = {};
@@ -132,13 +132,13 @@ async function createTestUsers() {
 
       const userId = typeof user.id === 'string' ? user.id : (user.id as any).value;
       createdUsers[testUser.email] = userId;
-      console.log(`   ✅ ${testUser.email}`);
+      console.log(`    ${testUser.email}`);
       console.log(`      ID: ${userId}`);
       console.log(`      Role: ${testUser.user_metadata.role}`);
       console.log(`      Name: ${testUser.user_metadata.full_name}\n`);
 
     } catch (error: any) {
-      console.error(`   ❌ Error creating ${testUser.email}:`, error.message);
+      console.error(`    Error creating ${testUser.email}:`, error.message);
     }
   }
 
@@ -149,7 +149,7 @@ async function createTestUsers() {
  * Deactivate inactive test user
  */
 async function deactivateInactiveUser(userId: string) {
-  console.log('\n🚫 Deactivating inactive test user...');
+  console.log('\n Deactivating inactive test user...');
   
   try {
     const { error } = await supabase
@@ -158,12 +158,12 @@ async function deactivateInactiveUser(userId: string) {
       .eq('id', userId);
     
     if (error) {
-      console.error(`   ❌ Failed to deactivate user:`, error.message);
+      console.error(`    Failed to deactivate user:`, error.message);
     } else {
-      console.log(`   ✅ Deactivated ${INACTIVE_USER.email}`);
+      console.log(`    Deactivated ${INACTIVE_USER.email}`);
     }
   } catch (error: any) {
-    console.error(`   ❌ Error:`, error.message);
+    console.error(`    Error:`, error.message);
   }
 }
 
@@ -171,7 +171,7 @@ async function deactivateInactiveUser(userId: string) {
  * Verify created users
  */
 async function verifyUsers() {
-  console.log('\n🔍 Verifying test users...\n');
+  console.log('\n Verifying test users...\n');
 
   for (const testUser of ALL_TEST_USERS) {
     try {
@@ -180,7 +180,7 @@ async function verifyUsers() {
       const authUser = users?.users.find(u => u.email === testUser.email);
 
       if (!authUser) {
-        console.error(`   ❌ ${testUser.email} not found in auth.users`);
+        console.error(`    ${testUser.email} not found in auth.users`);
         continue;
       }
 
@@ -194,18 +194,18 @@ async function verifyUsers() {
       if (error || !profile) {
         // Profile should exist (created explicitly by createAuthUser)
         // If not found, there's an issue with the creation process
-        console.log(`   ⚠️  ${testUser.email} - Profile not found`);
+        console.log(`   ️  ${testUser.email} - Profile not found`);
         console.log(`      User ID: ${authUser.id}`);
         console.log(`      Note: Profile should exist in auth_schema.user_profiles (created explicitly)\n`);
         continue;
       }
 
-      console.log(`   ✅ ${testUser.email}`);
+      console.log(`    ${testUser.email}`);
       console.log(`      Profile: ${(profile as any).full_name} (${(profile as any).role_type})`);
       console.log(`      Active: ${(profile as any).is_active}, Verified: ${(profile as any).is_verified}\n`);
 
     } catch (error: any) {
-      console.error(`   ❌ Error verifying ${testUser.email}:`, error.message);
+      console.error(`    Error verifying ${testUser.email}:`, error.message);
     }
   }
 }
@@ -214,7 +214,7 @@ async function verifyUsers() {
  * Display test credentials
  */
 function displayCredentials() {
-  console.log('\n📝 Test Credentials:\n');
+  console.log('\n Test Credentials:\n');
   console.log('   Admin:        test.admin@hospital.com / TestAdmin123!');
   console.log('   Doctor:       test.doctor@hospital.com / TestDoctor123!');
   console.log('   Nurse:        test.nurse@hospital.com / TestNurse123!');
@@ -223,8 +223,8 @@ function displayCredentials() {
   console.log('   Patient 2:    test.patient2@hospital.com / TestPatient2123!');
   console.log('   MFA User:     test.mfa@hospital.com / TestMFA123!');
   console.log('   Inactive:     test.inactive@hospital.com / TestInactive123! (deactivated)');
-  console.log('\n🧪 Run integration tests: npm test -- tests/integration');
-  console.log('💾 Export for tests: export TEST_USER_EMAIL=test.admin@hospital.com');
+  console.log('\n Run integration tests: npm test -- tests/integration');
+  console.log(' Export for tests: export TEST_USER_EMAIL=test.admin@hospital.com');
   console.log('                     export TEST_USER_PASSWORD=TestAdmin123!');
 }
 
@@ -232,9 +232,9 @@ function displayCredentials() {
  * Main function
  */
 async function main() {
-  console.log('🌱 Seeding test data for integration tests...');
-  console.log(`📍 Supabase URL: ${SUPABASE_URL}`);
-  console.log(`📊 Total users to create: ${ALL_TEST_USERS.length}`);
+  console.log(' Seeding test data for integration tests...');
+  console.log(` Supabase URL: ${SUPABASE_URL}`);
+  console.log(` Total users to create: ${ALL_TEST_USERS.length}`);
   
   try {
     // Step 1: Cleanup existing test users
@@ -255,10 +255,10 @@ async function main() {
     // Step 5: Display credentials
     displayCredentials();
     
-    console.log('\n✅ Test data seeding complete!');
+    console.log('\n Test data seeding complete!');
     
   } catch (error: any) {
-    console.error('\n❌ Error:', error.message);
+    console.error('\n Error:', error.message);
     process.exit(1);
   }
 }

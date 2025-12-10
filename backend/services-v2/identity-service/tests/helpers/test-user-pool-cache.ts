@@ -36,7 +36,7 @@ class TestUserPoolCache {
   async getPool(supabaseClient: SupabaseClient): Promise<TestUserPool> {
     // Return cached pool if already seeded
     if (this.userPool) {
-      console.log('♻️  Reusing cached test user pool');
+      console.log('️  Reusing cached test user pool');
       this.userPool = await refreshTestUserPoolTokens(supabaseClient, this.userPool);
       return this.userPool;
     }
@@ -48,13 +48,13 @@ class TestUserPoolCache {
     }
 
     // Seed test pool
-    console.log('🌱 Seeding test user pool (first time)...');
+    console.log(' Seeding test user pool (first time)...');
     this.isSeeding = true;
     
     this.seedPromise = (async () => {
       try {
         this.userPool = await seedTestUserPool(supabaseClient, { sequential: true });
-        console.log('✅ Test user pool cached successfully');
+        console.log(' Test user pool cached successfully');
         return this.userPool;
       } finally {
         this.isSeeding = false;
@@ -70,10 +70,10 @@ class TestUserPoolCache {
    */
   async cleanup(supabaseClient: SupabaseClient): Promise<void> {
     if (this.userPool) {
-      console.log('🧹 Cleaning up cached test user pool...');
+      console.log(' Cleaning up cached test user pool...');
       await cleanupTestUserPool(supabaseClient, this.userPool);
       this.userPool = null;
-      console.log('✅ Test user pool cleaned up');
+      console.log(' Test user pool cleaned up');
     }
   }
 

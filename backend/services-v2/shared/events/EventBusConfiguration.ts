@@ -241,24 +241,24 @@ export class EventBusConfiguration {
 
     while (attempts < maxAttempts) {
       try {
-        console.log(`🔗 Attempting to connect to RabbitMQ (attempt ${attempts + 1}/${maxAttempts})`);
+        console.log(` Attempting to connect to RabbitMQ (attempt ${attempts + 1}/${maxAttempts})`);
         
         const connection = await amqp.connect(this.config.connectionUrl);
         
         connection.on('error', (error) => {
-          console.error('🚨 RabbitMQ connection error:', error);
+          console.error(' RabbitMQ connection error:', error);
         });
 
         connection.on('close', () => {
-          console.warn('⚠️ RabbitMQ connection closed');
+          console.warn('️ RabbitMQ connection closed');
         });
 
-        console.log('✅ Connected to RabbitMQ successfully');
+        console.log(' Connected to RabbitMQ successfully');
         return connection as any;
 
       } catch (error) {
         attempts++;
-        console.error(`❌ Failed to connect to RabbitMQ (attempt ${attempts}):`, error);
+        console.error(` Failed to connect to RabbitMQ (attempt ${attempts}):`, error);
         
         if (attempts >= maxAttempts) {
           throw new Error(`Failed to connect to RabbitMQ after ${maxAttempts} attempts`);
@@ -282,7 +282,7 @@ export class EventBusConfiguration {
     serviceConfig: ServiceEventConfig
   ): Promise<void> {
     try {
-      console.log(`🏗️ Setting up infrastructure for ${serviceConfig.serviceName}`);
+      console.log(`️ Setting up infrastructure for ${serviceConfig.serviceName}`);
 
       // Declare main exchange
       await channel.assertExchange(this.config.exchangeName, 'topic', {
@@ -324,16 +324,16 @@ export class EventBusConfiguration {
           this.config.exchangeName,
           routingKey
         );
-        console.log(`📮 Bound queue ${serviceConfig.queueName} to routing key: ${routingKey}`);
+        console.log(` Bound queue ${serviceConfig.queueName} to routing key: ${routingKey}`);
       }
 
       // Set prefetch count
       await channel.prefetch(this.config.prefetchCount);
 
-      console.log(`✅ Infrastructure setup completed for ${serviceConfig.serviceName}`);
+      console.log(` Infrastructure setup completed for ${serviceConfig.serviceName}`);
 
     } catch (error) {
-      console.error(`❌ Failed to setup infrastructure for ${serviceConfig.serviceName}:`, error);
+      console.error(` Failed to setup infrastructure for ${serviceConfig.serviceName}:`, error);
       throw error;
     }
   }
@@ -355,21 +355,21 @@ export class EventBusConfiguration {
 
     for (const field of requiredFields) {
       if (!event[field]) {
-        console.error(`❌ Event validation failed: missing field '${field}'`);
+        console.error(` Event validation failed: missing field '${field}'`);
         return false;
       }
     }
 
     // Validate event type format
     if (!/^[a-zA-Z][a-zA-Z0-9]*\.[a-zA-Z][a-zA-Z0-9]*$/.test(event.eventType)) {
-      console.error(`❌ Event validation failed: invalid eventType format '${event.eventType}'`);
+      console.error(` Event validation failed: invalid eventType format '${event.eventType}'`);
       return false;
     }
 
     // Validate priority
     const validPriorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
     if (event.priority && !validPriorities.includes(event.priority)) {
-      console.error(`❌ Event validation failed: invalid priority '${event.priority}'`);
+      console.error(` Event validation failed: invalid priority '${event.priority}'`);
       return false;
     }
 
@@ -379,13 +379,13 @@ export class EventBusConfiguration {
       
       // Validate patient ID format
       if (context.patientId && !/^PAT-\d{6}-\d{3}$/.test(context.patientId)) {
-        console.error(`❌ Event validation failed: invalid patientId format '${context.patientId}'`);
+        console.error(` Event validation failed: invalid patientId format '${context.patientId}'`);
         return false;
       }
       
       // Validate doctor ID format
       if (context.doctorId && !/^[A-Z]{4}-DOC-\d{6}-\d{3}$/.test(context.doctorId)) {
-        console.error(`❌ Event validation failed: invalid doctorId format '${context.doctorId}'`);
+        console.error(` Event validation failed: invalid doctorId format '${context.doctorId}'`);
         return false;
       }
     }

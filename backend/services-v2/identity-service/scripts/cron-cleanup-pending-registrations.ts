@@ -26,7 +26,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('❌ Missing required environment variables');
+  console.error(' Missing required environment variables');
   process.exit(1);
 }
 
@@ -55,7 +55,7 @@ async function runCleanup(): Promise<number> {
   let deletedCount = 0;
 
   try {
-    console.log(`\n[${ new Date().toISOString()}] 🧹 Running cleanup...`);
+    console.log(`\n[${ new Date().toISOString()}]  Running cleanup...`);
 
     // Delete VERIFIED records
     const { data: verified } = await supabase
@@ -131,28 +131,28 @@ async function runCleanup(): Promise<number> {
     stats.lastDeletedCount = deletedCount;
 
     if (deletedCount > 0) {
-      console.log(`✅ Deleted ${deletedCount} records (V:${verifiedCount}, E:${expiredCount}, F:${failedCount}, ES:${emailSentExpiredCount})`);
+      console.log(` Deleted ${deletedCount} records (V:${verifiedCount}, E:${expiredCount}, F:${failedCount}, ES:${emailSentExpiredCount})`);
     } else {
-      console.log('✅ No records to clean up');
+      console.log(' No records to clean up');
     }
 
-    console.log(`📊 Stats: Total runs: ${stats.totalRuns}, Total deleted: ${stats.totalDeleted}`);
+    console.log(` Stats: Total runs: ${stats.totalRuns}, Total deleted: ${stats.totalDeleted}`);
 
     return deletedCount;
 
   } catch (error: any) {
-    console.error('❌ Cleanup error:', error.message);
+    console.error(' Cleanup error:', error.message);
     return 0;
   }
 }
 
 // Run cleanup immediately on start
-console.log('🚀 Starting cleanup cron job...');
-console.log(`📍 Interval: Every ${CLEANUP_INTERVAL_MS / 1000 / 60} minutes`);
-console.log(`📍 Supabase URL: ${SUPABASE_URL}`);
+console.log(' Starting cleanup cron job...');
+console.log(` Interval: Every ${CLEANUP_INTERVAL_MS / 1000 / 60} minutes`);
+console.log(` Supabase URL: ${SUPABASE_URL}`);
 
 runCleanup().then(() => {
-  console.log('✅ Initial cleanup completed');
+  console.log(' Initial cleanup completed');
 });
 
 // Schedule periodic cleanup
@@ -162,16 +162,16 @@ setInterval(async () => {
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n\n🛑 Shutting down cleanup cron job...');
-  console.log('📊 Final Stats:');
+  console.log('\n\n Shutting down cleanup cron job...');
+  console.log(' Final Stats:');
   console.log(`   - Total runs: ${stats.totalRuns}`);
   console.log(`   - Total deleted: ${stats.totalDeleted}`);
   console.log(`   - Last run: ${stats.lastRun?.toISOString() || 'N/A'}`);
-  console.log('👋 Goodbye!');
+  console.log(' Goodbye!');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n\n🛑 Received SIGTERM, shutting down...');
+  console.log('\n\n Received SIGTERM, shutting down...');
   process.exit(0);
 });

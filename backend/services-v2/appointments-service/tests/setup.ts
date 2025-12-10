@@ -18,13 +18,13 @@ jest.setTimeout(120000); // 120 seconds (2 minutes)
 
 // Global test setup
 beforeAll(async () => {
-  console.log('🧪 Starting test suite...');
-  console.log(`📍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🗄️  Database: ${process.env.SUPABASE_URL}`);
+  console.log(' Starting test suite...');
+  console.log(` Environment: ${process.env.NODE_ENV}`);
+  console.log(`️  Database: ${process.env.SUPABASE_URL}`);
 });
 
 afterAll(async () => {
-  console.log('✅ Test suite completed');
+  console.log(' Test suite completed');
   
   // Give time for async cleanup
   await new Promise(resolve => setTimeout(resolve, 1000));

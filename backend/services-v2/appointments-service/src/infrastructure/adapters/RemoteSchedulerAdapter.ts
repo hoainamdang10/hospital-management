@@ -194,7 +194,7 @@ export class RemoteSchedulerAdapter {
       }
     );
 
-    console.log('[RemoteSchedulerAdapter] ✓ Initialized:', {
+    console.log('[RemoteSchedulerAdapter]  Initialized:', {
       baseUrl: config.baseUrl,
       timeout: config.timeout || 5000,
       authenticated: !!config.apiKey
@@ -217,7 +217,7 @@ export class RemoteSchedulerAdapter {
           request
         );
 
-        console.log('[RemoteSchedulerAdapter] ✓ Schedule created/updated:', {
+        console.log('[RemoteSchedulerAdapter]  Schedule created/updated:', {
           scheduleId: response.data.scheduleId,
           status: response.data.status,
           nextRunAt: response.data.nextRunAt,
@@ -264,7 +264,7 @@ export class RemoteSchedulerAdapter {
           params
         );
 
-        console.log('[RemoteSchedulerAdapter] ✓ Schedules cancelled:', {
+        console.log('[RemoteSchedulerAdapter]  Schedules cancelled:', {
           cancelledCount: response.data.cancelledCount,
           ownerService: params.ownerService,
           ownerResourceType: params.ownerResourceType,

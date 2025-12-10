@@ -31,13 +31,13 @@ export class EmailProvider implements ChannelProvider {
       try {
         sgMail.setApiKey(config.apiKey);
         this.isSendGridReady = true;
-        console.log('[EmailProvider] ✅ SendGrid initialized successfully');
+        console.log('[EmailProvider]  SendGrid initialized successfully');
       } catch (error) {
-        console.error('[EmailProvider] ❌ Failed to initialize SendGrid:', error);
+        console.error('[EmailProvider]  Failed to initialize SendGrid:', error);
         this.isSendGridReady = false;
       }
     } else {
-      console.warn('[EmailProvider] ⚠️ SendGrid not configured - email delivery disabled');
+      console.warn('[EmailProvider] ️ SendGrid not configured - email delivery disabled');
     }
   }
 
@@ -160,7 +160,7 @@ export class EmailProvider implements ChannelProvider {
       // Real SendGrid API call
       const [response] = await sgMail.send(emailData);
       
-      console.log('[EmailProvider] ✅ Email sent successfully', {
+      console.log('[EmailProvider]  Email sent successfully', {
         statusCode: response.statusCode,
         messageId: response.headers['x-message-id']
       });
@@ -171,7 +171,7 @@ export class EmailProvider implements ChannelProvider {
         body: response.body
       };
     } catch (error: any) {
-      console.error('[EmailProvider] ❌ SendGrid API error:', {
+      console.error('[EmailProvider]  SendGrid API error:', {
         code: error.code,
         message: error.message,
         response: error.response?.body

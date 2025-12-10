@@ -57,7 +57,7 @@ let supabaseClient;
  * Global setup - runs once before all tests
  */
 beforeAll(async () => {
-    console.log('🚀 Setting up integration tests...');
+    console.log(' Setting up integration tests...');
     // Initialize Supabase client
     exports.supabaseClient = supabaseClient = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     // Verify database connection
@@ -67,31 +67,31 @@ beforeAll(async () => {
             .select('count')
             .limit(1);
         if (error) {
-            console.error('❌ Database connection failed:', error.message);
+            console.error(' Database connection failed:', error.message);
             throw error;
         }
-        console.log('✅ Database connection successful');
+        console.log(' Database connection successful');
     }
     catch (error) {
-        console.error('❌ Failed to connect to database:', error);
+        console.error(' Failed to connect to database:', error);
         throw error;
     }
     // Setup test schemas if needed
     await setupTestSchemas();
     // Create test users
     await createTestUsers();
-    console.log('✅ Integration tests setup complete');
+    console.log(' Integration tests setup complete');
 });
 /**
  * Global teardown - runs once after all tests
  */
 afterAll(async () => {
-    console.log('🧹 Cleaning up integration tests...');
+    console.log(' Cleaning up integration tests...');
     // Cleanup test data
     await cleanupTestData();
     // Delete test users
     await deleteTestUsers();
-    console.log('✅ Integration tests cleanup complete');
+    console.log(' Integration tests cleanup complete');
 });
 /**
  * Setup test database schemas
@@ -104,12 +104,12 @@ async function setupTestSchemas() {
         const requiredSchemas = ['auth_schema', 'patient_schema'];
         const missingSchemas = requiredSchemas.filter(schema => !schemas?.includes(schema));
         if (missingSchemas.length > 0) {
-            console.warn(`⚠️  Missing schemas: ${missingSchemas.join(', ')}`);
+            console.warn(`️  Missing schemas: ${missingSchemas.join(', ')}`);
             console.warn('Please run database migrations before running tests');
         }
     }
     catch (error) {
-        console.warn('⚠️  Could not verify schemas:', error);
+        console.warn('️  Could not verify schemas:', error);
     }
 }
 /**
@@ -157,10 +157,10 @@ async function createTestUsers() {
                     email_confirm: true
                 });
                 if (error) {
-                    console.warn(`⚠️  Could not create test user ${user.email}:`, error.message);
+                    console.warn(`️  Could not create test user ${user.email}:`, error.message);
                 }
                 else if (data.user) {
-                    console.log(`✅ Created test user: ${user.email}`);
+                    console.log(` Created test user: ${user.email}`);
                     // Assign role and permissions
                     await setupTestUserRoles(supabaseClient, data.user.id, user.email);
                 }
@@ -175,7 +175,7 @@ async function createTestUsers() {
             }
         }
         catch (error) {
-            console.warn(`⚠️  Error creating test user ${user.email}:`, error);
+            console.warn(`️  Error creating test user ${user.email}:`, error);
         }
     }
 }
@@ -190,7 +190,7 @@ async function cleanupTestData() {
             .delete()
             .like('national_id', 'TEST%');
         if (patientsError) {
-            console.warn('⚠️  Could not cleanup test patients:', patientsError.message);
+            console.warn('️  Could not cleanup test patients:', patientsError.message);
         }
         // Delete test insurance records
         const { error: insuranceError } = await supabaseClient
@@ -198,12 +198,12 @@ async function cleanupTestData() {
             .delete()
             .like('policy_number', 'TEST%');
         if (insuranceError) {
-            console.warn('⚠️  Could not cleanup test insurance:', insuranceError.message);
+            console.warn('️  Could not cleanup test insurance:', insuranceError.message);
         }
-        console.log('✅ Test data cleaned up');
+        console.log(' Test data cleaned up');
     }
     catch (error) {
-        console.warn('⚠️  Error cleaning up test data:', error);
+        console.warn('️  Error cleaning up test data:', error);
     }
 }
 /**
@@ -229,15 +229,15 @@ async function deleteTestUsers() {
                 // Delete user
                 const { error } = await supabaseClient.auth.admin.deleteUser(user.id);
                 if (error) {
-                    console.warn(`⚠️  Could not delete test user ${email}:`, error.message);
+                    console.warn(`️  Could not delete test user ${email}:`, error.message);
                 }
                 else {
-                    console.log(`✅ Deleted test user: ${email}`);
+                    console.log(` Deleted test user: ${email}`);
                 }
             }
         }
         catch (error) {
-            console.warn(`⚠️  Error deleting test user ${email}:`, error);
+            console.warn(`️  Error deleting test user ${email}:`, error);
         }
     }
 }

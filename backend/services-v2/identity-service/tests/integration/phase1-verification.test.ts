@@ -21,7 +21,7 @@ describe('Phase 1 Verification Tests', () => {
   let userPool: TestUserPool;
 
   beforeAll(async () => {
-    console.log('\n🧪 Starting Phase 1 Verification Tests...\n');
+    console.log('\n Starting Phase 1 Verification Tests...\n');
 
     // Create Supabase client
     supabaseClient = createTestSupabaseClient();
@@ -34,18 +34,18 @@ describe('Phase 1 Verification Tests', () => {
     // Get cached test user pool (seeds once, reuses for all tests)
     userPool = await testUserPoolCache.getPool(supabaseClient);
 
-    console.log('✅ Setup complete\n');
+    console.log(' Setup complete\n');
   }, 90000);
 
   afterAll(async () => {
-    console.log('\n🧹 Cleaning up Phase 1 Verification Tests...\n');
+    console.log('\n Cleaning up Phase 1 Verification Tests...\n');
 
     // Note: User pool is cached and will be cleaned up in global teardown
 
     // Cleanup app resources
     await cleanup();
 
-    console.log('✅ Cleanup complete\n');
+    console.log(' Cleanup complete\n');
   });
 
   describe('1. Database Connection', () => {

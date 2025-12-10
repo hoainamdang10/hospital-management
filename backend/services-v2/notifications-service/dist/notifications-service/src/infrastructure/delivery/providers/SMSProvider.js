@@ -23,15 +23,15 @@ class SMSProvider {
         if (this.isConfigured) {
             try {
                 this.twilioClient = (0, twilio_1.default)(config.accountSid, config.authToken);
-                console.log('[SMSProvider] ✅ Twilio initialized successfully');
+                console.log('[SMSProvider]  Twilio initialized successfully');
             }
             catch (error) {
-                console.error('[SMSProvider] ❌ Failed to initialize Twilio:', error);
+                console.error('[SMSProvider]  Failed to initialize Twilio:', error);
                 this.twilioClient = null;
             }
         }
         else {
-            console.warn('[SMSProvider] ⚠️ Twilio not configured - SMS delivery disabled');
+            console.warn('[SMSProvider] ️ Twilio not configured - SMS delivery disabled');
         }
     }
     getType() {
@@ -121,7 +121,7 @@ class SMSProvider {
         try {
             // Real Twilio API call
             const message = await this.twilioClient.messages.create(smsData);
-            console.log('[SMSProvider] ✅ SMS sent successfully', {
+            console.log('[SMSProvider]  SMS sent successfully', {
                 sid: message.sid,
                 status: message.status,
                 to: message.to
@@ -138,7 +138,7 @@ class SMSProvider {
             };
         }
         catch (error) {
-            console.error('[SMSProvider] ❌ Twilio API error:', {
+            console.error('[SMSProvider]  Twilio API error:', {
                 code: error.code,
                 message: error.message,
                 moreInfo: error.moreInfo

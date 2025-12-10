@@ -208,15 +208,15 @@ export class SupabaseUsageTracker {
     const thresholds = this.config.monitoring.alertThresholds;
 
     if (metrics.storageUsed / (500 * 1024 * 1024) > thresholds.storageUsage) {
-      console.warn(`🚨 Storage usage alert: ${(metrics.storageUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.warn(` Storage usage alert: ${(metrics.storageUsed / 1024 / 1024).toFixed(2)}MB`);
     }
 
     if (metrics.bandwidthUsed / (2 * 1024 * 1024 * 1024) > thresholds.bandwidthUsage) {
-      console.warn(`🚨 Bandwidth usage alert: ${(metrics.bandwidthUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.warn(` Bandwidth usage alert: ${(metrics.bandwidthUsed / 1024 / 1024).toFixed(2)}MB`);
     }
 
     if (metrics.connectionsActive / 60 > thresholds.connectionUsage) {
-      console.warn(`🚨 Connection usage alert: ${metrics.connectionsActive} active connections`);
+      console.warn(` Connection usage alert: ${metrics.connectionsActive} active connections`);
     }
   }
 

@@ -51,11 +51,11 @@ const types_1 = require("./infrastructure/di/types");
  */
 async function startServer() {
     try {
-        console.log('🏥 Starting Clinical EMR Service...');
-        console.log('📋 Service: clinical-emr-service');
-        console.log('🔢 Version: 2.0.0');
-        console.log('🏗️  Architecture: Clean Architecture + DDD + CQRS + Event-Driven');
-        console.log('🎓 Purpose: Graduation Thesis - Hospital Management System');
+        console.log(' Starting Clinical EMR Service...');
+        console.log(' Service: clinical-emr-service');
+        console.log(' Version: 2.0.0');
+        console.log('️  Architecture: Clean Architecture + DDD + CQRS + Event-Driven');
+        console.log(' Purpose: Graduation Thesis - Hospital Management System');
         console.log('');
         // Initialize application
         const app = await (0, app_1.initializeApp)();
@@ -68,47 +68,47 @@ async function startServer() {
         server.headersTimeout = 66000; // 66 seconds
         // Start listening
         server.listen(config.port, config.host, () => {
-            console.log('✅ Clinical EMR Service started successfully!');
+            console.log(' Clinical EMR Service started successfully!');
             console.log('');
-            console.log('📊 Service Information:');
-            console.log(`   🌐 Host: ${config.host}`);
-            console.log(`   🔌 Port: ${config.port}`);
-            console.log(`   🌍 Environment: ${config.environment}`);
-            console.log(`   📂 Schema: ${config.databaseSchema}`);
+            console.log(' Service Information:');
+            console.log(`    Host: ${config.host}`);
+            console.log(`    Port: ${config.port}`);
+            console.log(`    Environment: ${config.environment}`);
+            console.log(`    Schema: ${config.databaseSchema}`);
             console.log('');
-            console.log('🔗 Available Endpoints:');
-            console.log(`   📋 Health Check: http://${config.host}:${config.port}/health`);
-            console.log(`   ✅ Readiness: http://${config.host}:${config.port}/ready`);
-            console.log(`   💓 Liveness: http://${config.host}:${config.port}/live`);
-            console.log(`   📝 API Info: http://${config.host}:${config.port}/api/v2/clinical-emr`);
-            console.log(`   🏥 Medical Records: http://${config.host}:${config.port}/api/v2/clinical-emr/medical-records`);
+            console.log(' Available Endpoints:');
+            console.log(`    Health Check: http://${config.host}:${config.port}/health`);
+            console.log(`    Readiness: http://${config.host}:${config.port}/ready`);
+            console.log(`    Liveness: http://${config.host}:${config.port}/live`);
+            console.log(`    API Info: http://${config.host}:${config.port}/api/v2/clinical-emr`);
+            console.log(`    Medical Records: http://${config.host}:${config.port}/api/v2/clinical-emr/medical-records`);
             console.log('');
-            console.log('🎯 Core Features:');
-            console.log('   ✅ Basic Medical Records CRUD');
-            console.log('   ✅ Simple Vital Signs Tracking');
-            console.log('   ✅ Patient Medical History');
-            console.log('   ✅ Vietnamese Language Support');
-            console.log('   ✅ HIPAA Compliance');
-            console.log('   ✅ Role-based Access Control');
-            console.log('   ✅ Audit Logging');
+            console.log(' Core Features:');
+            console.log('    Basic Medical Records CRUD');
+            console.log('    Simple Vital Signs Tracking');
+            console.log('    Patient Medical History');
+            console.log('    Vietnamese Language Support');
+            console.log('    HIPAA Compliance');
+            console.log('    Role-based Access Control');
+            console.log('    Audit Logging');
             console.log('');
-            console.log('🏗️  Architecture Patterns:');
-            console.log('   ✅ Clean Architecture');
-            console.log('   ✅ Domain-Driven Design (DDD)');
-            console.log('   ✅ Command Query Responsibility Segregation (CQRS)');
-            console.log('   ✅ Event-Driven Architecture');
-            console.log('   ✅ Repository Pattern');
-            console.log('   ✅ Dependency Injection');
+            console.log('️  Architecture Patterns:');
+            console.log('    Clean Architecture');
+            console.log('    Domain-Driven Design (DDD)');
+            console.log('    Command Query Responsibility Segregation (CQRS)');
+            console.log('    Event-Driven Architecture');
+            console.log('    Repository Pattern');
+            console.log('    Dependency Injection');
             console.log('');
-            console.log('🔒 Security & Compliance:');
-            console.log('   ✅ JWT Authentication');
-            console.log('   ✅ Role-based Authorization');
-            console.log('   ✅ Row Level Security (RLS)');
-            console.log('   ✅ PHI Data Protection');
-            console.log('   ✅ Audit Trail');
-            console.log('   ✅ Rate Limiting');
+            console.log(' Security & Compliance:');
+            console.log('    JWT Authentication');
+            console.log('    Role-based Authorization');
+            console.log('    Row Level Security (RLS)');
+            console.log('    PHI Data Protection');
+            console.log('    Audit Trail');
+            console.log('    Rate Limiting');
             console.log('');
-            console.log('🚀 Service is ready to handle requests!');
+            console.log(' Service is ready to handle requests!');
         });
         // Handle server errors
         server.on('error', (error) => {
@@ -120,10 +120,10 @@ async function startServer() {
                 : 'Port ' + config.port;
             switch (error.code) {
                 case 'EACCES':
-                    console.error(`❌ ${bind} requires elevated privileges`);
+                    console.error(` ${bind} requires elevated privileges`);
                     process.exit(1);
                 case 'EADDRINUSE':
-                    console.error(`❌ ${bind} is already in use`);
+                    console.error(` ${bind} is already in use`);
                     process.exit(1);
                 default:
                     throw error;
@@ -131,21 +131,21 @@ async function startServer() {
         });
         // Graceful shutdown handlers
         const gracefulShutdown = async (signal) => {
-            console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
+            console.log(`\n Received ${signal}, starting graceful shutdown...`);
             try {
                 // Stop accepting new connections
                 server.close(async () => {
-                    console.log('📡 HTTP server closed');
+                    console.log(' HTTP server closed');
                     try {
                         // Cleanup container and dependencies
                         const { cleanupContainer } = await Promise.resolve().then(() => __importStar(require('./infrastructure/di/container')));
                         await cleanupContainer();
-                        console.log('🧹 Container cleanup completed');
-                        console.log('✅ Graceful shutdown completed');
+                        console.log(' Container cleanup completed');
+                        console.log(' Graceful shutdown completed');
                         process.exit(0);
                     }
                     catch (cleanupError) {
-                        console.error('❌ Error during cleanup:', cleanupError);
+                        console.error(' Error during cleanup:', cleanupError);
                         process.exit(1);
                     }
                 });
@@ -156,7 +156,7 @@ async function startServer() {
                 }, 10000); // 10 seconds timeout
             }
             catch (error) {
-                console.error('❌ Error during graceful shutdown:', error);
+                console.error(' Error during graceful shutdown:', error);
                 process.exit(1);
             }
         };
@@ -165,25 +165,25 @@ async function startServer() {
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
         // Handle uncaught exceptions
         process.on('uncaughtException', (error) => {
-            console.error('💥 Uncaught Exception:', error);
+            console.error(' Uncaught Exception:', error);
             console.error('Stack:', error.stack);
             process.exit(1);
         });
         // Handle unhandled promise rejections
         process.on('unhandledRejection', (reason, promise) => {
-            console.error('🚫 Unhandled Rejection at:', promise);
+            console.error(' Unhandled Rejection at:', promise);
             console.error('Reason:', reason);
             process.exit(1);
         });
         // Handle warnings
         process.on('warning', (warning) => {
-            console.warn('⚠️  Warning:', warning.name);
+            console.warn('️  Warning:', warning.name);
             console.warn('Message:', warning.message);
             console.warn('Stack:', warning.stack);
         });
     }
     catch (error) {
-        console.error('💥 Failed to start Clinical EMR Service:', error);
+        console.error(' Failed to start Clinical EMR Service:', error);
         console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace available');
         process.exit(1);
     }
@@ -207,7 +207,7 @@ function displayBanner() {
     console.log('║  Features: Medical Records, Vital Signs, Patient History    ║');
     console.log('║  Security: JWT Auth, RBAC, RLS, Audit Logging              ║');
     console.log('║                                                              ║');
-    console.log('║                    🏥 Ready to serve! 🏥                    ║');
+    console.log('║                     Ready to serve!                     ║');
     console.log('╚══════════════════════════════════════════════════════════════╝');
     console.log('');
 }
@@ -217,7 +217,7 @@ function displayBanner() {
 if (require.main === module) {
     displayBanner();
     startServer().catch((error) => {
-        console.error('💥 Fatal error during startup:', error);
+        console.error(' Fatal error during startup:', error);
         process.exit(1);
     });
 }

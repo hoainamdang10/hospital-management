@@ -186,14 +186,14 @@ async function cleanupTestPatients(supabaseClient, pattern = 'TEST%') {
             .delete()
             .like('national_id', pattern);
         if (error) {
-            console.warn(`⚠️  Could not cleanup test patients: ${error.message}`);
+            console.warn(`️  Could not cleanup test patients: ${error.message}`);
         }
         else {
-            console.log('✅ Test patients cleaned up');
+            console.log(' Test patients cleaned up');
         }
     }
     catch (error) {
-        console.warn(`⚠️  Error cleaning up test patients: ${error}`);
+        console.warn(`️  Error cleaning up test patients: ${error}`);
     }
 }
 /**
@@ -214,7 +214,7 @@ async function cleanupTestUsers(supabaseClient, emails) {
                 .delete()
                 .eq('email', email);
             if (loginError) {
-                console.warn(`⚠️  Could not delete login attempts for ${email}: ${loginError.message}`);
+                console.warn(`️  Could not delete login attempts for ${email}: ${loginError.message}`);
             }
             // Get user profile to find user_id
             const { data: profile } = await supabaseClient
@@ -229,7 +229,7 @@ async function cleanupTestUsers(supabaseClient, emails) {
                     .delete()
                     .eq('user_id', profile.id);
                 if (rolesError) {
-                    console.warn(`⚠️  Could not delete user roles for ${email}: ${rolesError.message}`);
+                    console.warn(`️  Could not delete user roles for ${email}: ${rolesError.message}`);
                 }
                 // Delete user profile
                 const { error: profileError } = await supabaseClient
@@ -237,10 +237,10 @@ async function cleanupTestUsers(supabaseClient, emails) {
                     .delete()
                     .eq('id', profile.id);
                 if (profileError) {
-                    console.warn(`⚠️  Could not delete user profile for ${email}: ${profileError.message}`);
+                    console.warn(`️  Could not delete user profile for ${email}: ${profileError.message}`);
                 }
                 else {
-                    console.log(`✅ Deleted test user profile: ${email}`);
+                    console.log(` Deleted test user profile: ${email}`);
                 }
             }
             // Finally, delete from auth.users using Admin API
@@ -249,15 +249,15 @@ async function cleanupTestUsers(supabaseClient, emails) {
             if (user) {
                 const { error } = await supabaseClient.auth.admin.deleteUser(user.id);
                 if (error) {
-                    console.warn(`⚠️  Could not delete auth user ${email}: ${error.message}`);
+                    console.warn(`️  Could not delete auth user ${email}: ${error.message}`);
                 }
                 else {
-                    console.log(`✅ Deleted auth user: ${email}`);
+                    console.log(` Deleted auth user: ${email}`);
                 }
             }
         }
         catch (error) {
-            console.warn(`⚠️  Error deleting test user ${email}: ${error}`);
+            console.warn(`️  Error deleting test user ${email}: ${error}`);
         }
     }
 }
@@ -299,7 +299,7 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
             }
         }
         // Create user in auth.users (Supabase Auth)
-        console.log(`🔧 Creating auth user for ${email}...`);
+        console.log(` Creating auth user for ${email}...`);
         let authUserId = null;
         const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
             email,
@@ -329,14 +329,14 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
                     email_confirm: true
                 });
                 if (updateError) {
-                    console.warn(`⚠️  Unable to synchronize existing auth user password: ${updateError.message}`);
+                    console.warn(`️  Unable to synchronize existing auth user password: ${updateError.message}`);
                 }
                 else {
-                    console.log(`🔁 Synchronized existing auth user credentials for ${email}`);
+                    console.log(` Synchronized existing auth user credentials for ${email}`);
                 }
             }
             else {
-                console.error(`❌ Failed to create auth user: ${authError.message}`);
+                console.error(` Failed to create auth user: ${authError.message}`);
                 throw new Error(`Failed to create auth user: ${authError.message}`);
             }
         }
@@ -345,7 +345,7 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
                 throw new Error('Auth user creation returned no user information');
             }
             authUserId = authUser.user.id;
-            console.log(`✅ Auth user created: ${authUserId}`);
+            console.log(` Auth user created: ${authUserId}`);
         }
         // Verify user exists in auth.users
         const resolvedAuthUserId = authUserId;
@@ -359,10 +359,10 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
             .eq('id', resolvedAuthUserId)
             .single();
         if (verifyProfileError || !verifyProfile) {
-            console.error(`❌ User not found in auth_schema.user_profiles after creation: ${verifyProfileError?.message}`);
+            console.error(` User not found in auth_schema.user_profiles after creation: ${verifyProfileError?.message}`);
         }
         else {
-            console.log(`✅ Verified user exists in auth_schema.user_profiles: ${verifyProfile.email}`);
+            console.log(` Verified user exists in auth_schema.user_profiles: ${verifyProfile.email}`);
         }
         // Update user profile to verified using RPC function
         const { error: updateError } = await supabaseClient.rpc('create_verified_test_user', {
@@ -374,29 +374,29 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
             console.warn(`Failed to create verified test user: ${updateError.message}`);
         }
         else {
-            console.log(`✅ Created verified test user for ${email}`);
+            console.log(` Created verified test user for ${email}`);
         }
         if (useMockIdentity) {
             const mockToken = issueMockIdentityToken(resolvedAuthUserId, email);
-            console.log(`✅ Issued mock identity token for ${email}`);
+            console.log(` Issued mock identity token for ${email}`);
             return {
                 userId: resolvedAuthUserId,
                 token: mockToken
             };
         }
         // Login via Identity Service to get valid token
-        console.log(`🔐 Attempting login for ${email}...`);
+        console.log(` Attempting login for ${email}...`);
         try {
             const loginResponse = await axios.post(`${identityServiceUrl}/auth/login`, {
                 email,
                 password
             });
-            console.log('📊 Login response:', JSON.stringify(loginResponse.data, null, 2));
+            console.log(' Login response:', JSON.stringify(loginResponse.data, null, 2));
             if (!loginResponse.data.success || !loginResponse.data.data?.accessToken) {
-                console.error('❌ Login failed:', loginResponse.data);
+                console.error(' Login failed:', loginResponse.data);
                 throw new Error(`Failed to login after creating user: ${loginResponse.data.error || loginResponse.data.message || 'Unknown error'}`);
             }
-            console.log(`✅ Login successful for ${email}`);
+            console.log(` Login successful for ${email}`);
             return {
                 userId: loginResponse.data.data.user.id,
                 token: loginResponse.data.data.accessToken
@@ -405,17 +405,17 @@ async function getOrCreateTestUser(supabaseClient, email, password) {
         catch (loginError) {
             if (axios.isAxiosError(loginError)) {
                 const axiosError = loginError;
-                console.error('❌ Login axios error:', {
+                console.error(' Login axios error:', {
                     status: axiosError.response?.status,
                     data: axiosError.response?.data,
                     message: axiosError.message
                 });
             }
             else {
-                console.error('❌ Login error:', loginError);
+                console.error(' Login error:', loginError);
             }
             const fallbackToken = issueMockIdentityToken(resolvedAuthUserId, email);
-            console.log(`✅ Using mock identity token for ${email} due to login failure`);
+            console.log(` Using mock identity token for ${email} due to login failure`);
             return {
                 userId: resolvedAuthUserId,
                 token: fallbackToken

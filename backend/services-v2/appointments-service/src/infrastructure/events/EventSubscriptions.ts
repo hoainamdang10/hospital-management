@@ -136,7 +136,7 @@ export class EventSubscriptions {
       await this.setupSubscriptions();
 
       this.isConnected = true;
-      console.log("[EventSubscriptions] ✅ All subscriptions ready");
+      console.log("[EventSubscriptions]  All subscriptions ready");
     } catch (error) {
       console.error(
         "[EventSubscriptions] ❌ Failed to setup subscriptions:",
@@ -158,9 +158,9 @@ export class EventSubscriptions {
       console.log("[EventSubscriptions] Disconnecting from event bus...");
       await this.eventBus.disconnect();
       this.isConnected = false;
-      console.log("[EventSubscriptions] ✅ Disconnected");
+      console.log("[EventSubscriptions]  Disconnected");
     } catch (error) {
-      console.error("[EventSubscriptions] ❌ Failed to disconnect:", error);
+      console.error("[EventSubscriptions]  Failed to disconnect:", error);
       throw error;
     }
   }
@@ -198,7 +198,7 @@ export class EventSubscriptions {
       new PatientUpdatedEventHandler(this.readModelHandler),
       `${this.config.serviceName}.patient.updated`,
     );
-    console.log("[EventSubscriptions] ✅ Subscribed to PatientUpdated");
+    console.log("[EventSubscriptions]  Subscribed to PatientUpdated");
 
     // 3. Subscribe to PatientRegistered events (from Patient Registry Service)
     await this.eventBus.subscribe(
@@ -206,7 +206,7 @@ export class EventSubscriptions {
       new PatientUpdatedEventHandler(this.readModelHandler),
       `${this.config.serviceName}.patient.registered`,
     );
-    console.log("[EventSubscriptions] ✅ Subscribed to PatientRegistered");
+    console.log("[EventSubscriptions]  Subscribed to PatientRegistered");
 
     // 4. Subscribe to StaffUpdated events (from Provider Staff Service)
     await this.eventBus.subscribe(
@@ -214,7 +214,7 @@ export class EventSubscriptions {
       new DoctorUpdatedEventHandler(this.readModelHandler),
       `${this.config.serviceName}.staff.updated`,
     );
-    console.log("[EventSubscriptions] ✅ Subscribed to StaffUpdated");
+    console.log("[EventSubscriptions]  Subscribed to StaffUpdated");
 
     // 5. Subscribe to StaffRegistered events (from Provider Staff Service)
     await this.eventBus.subscribe(
@@ -222,7 +222,7 @@ export class EventSubscriptions {
       new DoctorUpdatedEventHandler(this.readModelHandler),
       `${this.config.serviceName}.staff.registered`,
     );
-    console.log("[EventSubscriptions] ✅ Subscribed to StaffRegistered");
+    console.log("[EventSubscriptions]  Subscribed to StaffRegistered");
 
     // 6. Subscribe to AppointmentStatusChanged events (from Scheduling Service itself)
     await this.eventBus.subscribe(

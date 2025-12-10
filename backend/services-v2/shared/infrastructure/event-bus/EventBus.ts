@@ -105,7 +105,7 @@ export class RabbitMQEventBus implements IEventBus {
       });
 
       this.reconnectAttempts = 0;
-      console.log(`✅ Event Bus connected: ${this.config.serviceName}`);
+      console.log(` Event Bus connected: ${this.config.serviceName}`);
     } catch (error) {
       console.error(
         `❌ Failed to connect to Event Bus (attempt ${attempt}):`,
@@ -147,9 +147,9 @@ export class RabbitMQEventBus implements IEventBus {
       // Restore subscriptions
       await this.restoreSubscriptions();
 
-      console.log("[EventBus] ✅ Reconnected successfully");
+      console.log("[EventBus]  Reconnected successfully");
     } catch (error) {
-      console.error("[EventBus] ❌ Failed to reconnect:", error);
+      console.error("[EventBus]  Failed to reconnect:", error);
     } finally {
       this.isReconnecting = false;
     }
@@ -168,7 +168,7 @@ export class RabbitMQEventBus implements IEventBus {
       for (const sub of subs) {
         try {
           await this.subscribe(eventType, sub.handler, sub.queueName);
-          console.log(`[EventBus] ✅ Restored subscription: ${eventType}`);
+          console.log(`[EventBus]  Restored subscription: ${eventType}`);
         } catch (error) {
           console.error(
             `[EventBus] ❌ Failed to restore subscription for ${eventType}:`,
@@ -191,9 +191,9 @@ export class RabbitMQEventBus implements IEventBus {
       if (this.connection) {
         await this.connection.close();
       }
-      console.log(`✅ Event Bus disconnected: ${this.config.serviceName}`);
+      console.log(` Event Bus disconnected: ${this.config.serviceName}`);
     } catch (error) {
-      console.error("❌ Failed to disconnect from Event Bus:", error);
+      console.error(" Failed to disconnect from Event Bus:", error);
       throw error;
     }
   }
@@ -239,7 +239,7 @@ export class RabbitMQEventBus implements IEventBus {
         );
       }
     } catch (error) {
-      console.error(`❌ Failed to publish event: ${event.eventType}`, error);
+      console.error(` Failed to publish event: ${event.eventType}`, error);
       throw error;
     }
   }
@@ -305,7 +305,7 @@ export class RabbitMQEventBus implements IEventBus {
               `✅ Event processed: ${event.eventType} (${event.eventId})`,
             );
           } catch (error) {
-            console.error(`❌ Failed to process event:`, error);
+            console.error(` Failed to process event:`, error);
 
             // Reject and requeue (with limit)
             const retryCount =
@@ -331,9 +331,9 @@ export class RabbitMQEventBus implements IEventBus {
       subscriptions.push({ eventType, handler, queueName: queue });
       this.subscriptions.set(eventType, subscriptions);
 
-      console.log(`✅ Subscribed to event: ${eventType} (queue: ${queue})`);
+      console.log(` Subscribed to event: ${eventType} (queue: ${queue})`);
     } catch (error) {
-      console.error(`❌ Failed to subscribe to event: ${eventType}`, error);
+      console.error(` Failed to subscribe to event: ${eventType}`, error);
       throw error;
     }
   }
@@ -543,13 +543,13 @@ export class InMemoryEventBus implements IEventBus {
   private publishedEvents: DomainEvent[] = [];
 
   async connect(): Promise<void> {
-    console.log("✅ In-Memory Event Bus connected");
+    console.log(" In-Memory Event Bus connected");
   }
 
   async disconnect(): Promise<void> {
     this.handlers.clear();
     this.publishedEvents = [];
-    console.log("✅ In-Memory Event Bus disconnected");
+    console.log(" In-Memory Event Bus disconnected");
   }
 
   async publish(event: DomainEvent): Promise<void> {

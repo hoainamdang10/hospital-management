@@ -19,7 +19,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
+  console.error(' Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
   process.exit(1);
 }
 
@@ -75,7 +75,7 @@ const testUsers = [
 ];
 
 async function deleteExistingUsers() {
-  console.log('\n🗑️  Deleting existing test users...');
+  console.log('\n️  Deleting existing test users...');
   
   for (const user of testUsers) {
     try {
@@ -87,19 +87,19 @@ async function deleteExistingUsers() {
         // Delete user
         const { error } = await supabase.auth.admin.deleteUser(existingUser.id);
         if (error) {
-          console.error(`   ❌ Failed to delete ${user.email}:`, error.message);
+          console.error(`    Failed to delete ${user.email}:`, error.message);
         } else {
-          console.log(`   ✅ Deleted ${user.email}`);
+          console.log(`    Deleted ${user.email}`);
         }
       }
     } catch (error: any) {
-      console.error(`   ❌ Error deleting ${user.email}:`, error.message);
+      console.error(`    Error deleting ${user.email}:`, error.message);
     }
   }
 }
 
 async function createTestUsers() {
-  console.log('\n👤 Creating test users...');
+  console.log('\n Creating test users...');
   console.log('   Note: Explicitly creating user_profiles (no trigger dependency)');
 
   for (const user of testUsers) {
@@ -113,12 +113,12 @@ async function createTestUsers() {
       });
 
       if (error) {
-        console.error(`   ❌ Failed to create auth user ${user.email}:`, error.message);
+        console.error(`    Failed to create auth user ${user.email}:`, error.message);
         continue;
       }
 
       if (!data.user) {
-        console.error(`   ❌ No user data returned for ${user.email}`);
+        console.error(`    No user data returned for ${user.email}`);
         continue;
       }
 
@@ -143,23 +143,23 @@ async function createTestUsers() {
         });
 
       if (profileError) {
-        console.error(`   ❌ Failed to create profile for ${user.email}:`, profileError.message);
+        console.error(`    Failed to create profile for ${user.email}:`, profileError.message);
         // Rollback: delete auth user
         await supabase.auth.admin.deleteUser(data.user.id);
         continue;
       }
 
-      console.log(`   ✅ Created ${user.email} (ID: ${data.user.id})`);
+      console.log(`    Created ${user.email} (ID: ${data.user.id})`);
       console.log(`      Explicitly created profile with role: ${user.user_metadata.role}`);
 
     } catch (error: any) {
-      console.error(`   ❌ Error creating ${user.email}:`, error.message);
+      console.error(`    Error creating ${user.email}:`, error.message);
     }
   }
 }
 
 async function verifyUsers() {
-  console.log('\n🔍 Verifying test users...');
+  console.log('\n Verifying test users...');
   
   for (const user of testUsers) {
     try {
@@ -168,7 +168,7 @@ async function verifyUsers() {
       const existingUser = users?.users.find(u => u.email === user.email);
       
       if (existingUser) {
-        console.log(`   ✅ ${user.email} exists (ID: ${existingUser.id})`);
+        console.log(`    ${user.email} exists (ID: ${existingUser.id})`);
         
         // Check profile
         const { data: profile, error } = await supabase
@@ -178,22 +178,22 @@ async function verifyUsers() {
           .single();
         
         if (error) {
-          console.error(`   ⚠️  Profile not found for ${user.email}`);
+          console.error(`   ️  Profile not found for ${user.email}`);
         } else {
-          console.log(`   ✅ Profile exists: ${profile.full_name} (${profile.role_type})`);
+          console.log(`    Profile exists: ${profile.full_name} (${profile.role_type})`);
         }
       } else {
-        console.error(`   ❌ ${user.email} not found`);
+        console.error(`    ${user.email} not found`);
       }
     } catch (error: any) {
-      console.error(`   ❌ Error verifying ${user.email}:`, error.message);
+      console.error(`    Error verifying ${user.email}:`, error.message);
     }
   }
 }
 
 async function main() {
-  console.log('🚀 Creating test users for integration tests...');
-  console.log(`📍 Supabase URL: ${SUPABASE_URL}`);
+  console.log(' Creating test users for integration tests...');
+  console.log(` Supabase URL: ${SUPABASE_URL}`);
   
   try {
     // Step 1: Delete existing users
@@ -205,15 +205,15 @@ async function main() {
     // Step 3: Verify users
     await verifyUsers();
     
-    console.log('\n✅ Test users setup complete!');
-    console.log('\n📝 Test credentials:');
+    console.log('\n Test users setup complete!');
+    console.log('\n Test credentials:');
     console.log('   Admin:   test.admin@hospital.com / TestAdmin123!');
     console.log('   Doctor:  test.doctor@hospital.com / TestDoctor123!');
     console.log('   Patient: test.patient@hospital.com / TestPatient123!');
-    console.log('\n🧪 Run tests: npm test -- tests/integration');
+    console.log('\n Run tests: npm test -- tests/integration');
     
   } catch (error: any) {
-    console.error('\n❌ Error:', error.message);
+    console.error('\n Error:', error.message);
     process.exit(1);
   }
 }

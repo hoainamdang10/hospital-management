@@ -23,7 +23,7 @@ interface SchemaInfo {
  * Check all schemas in database
  */
 async function checkSchemas() {
-  console.log('\n📊 Checking Database Schemas...\n');
+  console.log('\n Checking Database Schemas...\n');
   console.log('='.repeat(60));
 
   try {
@@ -46,14 +46,14 @@ async function checkSchemas() {
 
     if (error) {
       // Fallback: Try direct query
-      console.log('⚠️  RPC method not available, trying direct query...\n');
+      console.log('️  RPC method not available, trying direct query...\n');
       
       const { data: schemas, error: schemaError } = await supabase
         .from('information_schema.schemata')
         .select('schema_name');
 
       if (schemaError) {
-        console.log('❌ Cannot query schemas directly.');
+        console.log(' Cannot query schemas directly.');
         console.log('   Please run the following query in Supabase SQL Editor:\n');
         console.log('   ```sql');
         console.log('   SELECT schema_name');
@@ -70,8 +70,8 @@ async function checkSchemas() {
 
     displaySchemas(data as SchemaInfo[]);
   } catch (error) {
-    console.error('❌ Error checking schemas:', error);
-    console.log('\n💡 Please run this query manually in Supabase SQL Editor:\n');
+    console.error(' Error checking schemas:', error);
+    console.log('\n Please run this query manually in Supabase SQL Editor:\n');
     printManualQueries();
   }
 }
@@ -80,10 +80,10 @@ async function checkSchemas() {
  * Display schemas
  */
 function displaySchemas(schemas: SchemaInfo[]) {
-  console.log('\n📋 Available Schemas:\n');
+  console.log('\n Available Schemas:\n');
 
   if (!schemas || schemas.length === 0) {
-    console.log('   ⚠️  No custom schemas found');
+    console.log('   ️  No custom schemas found');
     console.log('   Only default PostgreSQL schemas exist\n');
     return;
   }
@@ -99,10 +99,10 @@ function displaySchemas(schemas: SchemaInfo[]) {
   const hasPatientSchema = schemas.some(s => s.schema_name === 'patient_schema');
   
   if (hasPatientSchema) {
-    console.log('✅ patient_schema EXISTS - Patient Registry Service schema is ready!\n');
+    console.log(' patient_schema EXISTS - Patient Registry Service schema is ready!\n');
   } else {
-    console.log('❌ patient_schema NOT FOUND - Need to run schema.sql\n');
-    console.log('📝 To create patient_schema:');
+    console.log(' patient_schema NOT FOUND - Need to run schema.sql\n');
+    console.log(' To create patient_schema:');
     console.log('   1. Open Supabase SQL Editor');
     console.log('   2. Copy content from: database/schema.sql');
     console.log('   3. Paste and run the SQL script\n');
@@ -118,7 +118,7 @@ function displaySchemas(schemas: SchemaInfo[]) {
     'notification_schema'
   ];
 
-  console.log('📊 Other Service Schemas Status:\n');
+  console.log(' Other Service Schemas Status:\n');
   serviceSchemas.forEach(schemaName => {
     const exists = schemas.some(s => s.schema_name === schemaName);
     const icon = exists ? '✅' : '❌';
@@ -132,7 +132,7 @@ function displaySchemas(schemas: SchemaInfo[]) {
  * Check tables in patient_schema
  */
 async function checkPatientSchemaTables() {
-  console.log('\n📋 Checking patient_schema Tables...\n');
+  console.log('\n Checking patient_schema Tables...\n');
   console.log('='.repeat(60));
 
   try {
@@ -155,7 +155,7 @@ async function checkPatientSchemaTables() {
       'patient_links'
     ];
 
-    console.log('\n📊 Required Tables Status:\n');
+    console.log('\n Required Tables Status:\n');
 
     const tableStatus: Record<string, { exists: boolean; count?: number; error?: string }> = {};
 
@@ -188,9 +188,9 @@ async function checkPatientSchemaTables() {
     requiredTables.forEach(tableName => {
       const status = tableStatus[tableName];
       if (status.exists) {
-        console.log(`   ✅ ${tableName}: EXISTS (${status.count} records)`);
+        console.log(`    ${tableName}: EXISTS (${status.count} records)`);
       } else {
-        console.log(`   ❌ ${tableName}: NOT FOUND`);
+        console.log(`    ${tableName}: NOT FOUND`);
         if (status.error) {
           console.log(`      Error: ${status.error}`);
         }
@@ -204,14 +204,14 @@ async function checkPatientSchemaTables() {
     const totalTables = requiredTables.length;
 
     if (existingTables === totalTables) {
-      console.log(`✅ All tables exist (${existingTables}/${totalTables})\n`);
+      console.log(` All tables exist (${existingTables}/${totalTables})\n`);
       
       // Show data summary
       const totalRecords = Object.values(tableStatus)
         .filter(s => s.exists)
         .reduce((sum, s) => sum + (s.count || 0), 0);
       
-      console.log(`📊 Total Records: ${totalRecords}`);
+      console.log(` Total Records: ${totalRecords}`);
       console.log(`   - Patients: ${tableStatus['patients']?.count || 0}`);
       console.log(`   - Insurance: ${tableStatus['insurance_info']?.count || 0}`);
       console.log(`   - Emergency Contacts: ${tableStatus['emergency_contacts']?.count || 0}`);
@@ -220,21 +220,21 @@ async function checkPatientSchemaTables() {
       console.log('');
 
       if (totalRecords === 0) {
-        console.log('💡 Database is empty. Run seed script to add sample data:');
+        console.log(' Database is empty. Run seed script to add sample data:');
         console.log('   npm run db:seed\n');
       }
     } else {
-      console.log(`❌ Missing tables (${existingTables}/${totalTables})\n`);
-      console.log('📝 To create tables:');
+      console.log(` Missing tables (${existingTables}/${totalTables})\n`);
+      console.log(' To create tables:');
       console.log('   1. Open Supabase SQL Editor');
       console.log('   2. Copy content from: database/schema.sql');
       console.log('   3. Paste and run the SQL script\n');
     }
 
   } catch (error) {
-    console.log('❌ Cannot check patient_schema tables');
+    console.log(' Cannot check patient_schema tables');
     console.log('   Reason: Schema might not exist or no access\n');
-    console.log('💡 Run this query in Supabase SQL Editor to check:\n');
+    console.log(' Run this query in Supabase SQL Editor to check:\n');
     console.log('   ```sql');
     console.log('   SELECT table_name');
     console.log('   FROM information_schema.tables');
@@ -247,7 +247,7 @@ async function checkPatientSchemaTables() {
  * Print manual queries for Supabase SQL Editor
  */
 function printManualQueries() {
-  console.log('📝 Manual Queries for Supabase SQL Editor:\n');
+  console.log(' Manual Queries for Supabase SQL Editor:\n');
   console.log('='.repeat(60));
   
   console.log('\n1️⃣  Check All Schemas:\n');
@@ -281,12 +281,12 @@ function printManualQueries() {
  * Main function
  */
 async function main() {
-  console.log('\n🔍 Database Status Check - Patient Registry Service\n');
+  console.log('\n Database Status Check - Patient Registry Service\n');
   console.log('='.repeat(60));
 
   // Validate config
   if (!config.supabaseUrl || !config.supabaseKey) {
-    console.log('\n❌ Missing Supabase credentials!');
+    console.log('\n Missing Supabase credentials!');
     console.log('   Please check .env file in backend/services-v2/\n');
     console.log('   Required variables:');
     console.log('   - SUPABASE_URL');
@@ -294,7 +294,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('\n✅ Supabase Configuration:');
+  console.log('\n Supabase Configuration:');
   console.log(`   URL: ${config.supabaseUrl}`);
   console.log(`   Key: ${config.supabaseKey.substring(0, 20)}...`);
   console.log('');
@@ -307,13 +307,13 @@ async function main() {
 
   // Print manual queries
   console.log('\n' + '='.repeat(60));
-  console.log('\n💡 Need to run queries manually?');
+  console.log('\n Need to run queries manually?');
   console.log('   See queries above or run: npm run test:connection\n');
 }
 
 // Run
 main().catch((error) => {
-  console.error('\n💥 Unexpected error:', error);
+  console.error('\n Unexpected error:', error);
   process.exit(1);
 });
 
