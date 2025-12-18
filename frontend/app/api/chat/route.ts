@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildDynamicSystemPrompt } from '@/components/ChatBot/contextPromptBuilder';
 import type { ChatContext } from '@/components/ChatBot/types';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { Content, Part } from '@google/generative-ai';
 
 interface FunctionCall {
   name: string;
@@ -24,7 +26,7 @@ interface ChatMessageParam {
 
 type AuthorizedFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
-type GroqResponse = {
+type ModelResponse = {
   choices: Array<{
     message: {
       role: string;
@@ -122,7 +124,8 @@ const functionDeclarations = [
       properties: {
         status: {
           type: 'string',
-          enum: ['upcoming', 'past', 'cancelled', 'all'],
+          format: 'enum',
+          enum: ['upcoming', 'past', 'cancelled', 'scheduled', 'confirmed', 'completed', 'all'],
           description: 'Trạng thái lịch hẹn cần xem',
         },
       },
@@ -176,6 +179,10 @@ const functionDeclarations = [
           type: 'string',
           description: 'User ID (UUID) nếu muốn xem hồ sơ cụ thể',
         },
+        patientId: {
+          type: 'string',
+          description: 'Mã bệnh nhân (PAT-xxxxxx-xxx) nếu muốn xem hồ sơ theo patientId',
+        },
       },
       required: [],
     },
@@ -228,10 +235,7 @@ const functionDeclarations = [
   },
 ];
 
-const groqTools = functionDeclarations.map((fn) => ({
-  type: 'function',
-  function: fn,
-}));
+const geminiTools = [{ functionDeclarations }];
 
 export async function POST(req: NextRequest) {
   try {
@@ -246,13 +250,13 @@ export async function POST(req: NextRequest) {
     const effectiveUserId = userId && typeof userId === 'string' ? userId : null;
     const effectivePatientId = patientId && typeof patientId === 'string' ? patientId : null;
 
-    if (!process.env.GROQ_API_KEY) {
-      return NextResponse.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 });
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
     }
 
     const baseUrl = resolveApiBaseUrl();
     const authorizedFetch = createAuthorizedFetch(req);
-    const groqModel = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+    const geminiModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
     const patientProfileForContext = await fetchNormalizedPatientProfile(
       effectiveUserId,
       effectivePatientId,
@@ -297,6 +301,22 @@ export async function POST(req: NextRequest) {
     if (patientProfileForContext) {
       contextPrompt += `\n\n[HỒ SƠ BỆNH NHÂN]\n${buildPatientProfileSummary(patientProfileForContext)}`;
     }
+
+    const hasUserContextMessage = messages.some(
+      (msg: any) => msg.role === 'assistant' && msg.content?.includes('THÔNG TIN NGỮ CẢNH')
+    );
+    if (!hasUserContextMessage) {
+      const contextInfo = JSON.stringify(
+        {
+          currentUserId: effectiveUserId,
+          currentPatientId: effectivePatientId,
+        },
+        null,
+        2
+      );
+      contextPrompt += `\n\n[THÔNG TIN HỆ THỐNG]\n${contextInfo}`;
+    }
+
     const fullSystemPrompt = `${SYSTEM_PROMPT}
 
 ---
@@ -311,26 +331,6 @@ Hãy sử dụng thông tin ngữ cảnh trên để đưa ra câu trả lời p
       content: msg.content,
     }));
 
-    const hasUserContextMessage = messages.some(
-      (msg: any) => msg.role === 'assistant' && msg.content?.includes('THÔNG TIN NGỮ CẢNH')
-    );
-
-    if (!hasUserContextMessage) {
-      const contextInfo = JSON.stringify(
-        {
-          currentUserId: effectiveUserId,
-          currentPatientId: effectivePatientId,
-        },
-        null,
-        2
-      );
-
-      formattedHistory.unshift({
-        role: 'assistant',
-        content: `Thông tin hệ thống: ${contextInfo}`,
-      });
-    }
-
     let conversation: ChatMessageParam[] = [
       { role: 'system', content: fullSystemPrompt },
       ...formattedHistory,
@@ -341,12 +341,12 @@ Hãy sử dụng thông tin ngữ cảnh trên để đưa ra câu trả lời p
     const maxIterations = 5;
 
     while (iteration < maxIterations) {
-      const groqResponse = await callGroqModel(conversation, groqModel);
-      const choice = groqResponse.choices?.[0];
+      const modelResponse = await callGeminiModel(conversation, geminiModel);
+      const choice = modelResponse.choices?.[0];
       const message = choice?.message;
 
       if (!message) {
-        throw new Error('Groq API returned empty response');
+        throw new Error('Gemini API returned empty response');
       }
 
       const toolCall = message.tool_calls?.[0];
@@ -410,6 +410,68 @@ Hãy sử dụng thông tin ngữ cảnh trên để đưa ra câu trả lời p
   }
 }
 
+function toGeminiContents(conversation: ChatMessageParam[]): Content[] {
+  const contents: Content[] = [];
+
+  const push = (role: 'user' | 'model', parts: Part[]) => {
+    if (!parts.length) return;
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts.push(...parts);
+      return;
+    }
+    contents.push({ role, parts });
+  };
+
+  for (const msg of conversation) {
+    if (msg.role === 'system') continue;
+
+    if (msg.role === 'user') {
+      push('user', [{ text: msg.content ?? '' }]);
+      continue;
+    }
+
+    if (msg.role === 'assistant') {
+      const parts: Part[] = [];
+      if (msg.content) parts.push({ text: msg.content });
+
+      if (msg.tool_calls?.length) {
+        for (const toolCall of msg.tool_calls) {
+          parts.push({
+            functionCall: {
+              name: toolCall.function.name,
+              args: safeParseArgs(toolCall.function.arguments),
+            },
+          });
+        }
+      }
+
+      push('model', parts);
+      continue;
+    }
+
+    if (msg.role === 'tool' && msg.name) {
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(msg.content || '{}');
+      } catch {
+        parsed = { raw: msg.content };
+      }
+
+      push('user', [
+        {
+          functionResponse: {
+            name: msg.name,
+            response: parsed && typeof parsed === 'object' ? parsed : { value: parsed },
+          },
+        },
+      ]);
+    }
+  }
+
+  return contents;
+}
+
 async function handleFunctionCall(
   functionCall: FunctionCall,
   userId: string | null,
@@ -424,7 +486,9 @@ async function handleFunctionCall(
     switch (name) {
       case 'searchAvailableDoctors': {
         const { department } = args;
-        let searchTerm = null;
+        let searchTerm: string | null = null;
+        let departmentCode: string | null = null;
+        let departmentId: string | null = null;
 
         if (department) {
           const deptResponse = await authorizedFetch(`${baseUrl}/api/v1/departments`);
@@ -437,11 +501,17 @@ async function handleFunctionCall(
               (d.nameVi && d.nameVi.toLowerCase().includes(department.toLowerCase()))
           );
 
-          searchTerm = dept?.nameEn || department;
+          departmentCode = dept?.code || null;
+          departmentId = dept?.id || null;
+          searchTerm = dept?.nameEn || dept?.nameVi || department;
         }
 
         const staffUrl = new URL(`${baseUrl}/api/v1/staff/search`);
-        if (searchTerm) {
+        if (departmentCode) {
+          staffUrl.searchParams.set('departmentCode', departmentCode);
+        } else if (departmentId) {
+          staffUrl.searchParams.set('departmentId', departmentId);
+        } else if (searchTerm) {
           staffUrl.searchParams.set('department', searchTerm);
         }
         staffUrl.searchParams.set('staffType', 'doctor');
@@ -477,47 +547,134 @@ async function handleFunctionCall(
         const { doctorId, date } = args;
 
         const response = await authorizedFetch(
-          `${baseUrl}/api/v2/appointments/providers/${doctorId}/available-slots?date=${date}`
+          `${baseUrl}/api/v1/appointments/providers/${doctorId}/available-slots?date=${date}`
         );
-        const slots = await response.json();
+        const payload = await response.json();
+
+        if (!response.ok || payload?.success === false) {
+          return {
+            success: false,
+            doctorId,
+            date,
+            message:
+              payload?.error?.message ||
+              payload?.message ||
+              `Không lấy được slot trống (HTTP ${response.status})`,
+          };
+        }
+
+        const availableSlots = payload?.data?.availableSlots || payload?.availableSlots || payload;
 
         return {
           success: true,
-          slots: Array.isArray(slots)
-            ? slots.map((slot: any) => ({
-                id: slot.id,
-                startTime: slot.startTime || slot.start_time,
-                endTime: slot.endTime || slot.end_time,
-                available: slot.available !== false,
+          slots: Array.isArray(availableSlots)
+            ? availableSlots.map((slot: any) => ({
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                appointmentDate: slot.appointmentDate,
+                appointmentTime: slot.appointmentTime,
+                formattedTime: slot.formattedTime,
+                dayOfWeek: slot.dayOfWeek,
+                isAvailable: slot.isAvailable !== false,
               }))
             : [],
+          totalSlots: payload?.data?.totalSlots ?? payload?.totalSlots,
           date,
           doctorId,
         };
       }
 
       case 'getMyAppointments': {
-        if (!userId) {
+        const toLocalDate = (value: Date) => {
+          const year = value.getFullYear();
+          const month = String(value.getMonth() + 1).padStart(2, '0');
+          const day = String(value.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        let targetPatientId = patientId;
+        if (!targetPatientId && userId) {
+          const normalizedProfile = await fetchNormalizedPatientProfile(
+            userId,
+            null,
+            baseUrl,
+            authorizedFetch
+          );
+          targetPatientId = normalizedProfile?.patientId || null;
+        }
+
+        if (!targetPatientId) {
           return {
             success: false,
-            message: 'Bạn cần đăng nhập để xem lịch hẹn',
+            message: 'Chưa xác định được bệnh nhân để xem lịch hẹn (thiếu patientId)',
           };
         }
 
-        const { status } = args;
-        const url = new URL(`${baseUrl}/api/v2/patients/${userId}/appointments`);
-        if (status && status !== 'all') {
-          url.searchParams.set('status', status.toUpperCase());
+        const rawStatus = typeof args.status === 'string' ? args.status.toLowerCase() : '';
+        const url = new URL(`${baseUrl}/api/v1/appointments`);
+        url.searchParams.set('patientId', targetPatientId);
+        url.searchParams.set('page', '1');
+        url.searchParams.set('pageSize', '50');
+
+        const today = toLocalDate(new Date());
+        if (rawStatus === 'upcoming') {
+          url.searchParams.set('startDate', today);
+        } else if (rawStatus === 'past') {
+          url.searchParams.set('endDate', today);
+        } else if (rawStatus && rawStatus !== 'all') {
+          const statusMap: Record<string, string> = {
+            cancelled: 'CANCELLED',
+            scheduled: 'SCHEDULED',
+            confirmed: 'CONFIRMED',
+            completed: 'COMPLETED',
+          };
+          const mapped = statusMap[rawStatus] || rawStatus.toUpperCase();
+          url.searchParams.set('status', mapped);
         }
 
         const response = await authorizedFetch(url.toString());
         const data = await response.json();
-        const appointments = Array.isArray(data) ? data : data.data || [];
+
+        if (!response.ok || data?.success === false) {
+          return {
+            success: false,
+            patientId: targetPatientId,
+            message:
+              data?.error?.message ||
+              data?.message ||
+              `Không lấy được lịch hẹn (HTTP ${response.status})`,
+          };
+        }
+
+        const payload = data?.data || data;
+        const appointments = Array.isArray(payload?.appointments)
+          ? payload.appointments
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        const filteredAppointments =
+          rawStatus === 'upcoming'
+            ? appointments.filter((apt: any) => {
+                const status = (apt.status || '').toString().toUpperCase();
+                return status !== 'CANCELLED' && status !== 'COMPLETED';
+              })
+            : rawStatus === 'past'
+              ? appointments.filter((apt: any) => {
+                  const status = (apt.status || '').toString().toUpperCase();
+                  return status === 'CANCELLED' || status === 'COMPLETED';
+                })
+              : appointments;
 
         return {
           success: true,
-          appointments: appointments,
-          count: appointments.length,
+          patientId: targetPatientId,
+          appointments: filteredAppointments,
+          count: filteredAppointments.length,
+          page: payload?.page,
+          pageSize: payload?.pageSize,
+          total: payload?.total,
+          totalPages: payload?.totalPages,
         };
       }
 
@@ -559,7 +716,13 @@ async function handleFunctionCall(
         }
 
         const staffUrl = new URL(`${baseUrl}/api/v1/staff/search`);
-        staffUrl.searchParams.set('department', dept.nameEn || dept.nameVi);
+        if (dept.code) {
+          staffUrl.searchParams.set('departmentCode', dept.code);
+        } else if (dept.id) {
+          staffUrl.searchParams.set('departmentId', dept.id);
+        } else {
+          staffUrl.searchParams.set('department', dept.nameEn || dept.nameVi);
+        }
         staffUrl.searchParams.set('staffType', 'doctor');
         staffUrl.searchParams.set('status', 'active');
         staffUrl.searchParams.set('limit', '100');
@@ -614,7 +777,13 @@ async function handleFunctionCall(
         }
 
         const staffUrl = new URL(`${baseUrl}/api/v1/staff/search`);
-        staffUrl.searchParams.set('department', dept.nameEn || dept.nameVi);
+        if (dept.code) {
+          staffUrl.searchParams.set('departmentCode', dept.code);
+        } else if (dept.id) {
+          staffUrl.searchParams.set('departmentId', dept.id);
+        } else {
+          staffUrl.searchParams.set('department', dept.nameEn || dept.nameVi);
+        }
         staffUrl.searchParams.set('staffType', 'doctor');
         staffUrl.searchParams.set('status', 'active');
         staffUrl.searchParams.set('limit', '20');
@@ -733,25 +902,56 @@ async function handleFunctionCall(
           `${baseUrl}/api/v1/billing/invoices/patient/${targetPatientId}`
         );
         const data = await response.json();
-        let invoices = [];
-        if (Array.isArray(data)) {
-          invoices = data;
-        } else if (Array.isArray(data.invoices)) {
-          invoices = data.invoices;
-        } else if (Array.isArray(data.data)) {
-          invoices = data.data;
+
+        if (!response.ok) {
+          return {
+            success: false,
+            patientId: targetPatientId,
+            message:
+              (data?.error?.message || data?.message || data?.error)?.toString?.() ||
+              `Không lấy được hóa đơn (HTTP ${response.status})`,
+          };
         }
 
+        const invoices = Array.isArray(data?.invoices)
+          ? data.invoices
+          : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data)
+              ? data
+              : [];
+
         const pending = invoices.filter((invoice: any) => {
-          const status = (invoice.status || invoice.paymentStatus || '').toString().toUpperCase();
-          return status === 'PENDING' || status === 'UNPAID';
+          const status = (invoice.status || invoice.paymentStatus || '').toString().toLowerCase();
+          const outstanding = Number(
+            invoice.outstandingAmount ??
+              invoice.amountDue ??
+              invoice.totalDue ??
+              invoice.totalAmount ??
+              0
+          );
+          const isClosed =
+            status === 'paid' ||
+            status === 'cancelled' ||
+            status === 'refunded' ||
+            status === 'expired';
+          if (isClosed) return false;
+          if (Number.isFinite(outstanding) && outstanding > 0) return true;
+          return status === 'pending' || status === 'partially_paid' || status === 'overdue';
         });
 
         const limit = typeof args.limit === 'number' ? args.limit : undefined;
         const limitedPending = limit ? pending.slice(0, limit) : pending;
         const totalDue = pending.reduce(
           (sum: number, invoice: any) =>
-            sum + Number(invoice.amountDue ?? invoice.totalDue ?? invoice.totalAmount ?? 0),
+            sum +
+            Number(
+              invoice.outstandingAmount ??
+                invoice.amountDue ??
+                invoice.totalDue ??
+                invoice.totalAmount ??
+                0
+            ),
           0
         );
 
@@ -843,49 +1043,54 @@ function serializeCookies(req: NextRequest): string | null {
   return serialized.length > 0 ? serialized : null;
 }
 
-async function callGroqModel(
+async function callGeminiModel(
   conversation: ChatMessageParam[],
   model: string
-): Promise<GroqResponse> {
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.7,
-      messages: conversation.map((msg) => {
-        const baseMsg: any = {
-          role: msg.role,
-          content: msg.content,
-        };
-
-        if (msg.name) {
-          baseMsg.name = msg.name;
-        }
-
-        if (msg.tool_call_id) {
-          baseMsg.tool_call_id = msg.tool_call_id;
-        }
-
-        if (msg.tool_calls) {
-          baseMsg.tool_calls = msg.tool_calls;
-        }
-
-        return baseMsg;
-      }),
-      tools: groqTools,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Groq API error: ${response.status} - ${errorData}`);
+): Promise<ModelResponse> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
   }
 
-  return response.json();
+  const systemInstruction =
+    conversation.find((msg) => msg.role === 'system')?.content ||
+    'Bạn là AI Assistant của hệ thống quản lý bệnh viện.';
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const geminiModel = genAI.getGenerativeModel({ model });
+  const result = await geminiModel.generateContent({
+    contents: toGeminiContents(conversation),
+    systemInstruction,
+    tools: geminiTools as any,
+    generationConfig: { temperature: 0.7 },
+  });
+
+  const text = result.response.text();
+  const calls = result.response.functionCalls?.() || [];
+
+  const tool_calls =
+    calls && calls.length
+      ? calls.map((call, index) => ({
+          id: `gemini_${Date.now()}_${index}`,
+          type: 'function' as const,
+          function: {
+            name: call.name,
+            arguments: JSON.stringify(call.args ?? {}),
+          },
+        }))
+      : undefined;
+
+  return {
+    choices: [
+      {
+        message: {
+          role: 'assistant',
+          content: text ?? null,
+          tool_calls,
+        },
+      },
+    ],
+  };
 }
 
 function safeParseArgs(args: string): Record<string, any> {
